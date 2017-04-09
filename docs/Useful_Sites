@@ -1,0 +1,19 @@
+The below, plus maybe bugging people on /r/emudev should be more than enough to make a working CHIP8 emulator.
+
+Matthew Mikolay has a nice write up here:
+http://mattmik.com/files/chip8/mastering/chip8.html
+
+Laurence Muller also has a nice write up the CHIP8 here:
+http://www.multigesture.net/articles/how-to-write-an-emulator-chip-8-interpreter/
+
+A Reddit Thread with a good collection of documents:
+https://www.reddit.com/r/EmuDev/comments/5so1bo/chip8_emu_questions/
+
+Web Archive has the whole of chip8.com saved:
+https://web.archive.org/web/20161002171937/http://chip8.com/
+
+chip8.com's rom collection:
+https://web.archive.org/web/20161020052454/http://chip8.com/downloads/Chip-8%20Pack.zip
+
+Wiki:
+https://en.wikipedia.org/wiki/CHIP-8
