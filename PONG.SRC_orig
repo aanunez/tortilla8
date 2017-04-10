@@ -13,7 +13,7 @@
 ;
 ;        OK folks here it is!  PONG for the HP48SX written in CHIP-48.
 ;        Some things you should know before you start playing are...
-;        1)  This is my first attempt at programming in CHIP-48, so I 
+;        1)  This is my first attempt at programming in CHIP-48, so I
 ;            know there are probably a few things that could have been
 ;            done better.
 ;        2)  The game never ends.  It keeps score, but only up to 9 for
@@ -23,12 +23,12 @@
 ;        3)  It is kind of slow, but then there are two paddles and ball
 ;            moving around all at once.
 ;        4)  The player who got the last point gets the serve...
-;        5)  Keys 7 and 4 (on the HP48) control the up and down of the 
+;        5)  Keys 7 and 4 (on the HP48) control the up and down of the
 ;            left player and the / and * keys control the up and down of
 ;            the right player.
 ;
-;        I think that's about it, so have fun!  
-; 
+;        I think that's about it, so have fun!
+;
 ; This is a detailed breakdown of the game, sooooooo, if anybody wants to
 ; make it better, or change it in some way, it might be a little easier.
 ; Also, about half of the code was in some way extracted from the BRIX
@@ -109,7 +109,7 @@ Padl_Loop:
     ADD VD, #FE ; Subtract 2 from Y coord. of right paddle
 
     LD  V0, #0D ; Set V0 to KEY D
-    SKNP V0     ; Skip next instruction if KEY in D is not pressed 
+    SKNP V0     ; Skip next instruction if KEY in D is not pressed
     ADD VD, 2   ; Add 2 to Y coord. of right paddle
 
     LD  V0, 31    ; Set V0 to max Y coord.  | These three lines are here to
@@ -132,7 +132,7 @@ Padl_Loop:
     JP  Left_Side  ;
 
     SNE V6, 63     ; Skip next instruction if ball not at right
-    JP  Right_Side ; 
+    JP  Right_Side ;
 
 Ball_Loop:
     SNE V7, 31  ; Skip next instruction if ball not at bottom
@@ -235,3 +235,13 @@ Ball:
 Score:
     DW #0000
     DW #0000
+
+Test:
+    DW #0000
+    DW #0000
+    DB #0000
+    DD #0000
+    DD #0000
+    DB #0000
+
+
