@@ -3,6 +3,7 @@
 import sys
 import os
 import argparse
+from collections import defaultdict
 
 # Features:
 # Generate code only
@@ -17,53 +18,132 @@ import argparse
 # -s, --strip           *Need param? Better name?
 #
 
+# Issues:
+#   No support for "$" notation
+#   Tags and preproc commands can't be on the same line.
+#
 
-def assemble(file_path):
-    print("Nope")
+PRE_PROC=("ifdef","else","endif","option","align","equ","=")
+DATA_DEFINE=("db","dw","dd")
 
 def util_strip_comments(file_handle, outpout_handler=None):
     for line in file_handle:
         if line.isspace(): continue
-        if line.lstrip().startswith(";"): continue
-        line = line.rstrip().split(";")[0].rstrip()
+        if line_is_comment(line): continue
+        line = line.rstrip().split(';')[0].rstrip()
         if outpout_handler==None:
             print(line)
         else:
             outpout_handler.write(line, end='\n')
 
 def util_add_listing(file_handle, outpout_handler=None):
+    # TODO check if db, dd, dw and calc mem correctly.
     mem_addr = 0x0200
     for line in file_handle:
-        if line.isspace():
-            line = (" " * 10) + line
-        elif line.lstrip().startswith(";"):
-            line = (" " * 10) + line
-        elif ":" in line.split(";")[0]:
-            line = (" " * 10) + line
+        mem_inc = 2
+        if line.isspace() or line_is_comment(line) or line_is_tag(line) or line_is_preproc(line):
+            line = (' ' * 10) + line
         else:
-            line = format(mem_addr, '#06x') + "    " + line
-            mem_addr += 2
+            #Check here
+            line = format(mem_addr, '#06x') + '    ' + line
+            mem_addr += mem_inc
         if outpout_handler==None:
-            print(line, end="")
+            print(line, end='')
         else:
             outpout_handler.write(line)
 
-if __name__ == "__main__":
-    #parser = argparse.ArgumentParser(description='Description of your program')
-    #parser.add_argument('-i','--input', help='File to assemble', required=True)
-    #parser.add_argument('-i','--input', help='File to assemble', required=True)
-    #parser.add_argument('-i','--input', help='File to assemble', required=True)
-    #parser.add_argument('-i','--input', help='File to assemble', required=True)
+def tokenize(line):
+    token = dict()
+    line = line.lstrip()
 
-    #if len(sys.argv) != 3:
-    #    print("Usage: " + sys.argv[0] + "<input> <output>")
-    #    sys.exit(1)
+    if line is '':
+        token["isEmpty"] = True
+        return token
 
-    #if not os.path.isfile(sys.argv[1]):
-    #    print("File does not exist.")
-    #    sys.exit(1)
+    # Remove Blanks and Comment only lines
+    if line.startswith(';'):
+        token["comment"] = line.rstrip()
+        token["isEmpty"] = True
+        return token
 
+    token["isEmpty"] = False
+
+    # Check for any comments
+    token["comment"] = line.split(';')[1:]
+    line = line.split(';')[0].rstrip()
+
+    # Breakout into array
+    line_array = list(filter(None, line.split(' ')))
+
+    # Check if tag exists, must be left most
+    if line_array[0].endswith(':'):
+        token["tag"] = line_array[0]
+        line_array.pop(0)
+
+    # Check for any pre-processor commands
+    for i in line_array:
+        if i.lower() in PRE_PROC:
+            token["pre"] = " ".join(line_array)
+            return token
+
+    # Either asm or data declare
+    token["asm"] = " ".join(line_array)
+
+    return token
+
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Description of your program')
+    parser.add_argument('-i','--input', help='File to assemble', required=True)
+
+def main(args):
+    print("Nope")
+
+if __name__ == '__main__':
     with open(sys.argv[1]) as FH:
-        #util_strip_comments(sys.argv[1])
-        util_add_listing(FH)
-    #assemble(sys.argv[1])
+        for line in FH:
+            token = tokenize(line)
+            if not token["isEmpty"]:
+                if "pre" in token: print(token["pre"])
+                if "asm" in token: print(token["asm"])
+                if "tag" in token: print(token["tag"])
+        #util_add_listing(FH)
+    #main(parse_args())
+
+
+
+############################################################################################
+
+
+
+
+def is_line_addressable(line):
+    return line.isspace() or line_is_comment(line) or line_is_tag(line) or line_is_preproc(line)
+
+def util_strip_preproc(file_handle, outpout_handler=None):
+    print("Nope")
+
+def line_is_comment(line):
+    '''Returns true if the line contains ONLY a comment'''
+    return line.lstrip().startswith(';')
+
+def line_is_tag(line):
+    '''Returns true if the line contains ONLY a memory tag (trailing comments are fine).'''
+    return line.split(';')[0].rstrip().endswith(':')
+
+def line_contains_tag(line):
+    '''_'''
+    return line.split(' ')[0].endswith(':')
+
+def line_is_preproc(line):
+    '''Returns true if the line contains ONLY a pre-processor command'''
+    if line_contains_tag(line): return False
+    if '=' in line.split(';')[0] or 'equ' in line.split(';')[0].lower(): return True
+    return line.lstrip().split(' ')[0].lower() in PRE_PROC
+
+def line_contains_preproc(line):
+    return '=' in line.split(';')[0] or 'equ' in line.split(';')[0].lower()
+
+
+
