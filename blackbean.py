@@ -33,7 +33,7 @@ import argparse
 #
 
 PRE_PROC=("ifdef","else","endif","option","align","equ","=")
-DATA_DEFINE={"db":1,"dw":2,"dd":4}
+DATA_DECLARE={"db":1,"dw":2,"dd":4}
 REGISTERS={ "v0":0x0,"v1":0x1,"v2":0x2,"v3":0x3,
             "v4":0x4,"v5":0x5,"v6":0x6,"v7":0x7,
             "v8":0x8,"v9":0x9,"va":0xA,"vb":0xB,
@@ -107,22 +107,50 @@ class blackbean:
             if not line_array:
                 return tokens
 
-        # Check if another tag is in the line
+        # If there are additional tags raise error
         if ':' in ''.join(line_array):
-            print('TODO')
-            #TODO raise error, found another tag
+            #TODO raise error
+            print("ERROR: Multiple Memory Tags found on same line.")
 
         # Check for any pre-processor commands
-        for i in line_array:
-            if i.lower() in PRE_PROC:
-                tokens['pre'] = ' '.join(line_array)
+        #TODO Pre proc directives are not respected right now
+        for i,lex in enumerate(line_array):
+            if lex.lower() in PRE_PROC:
+                tokens['preProcess'] = ' '.join(line_array)
+                line_array.pop(i)
                 #TODO continue to tokenize
                 return tokens
 
-        # Either asm or data declare
-        #TODO continue to tokenize
-        tokens['asm'] = " ".join(line_array)
+        # Check for data declarations
+        if line_array[0].lower() in DATA_DECLARE:
+            tokens['dataType'] = DATA_DECLARE[line_array[0].lower()]
+            line_array.pop(0)
+            if not line_array:
+                #TODO raise error
+                print("ERROR: Expected data declaration.")
+            ddargs = ''.join(line_array).split(',')
+            dec = []
+            for arg in ddargs:
+                if arg[0] is '#':
+                    #TODO wrap int parse in try
+                    val = int(arg[1:],16)
+                else:
+                    val = int(arg)
+                if val > pow(256,tokens['dataType']):
+                    #TODO raise error
+                    print("ERROR: Data declaration overflow.")
+                dec.append(val)
+            tokens['declarations']=dec
+            return tokens
 
+        # Check for assembly instruction
+        if line_array[0].lower in OP_CODES:
+            #TODO continue to tokenize
+            tokens['asm'] = " ".join(line_array)
+            return tokens
+
+        # Trash
+        print("ERROR: Unkown command")
         return tokens
 
 def util_strip_comments(file_path, outpout_handler=None):
@@ -137,7 +165,6 @@ def util_strip_comments(file_path, outpout_handler=None):
                 outpout_handler.write(line, end='\n')
 
 def util_add_listing(file_path, outpout_handler=None):
-    # TODO check if db, dd, dw and calc mem correctly.
     mem_addr = 0x0200
     with open(file_path) as fhandler:
         for line in fhandler:
