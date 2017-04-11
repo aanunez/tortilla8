@@ -88,14 +88,13 @@ class blackbean:
     def reset(self):
         __init__()
 
-    def assemble(self, file_path):
-        with open(file_path) as fhandler:
-            for line in fhandler:
-                t = self.tokenize(line)
-                self.calc_mem_address(t)
-                self.collection.append(t)
-            for t in self.collection:
-                self.calc_opcode(t)
+    def assemble(self, file_handler):
+        for line in file_handler:
+            t = self.tokenize(line)
+            self.calc_mem_address(t)
+            self.collection.append(t)
+        for t in self.collection:
+            self.calc_opcode(t)
 
     def print_listing(self):
         for line in self.collection:
@@ -311,7 +310,8 @@ def main(args):
 if __name__ == '__main__':
     #util_add_listing(sys.argv[1])
     bb = blackbean()
-    bb.assemble(sys.argv[1])
+    with open(sys.argv[1]) as FH:
+        bb.assemble(sys.argv[1])
     bb.print_listing()
     sys.exit(0)
     with open(sys.argv[1]) as FH:
@@ -322,7 +322,6 @@ if __name__ == '__main__':
                 if "tag" in token: print(token["tag"])
         #util_add_listing(FH)
     #main(parse_args())
-
 
 
 
