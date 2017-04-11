@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import os
 import sys
 import argparse
 
@@ -96,15 +97,27 @@ class blackbean:
         for t in self.collection:
             self.calc_opcode(t)
 
-    def print_listing(self):
+    def print_listing(self, file_handler):
         for line in self.collection:
             if line.get('hex'):
-                print(format(line['address'], '#06x') + (4*' ') + format(line['hex'], '#06x') + (4*' ') + line['original'], end='')
+                form_line = format(line['address'], '#06x') + (4*' ') + format(line['hex'], '#06x') + (4*' ') + line['original']
             elif line.get('dataType'):
                 #TODO print out data declares as word grouping
-                print(format(line['address'], '#06x') + (14*' ') + line['original'], end='')
+                form_line = format(line['address'], '#06x') + (14*' ') + line['original']
             else:
-                print((' ' * 20) + line['original'], end="")
+                form_line = (' ' * 20) + line['original']
+            if file_handler:
+                file_handler.write(form_line)
+            else:
+                print(form_line, end='')
+
+    def print_strip(self, file_handler):
+        for line in self.collection:
+            if line['isEmpty']: continue
+            if file_handler:
+                file_handler.write(line['original'].split(';')[0].rstrip() + '\n')
+            else:
+                print(line['original'].split(';')[0].rstrip(), end='')
 
     def export_binary(self, file_path):
         print("TODO")
@@ -302,26 +315,50 @@ def util_add_listing(file_path, outpout_handler=None):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Description of your program')
-    parser.add_argument('-i','--input', help='File to assemble', required=True)
+    parser.add_argument('input', help='Input file to assemble')
+    parser.add_argument('-i','--input', help='Input file to assemble')
+    parser.add_argument('-o','--output',help='Binary file for output.')
+    parser.add_argument('-l','--list',  help='Generate listing file',action='store_true')
+    parser.add_argument('-s','--strip', help='Strip comments',action='store_true')
+    opts = parser.parse_args()
 
-def main(args):
-    print("Nope")
+    if not opts.input:
+        raise "No file to assemble."
+        sys.exit(1)
+    if not os.path.isfile(opts.input):
+        raise "No such file."
+        sys.exit(1)
+    if not opts.output:
+        if opts.input.endswith('.src'):
+            opts.output = opts.input[:-4]
+        else:
+            opts.output = opts.input
+
+    return opts
+
+def main(opts):
+    bb = blackbean()
+    with open(opts.input) as FH:
+        bb.assemble(FH)
+    if opts.list:
+        with open(opts.output + '.lst', 'w+') as FH:
+            bb.print_listing(FH)
+    if opts.strip:
+        with open(opts.output + '.strip', 'w+') as FH:
+            bb.print_strip(FH)
+    if opts.input == opts.output:
+        with open(opts.output + '.bin', 'w+') as FH:
+            bb.export_binary(FH)
+    else:
+        with open(opts.output, 'w+') as FH:
+            bb.export_binary(FH)
 
 if __name__ == '__main__':
-    #util_add_listing(sys.argv[1])
-    bb = blackbean()
-    with open(sys.argv[1]) as FH:
-        bb.assemble(sys.argv[1])
-    bb.print_listing()
-    sys.exit(0)
-    with open(sys.argv[1]) as FH:
-        for line in FH:
-            token = tokenize(line)
-            if not token["isEmpty"]:
-                if "asm" in token: print(token["asm"])
-                if "tag" in token: print(token["tag"])
-        #util_add_listing(FH)
-    #main(parse_args())
+    main(parse_args())
+
+
+
+
 
 
 
