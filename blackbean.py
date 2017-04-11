@@ -18,10 +18,6 @@ import argparse
 
 # Issues:
 #   No support for "$" notation
-#
-# Assumes:
-#   Tags are at the start of the line
-#   Pre proc commands don't share a line with asm
 
 # Line Properties:
 #   isEmpty    - bool
@@ -29,55 +25,58 @@ import argparse
 #   comment    - comment for the line
 #   tag        - mem tag for the line
 #   preProcess - Whole line, not used right now
+#   address    - If asm or dd then address is populated
 #   dataType   - 1,2,4
 #       declarations - [list of data decl]
-#   asm
+#   instruction
+#       arguments - [list of args]
 
 #Opcode reminders: SHR, SHL, XOR, and SUBN/SM are NOT offically supported by original spec
 #                  SHR and SHL may or may not move Y (Shifted) into X or just shift X.
 
-HEX_ESC = '#'
+HEX_ESC='#'
+ARG_SUB={0:'x',1:'y',2:'z'}
 PRE_PROC=('ifdef','else','endif','option','align','equ','=')
 DATA_DECLARE={'db':1,'dw':2,'dd':4}
-REGISTERS={ 'v0':0x0,'v1':0x1,'v2':0x2,'v3':0x3,   #Pretty sure we don't need this...
-            'v4':0x4,'v5':0x5,'v6':0x6,'v7':0x7,
-            'v8':0x8,'v9':0x9,'va':0xA,'vb':0xB,
-            'vc':0xC,'vd':0xD,'ve':0xE,'vf':0xF}
-OP_CODES={  'cls' :[{'args':0,'machine':'00E0'}],
-            'ret' :[{'args':0,'machine':'00EE'}],
-            'sys' :[{'args':1,'machine':'1xxx',1:'address'}],
-            'call':[{'args':1,'machine':'1xxx',1:'address'}],
-            'skp' :[{'args':1,'machine':'Ex9E',1:'register'}],
-            'sknp':[{'args':1,'machine':'ExA1',1:'register'}],
-            'se'  :[{'args':2,'machine':'5xy0',1:'register',2:'register'},
-		            {'args':2,'machine':'3xyy',1:'register',2:'byte'}],
-            'sne' :[{'args':2,'machine':'9xy0',1:'register',2:'register'},
-		            {'args':2,'machine':'4xyy',1:'register',2:'byte'}],
-            'add' :[{'args':2,'machine':'7xyy',1:'register',2:'byte'},
-		            {'args':2,'machine':'8xy4',1:'register',2:'register'},
-		            {'args':2,'machine':'Fx1E',1:'i',2:'register'}],
-            'or'  :[{'args':2,'machine':'8xy1',1:'register',2:'register'}],
-            'and' :[{'args':2,'machine':'8xy2',1:'register',2:'register'}],
-            'xor' :[{'args':2,'machine':'8xy3',1:'register',2:'register'}],
-            'sub' :[{'args':2,'machine':'8xy5',1:'register',2:'register'}],
-            'subn':[{'args':2,'machine':'8xy7',1:'register',2:'register'}],
-            'shr' :[{'args':2,'machine':'8xy6',1:'register',2:'register'}],
-            'shl' :[{'args':2,'machine':'8xyE',1:'register',2:'register'}],
-            'rnd' :[{'args':2,'machine':'cxyy',1:'register',2:'byte'}],
-            'jp'  :[{'args':1,'machine':'1xxx',1:'address'}},
-		            {'args':2,'machine':'Byyy',1:'v0',2:'address'}}],
-            'ld'  :[{'args':2,'machine':'6xyy',1:'register',2:'byte'},
-		            {'args':2,'machine':'8xy0',1:'register',2:'register'},
-		            {'args':2,'machine':'Fx07',1:'register',2:'dt'},
-		            {'args':2,'machine':'Fx0A',1:'register',2:'k'},
-		            {'args':2,'machine':'Fx65',1:'register',2:'[i]'},
-		            {'args':2,'machine':'Ayyy',1:'i',2:'address'},
-		            {'args':2,'machine':'Fy15',1:'dt',2:'register'},
-		            {'args':2,'machine':'Fy18',1:'st',2:'register'},
-		            {'args':2,'machine':'Fy29',1:'f',2:'register'},
-		            {'args':2,'machine':'Fy33',1:'b',2:'register'},
-		            {'args':2,'machine':'Fy55',1:'[i]',2:'register'}],
-            'drw' :[{'args':3,'machine':'Dxyz',1:'register',2:'register',3:'nibble'}]}
+REGISTERS=( 'v0','v1','v2','v3',
+            'v4','v5','v6','v7',
+            'v8','v9','va','vb',
+            'vc','vd','ve','vf')
+OP_CODES={  'cls' :[{'args':[],'machine':'00E0'}],
+            'ret' :[{'args':[],'machine':'00EE'}],
+            'sys' :[{'args':['address'],'machine':'1xxx'}],
+            'call':[{'args':['address'],'machine':'1xxx'}],
+            'skp' :[{'args':['register'],'machine':'Ex9E'}],
+            'sknp':[{'args':['register'],'machine':'ExA1'}],
+            'se'  :[{'args':['register','register'],'machine':'5xy0'},
+		            {'args':['register','byte'],'machine':'3xyy'}],
+            'sne' :[{'args':['register','register'],'machine':'9xy0'},
+		            {'args':['register','byte'],'machine':'4xyy'}],
+            'add' :[{'args':['register','byte'],'machine':'7xyy'},
+		            {'args':['register','register'],'machine':'8xy4'},
+		            {'args':['i','register'],'machine':'Fx1E'}],
+            'or'  :[{'args':['register','register'],'machine':'8xy1'}],
+            'and' :[{'args':['register','register'],'machine':'8xy2'}],
+            'xor' :[{'args':['register','register'],'machine':'8xy3'}],
+            'sub' :[{'args':['register','register'],'machine':'8xy5'}],
+            'subn':[{'args':['register','register'],'machine':'8xy7'}],
+            'shr' :[{'args':['register','register'],'machine':'8xy6'}],
+            'shl' :[{'args':['register','register'],'machine':'8xyE'}],
+            'rnd' :[{'args':['register','byte'],'machine':'cxyy'}],
+            'jp'  :[{'args':['address'],'machine':'1xxx'},
+		            {'args':['v0','address'],'machine':'Byyy'}],           #TODO pretty sure this won't work
+            'ld'  :[{'args':['register','byte'],'machine':'6xyy'},
+		            {'args':['register','register'],'machine':'8xy0'},
+		            {'args':['register','dt'],'machine':'Fx07'},
+		            {'args':['register','k'],'machine':'Fx0A'},
+		            {'args':['register','[i]'],'machine':'Fx65'},
+		            {'args':['i','address'],'machine':'Ayyy'},
+		            {'args':['dt','register'],'machine':'Fy15'},
+		            {'args':['st','register'],'machine':'Fy18'},
+		            {'args':['f','register'],'machine':'Fy29'},
+		            {'args':['b','register'],'machine':'Fy33'},
+		            {'args':['[i]','register'],'machine':'Fy55'}],
+            'drw' :[{'args':['register','register','nibble'],'machine':'Dxyz'}]}
 
 class blackbean:
 
@@ -92,28 +91,96 @@ class blackbean:
     def assemble(self, file_path):
         with open(file_path) as fhandler:
             for line in fhandler:
-                current_tokens = self.tokenize(line)
-                self.update_memory(current_tokens)
-                #Xlate to machine
-                self.collection.append(current_tokens)
+                t = self.tokenize(line)
+                self.calc_mem_address(t)
+                self.collection.append(t)
+            for t in self.collection:
+                self.calc_opcode(t)
 
     def print_listing(self):
-        # TODO print opcodes aswell
         for line in self.collection:
-            if line.get('address'):
-                print(format(line['address'], '#06x') + '    ' + line['original'], end="")
+            if line.get('hex'):
+                print(format(line['address'], '#06x') + (4*' ') + format(line['hex'], '#06x') + (4*' ') + line['original'], end='')
+            elif line.get('dataType'):
+                #TODO print out data declares as word grouping
+                print(format(line['address'], '#06x') + (14*' ') + line['original'], end='')
             else:
-                print((' ' * 10) + line['original'], end="")
+                print((' ' * 20) + line['original'], end="")
 
     def export_binary(self, file_path):
         print("TODO")
 
-    def update_memory(self, tokens):
+    def calc_opcode(self, tokens):
+        if not tokens.get('instruction'):
+            return
+        for VERSION in OP_CODES[tokens['instruction']]:
+            issue = False
+            if len(VERSION['args']) != len(tokens['arguments']):
+                continue
+            if len(VERSION['args']) == 0:
+                tokens['hex'] = int(VERSION['machine'],16)
+                break
+            tmp = VERSION['machine']
+            for i, ARG_TYPE in enumerate(VERSION['args']):
+                cur_arg = tokens['arguments'][i]
+                if ARG_TYPE == cur_arg:
+                    continue
+                elif ARG_TYPE is 'register':
+                    if cur_arg in REGISTERS:
+                        tmp = tmp.replace(ARG_SUB[i], cur_arg[1])
+                    else: issue = True
+                elif ARG_TYPE is 'address':
+                    if cur_arg[0] is HEX_ESC:
+                        cur_arg = cur_arg[1:]
+                        if len(cur_arg) == 3:
+                            tmp = tmp.replace(ARG_SUB[i] * 3, cur_arg)
+                        else:
+                            issue = True
+                    elif cur_arg in self.mmap:
+                        tmp = tmp.replace(ARG_SUB[i] * 3, hex(self.mmap[cur_arg])[2:])
+                    else: issue = True
+                elif ARG_TYPE is 'byte':
+                    if cur_arg[0] is HEX_ESC:
+                        cur_arg = cur_arg[1:]
+                    else:
+                        try:
+                            cur_arg = hex(int(cur_arg)).zfill(2)[2:].zfill(2)
+                        except: pass
+                    if len(cur_arg) != 2:
+                        issue = True
+                    else:
+                        try:
+                            int(cur_arg, 16)
+                            tmp = tmp.replace(ARG_SUB[i] * 2, cur_arg)
+                        except:
+                            issue = True
+                elif ARG_TYPE is 'nibble':
+                    if cur_arg[0] is HEX_ESC:
+                        cur_arg = cur_arg[1:]
+                    if len(cur_arg) != 1:
+                        issue = True
+                    else:
+                        try:
+                            int(cur_arg, 16)
+                            tmp = tmp.replace(ARG_SUB[i], cur_arg)
+                        except:
+                            issue = True
+                else:
+                    issue = True
+            if not issue:
+                tokens['hex'] = int(tmp,16)
+                break
+
+        if not tokens.get('hex'):
+            #TODO raise error
+            print("ERROR: Unkown mnemonic-argument combination. " + tokens['instruction'] + "   " + str(tokens['arguments']) + "   " + str(len(tokens['arguments'])))
+
+    def calc_mem_address(self, tokens):
         if tokens.get('isEmpty'):
             return
         if tokens.get('tag'):
             self.mmap[tokens.get('tag')] = self.address
-        if tokens.get('asm'):
+        if tokens.get('instruction'):
             tokens['address'] = self.address
             self.address += 2
         elif tokens.get('dataType'):
@@ -127,7 +194,7 @@ class blackbean:
         line = line.lstrip()
 
         # Remove Blanks
-        if line is '':
+        if line == '':
             return tokens
 
         # Remove Comment only lines
@@ -142,7 +209,7 @@ class blackbean:
         line = line.split(';')[0].rstrip()
 
         # Breakout into array
-        line_array = list(filter(None, line.split(' ')))
+        line_array = list(filter(None, line.lower().split(' ')))
 
         # Check if tag exists, must be left most
         if line_array[0].endswith(':'):
@@ -159,15 +226,15 @@ class blackbean:
         # Check for any pre-processor commands
         #TODO Pre proc directives are not respected right now
         for i,lex in enumerate(line_array):
-            if lex.lower() in PRE_PROC:
+            if lex in PRE_PROC:
                 tokens['preProcess'] = ' '.join(line_array)
                 line_array.pop(i)
                 #TODO continue to tokenize
                 return tokens
 
         # Check for data declarations
-        if line_array[0].lower() in DATA_DECLARE:
-            tokens['dataType'] = DATA_DECLARE[line_array[0].lower()]
+        if line_array[0] in DATA_DECLARE:
+            tokens['dataType'] = DATA_DECLARE[line_array[0]]
             line_array.pop(0)
             if not line_array:
                 #TODO raise error
@@ -176,11 +243,12 @@ class blackbean:
             dec = []
             for arg in ddargs:
                 if arg[0] is HEX_ESC:
-                    if len(arg) != (2 * tokens['dataType'])
+                    arg = arg[1:]
+                    if len(arg) != (2 * tokens['dataType']):
                         #TODO raise error
                         print("ERROR: Data size of declare is incorrect.")
                     #TODO wrap int parse in try
-                    val = int(arg[1:],16)
+                    val = int(arg,16)
                 else:
                     #TODO wrap int parse in try
                     val = int(arg)
@@ -188,13 +256,14 @@ class blackbean:
                     #TODO raise error
                     print("ERROR: Data declaration overflow.")
                 dec.append(val)
-            tokens['declarations']=dec
+            tokens['declarations'] = dec
             return tokens
 
         # Check for assembly instruction
-        if line_array[0].lower() in OP_CODES:
-            #TODO continue to tokenize
-            tokens['asm'] = " ".join(line_array)
+        if line_array[0] in OP_CODES:
+            tokens['instruction'] = line_array[0]
+            line_array.pop(0)
+            tokens['arguments'] = list(filter(None,''.join(line_array).split(',')))
             return tokens
 
         # Trash
@@ -210,7 +279,7 @@ def util_strip_comments(file_path, outpout_handler=None):
             if outpout_handler==None:
                 print(line)
             else:
-                outpout_handler.write(line, end='\n')
+                outpout_handler.write(line)
 
 def util_add_listing(file_path, outpout_handler=None):
     mem_addr = 0x0200
@@ -230,7 +299,7 @@ def util_add_listing(file_path, outpout_handler=None):
             if outpout_handler==None:
                 print(line, end='')
             else:
-                outpout_handler.write(line)
+                outpout_handler.write(line, end='')
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Description of your program')
