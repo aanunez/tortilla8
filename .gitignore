@@ -1,6 +1,10 @@
 # Exclude dir
 exclude/
 foo
+*.lst
+*.src
+*.ch8
+*.bin
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
