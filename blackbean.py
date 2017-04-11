@@ -172,7 +172,7 @@ class blackbean:
 
         if not tokens.get('hex'):
             #TODO raise error
-            print("ERROR: Unkown mnemonic-argument combination. " + tokens['instruction'] + "   " + str(tokens['arguments']) + "   " + str(len(tokens['arguments'])))
+            print("ERROR: Unkown mnemonic-argument combination.")
 
     def calc_mem_address(self, tokens):
         if tokens.get('isEmpty'):
