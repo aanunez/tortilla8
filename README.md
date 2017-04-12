@@ -8,7 +8,7 @@ Chip-8 assembler that is still a WOP, its currently working for a handful of pro
 To-do:
 
 * General code cleanup
-* call-able as script
+* <del>call-able as script
 * switch to enable/disable xor,subn,shr,shl
 * switch for behavior of shr,shl
 * error framework

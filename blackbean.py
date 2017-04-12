@@ -16,7 +16,7 @@ import argparse
 #   address    - If asm or dd then address is populated
 #   dataType   - 1,2,4
 #       declarations - [list of data decl in orignal form]
-#       ddhex  - [list of ints]
+#       ddhex  - [list of ints of size dataType]
 #   instruction - "cls", "ret" etc
 #       arguments - [list of args in original form]
 #       hex - single int for machine code
@@ -47,14 +47,14 @@ OP_CODES={  'cls' :[{'args':[],'machine':'00E0'}],
 		            {'args':['i','register'],'machine':'Fx1E'}],
             'or'  :[{'args':['register','register'],'machine':'8xy1'}],
             'and' :[{'args':['register','register'],'machine':'8xy2'}],
-            'xor' :[{'args':['register','register'],'machine':'8xy3'}],
+            'xor' :[{'args':['register','register'],'machine':'8xy3'}],    #TODO not in orig spec.
             'sub' :[{'args':['register','register'],'machine':'8xy5'}],
-            'subn':[{'args':['register','register'],'machine':'8xy7'}],
-            'shr' :[{'args':['register','register'],'machine':'8xy6'}],
-            'shl' :[{'args':['register','register'],'machine':'8xyE'}],
+            'subn':[{'args':['register','register'],'machine':'8xy7'}],    #TODO not in orig spec.
+            'shr' :[{'args':['register','register'],'machine':'8xy6'}],    #TODO not in orig spec. 2nd reg is opt
+            'shl' :[{'args':['register','register'],'machine':'8xyE'}],    #TODO not in orig spec. 2nd reg is opt
             'rnd' :[{'args':['register','byte'],'machine':'cxyy'}],
             'jp'  :[{'args':['address'],'machine':'1xxx'},
-		            {'args':['v0','address'],'machine':'Byyy'}],           #TODO pretty sure this won't work
+		            {'args':['v0','address'],'machine':'Byyy'}],           #TODO pretty sure this won't work cause v0
             'ld'  :[{'args':['register','byte'],'machine':'6xyy'},
 		            {'args':['register','register'],'machine':'8xy0'},
 		            {'args':['register','dt'],'machine':'Fx07'},
@@ -79,11 +79,16 @@ class blackbean:
         __init__()
 
     def assemble(self, file_handler):
+        # Pass One, Tokenize and Address
         for line in file_handler:
             t = self.tokenize(line)
+            if t['isEmpty']: continue
             self.calc_mem_address(t)
             self.collection.append(t)
+
+        # Pass Two, decode
         for t in self.collection:
+            if t['isEmpty']: continue
             self.calc_opcode(t)
             self.calc_data_declares(t)
 
@@ -93,7 +98,7 @@ class blackbean:
                 form_line = format(line['address'], '#06x') + (4*' ') +\
                             format(line['hex'], '#06x') + (4*' ') +\
                             line['original']
-            elif line.get('dataType'):
+            elif line.get('ddhex'):
                 form_line = format(line['address'], '#06x') + (14*' ') +\
                             line['original']
             else:
@@ -118,7 +123,6 @@ class blackbean:
                 file_path.write(line['hex'].to_bytes(2, byteorder='big'))
             elif line.get('ddhex'):
                 for i in range(len(line['ddhex'])):
-                    print(line['ddhex'][i])
                     file_path.write(line['ddhex'][i].to_bytes(line['dataType'] , byteorder='big'))
 
     def calc_opcode(self, tokens):
@@ -207,8 +211,6 @@ class blackbean:
         tokens['ddhex'] = ddhex
 
     def calc_mem_address(self, tokens):
-        if tokens.get('isEmpty'):
-            return
         if tokens.get('tag'):
             self.mmap[tokens.get('tag')] = self.address
         if tokens.get('instruction'):
@@ -323,6 +325,7 @@ def parse_args():
     parser.add_argument('-o','--output',help='file to store binary executable to.')
     parser.add_argument('-l','--list',  help='generate listing file and store to OUTPUT.lst file.',action='store_true')
     parser.add_argument('-s','--strip', help='strip comments and store to OUTPUT.strip file.',action='store_true')
+    parser.add_argument('-e','--enforce',help='Enforce original Chip-8 specification and do not allow SHR, SHL, XOR, or SUBN instructions.')
     opts = parser.parse_args()
 
     if not opts.input:
