@@ -3,6 +3,7 @@
 import os
 import sys
 import argparse
+from enum import Enum
 
 # Issues:
 #   No support for "$" notation
@@ -24,6 +25,7 @@ import argparse
 #Opcode reminders: SHR, SHL, XOR, and SUBN/SM are NOT offically supported by original spec
 #                  SHR and SHL may or may not move Y (Shifted) into X or just shift X.
 
+BEGIN_COMMENT=';'
 HEX_ESC='#'
 ARG_SUB={0:'x',1:'y',2:'z'}
 PRE_PROC=('ifdef','else','endif','option','align','equ','=')
@@ -32,48 +34,67 @@ REGISTERS=( 'v0','v1','v2','v3',
             'v4','v5','v6','v7',
             'v8','v9','va','vb',
             'vc','vd','ve','vf')
-OP_CODES={  'cls' :[{'args':[],'machine':'00E0'}],
-            'ret' :[{'args':[],'machine':'00EE'}],
-            'sys' :[{'args':['address'],'machine':'1xxx'}],
-            'call':[{'args':['address'],'machine':'2xxx'}],
-            'skp' :[{'args':['register'],'machine':'Ex9E'}],
-            'sknp':[{'args':['register'],'machine':'ExA1'}],
-            'se'  :[{'args':['register','register'],'machine':'5xy0'},
-		            {'args':['register','byte'],'machine':'3xyy'}],
-            'sne' :[{'args':['register','register'],'machine':'9xy0'},
-		            {'args':['register','byte'],'machine':'4xyy'}],
-            'add' :[{'args':['register','byte'],'machine':'7xyy'},
-		            {'args':['register','register'],'machine':'8xy4'},
-		            {'args':['i','register'],'machine':'Fx1E'}],
-            'or'  :[{'args':['register','register'],'machine':'8xy1'}],
-            'and' :[{'args':['register','register'],'machine':'8xy2'}],
-            'xor' :[{'args':['register','register'],'machine':'8xy3'}],    #TODO not in orig spec.
-            'sub' :[{'args':['register','register'],'machine':'8xy5'}],
-            'subn':[{'args':['register','register'],'machine':'8xy7'}],    #TODO not in orig spec.
-            'shr' :[{'args':['register','register'],'machine':'8xy6'}],    #TODO not in orig spec. 2nd reg is opt
-            'shl' :[{'args':['register','register'],'machine':'8xyE'}],    #TODO not in orig spec. 2nd reg is opt
-            'rnd' :[{'args':['register','byte'],'machine':'cxyy'}],
-            'jp'  :[{'args':['address'],'machine':'1xxx'},
-		            {'args':['v0','address'],'machine':'Byyy'}],           #TODO pretty sure this won't work cause v0
-            'ld'  :[{'args':['register','byte'],'machine':'6xyy'},
-		            {'args':['register','register'],'machine':'8xy0'},
-		            {'args':['register','dt'],'machine':'Fx07'},
-		            {'args':['register','k'],'machine':'Fx0A'},
-		            {'args':['register','[i]'],'machine':'Fx65'},
-		            {'args':['i','address'],'machine':'Ayyy'},
-		            {'args':['dt','register'],'machine':'Fy15'},
-		            {'args':['st','register'],'machine':'Fy18'},
-		            {'args':['f','register'],'machine':'Fy29'},
-		            {'args':['b','register'],'machine':'Fy33'},
-		            {'args':['[i]','register'],'machine':'Fy55'}],
-            'drw' :[{'args':['register','register','nibble'],'machine':'Dxyz'}]}
+OP_ARGS=0
+OP_HEX=1
+OP_CODE_SIZE=2
+OP_CODES={  'cls' :[[[],'00E0']],
+            'ret' :[[[],'00EE']],
+            'sys' :[[['address'],'1xxx']],
+            'call':[[['address'],'2xxx']],
+            'skp' :[[['register'],'Ex9E']],
+            'sknp':[[['register'],'ExA1']],
+            'se'  :[[['register','register'],'5xy0'],
+		            [['register','byte'],'3xyy']],
+            'sne' :[[['register','register'],'9xy0'],
+		            [['register','byte'],'4xyy']],
+            'add' :[[['register','byte'],'7xyy'],
+		            [['register','register'],'8xy4'],
+		            [['i','register'],'Fx1E']],
+            'or'  :[[['register','register'],'8xy1']],
+            'and' :[[['register','register'],'8xy2']],
+            'xor' :[[['register','register'],'8xy3']],    #TODO not in orig spec.
+            'sub' :[[['register','register'],'8xy5']],
+            'subn':[[['register','register'],'8xy7']],    #TODO not in orig spec.
+            'shr' :[[['register','register'],'8xy6']],    #TODO not in orig spec. 2nd reg is opt
+            'shl' :[[['register','register'],'8xyE']],    #TODO not in orig spec. 2nd reg is opt
+            'rnd' :[[['register','byte'],'cxyy']],
+            'jp'  :[[['address'],'1xxx'],
+		            [['v0','address'],'Byyy']],           #TODO pretty sure this won't work cause v0
+            'ld'  :[[['register','byte'],'6xyy'],
+		            [['register','register'],'8xy0'],
+		            [['register','dt'],'Fx07'],
+		            [['register','k'],'Fx0A'],
+		            [['register','[i]'],'Fx65'],
+		            [['i','address'],'Ayyy'],
+		            [['dt','register'],'Fy15'],
+		            [['st','register'],'Fy18'],
+		            [['f','register'],'Fy29'],
+		            [['b','register'],'Fy33'],
+		            [['[i]','register'],'Fy55']],
+            'drw' :[[['register','register','nibble'],'Dxyz']]}
+
+class tokenLine:
+
+    def __init__(self):
+        is_empty = False
+        original
+        comment
+        mem_tag
+        pp_directive
+        mem_address
+        data_size
+        data_declarations
+        dd_int
+        instruction
+        arguments
+        instruction_int
 
 class blackbean:
 
     def __init__(self):
-        self.collection=[]
-        self.mmap={}
-        self.address=0x0200
+        self.collection =[]
+        self.mmap       ={}
+        self.address    =0x0200
 
     def reset(self):
         __init__()
@@ -82,10 +103,9 @@ class blackbean:
         # Pass One, Tokenize and Address
         for line in file_handler:
             t = self.tokenize(line)
+            self.collection.append(t)
             if t['isEmpty']: continue
             self.calc_mem_address(t)
-            self.collection.append(t)
-
         # Pass Two, decode
         for t in self.collection:
             if t['isEmpty']: continue
@@ -112,15 +132,15 @@ class blackbean:
         for line in self.collection:
             if line['isEmpty']: continue
             if file_handler:
-                file_handler.write(line['original'].split(';')[0].rstrip() + '\n')
+                file_handler.write(line['original'].split(BEGIN_COMMENT)[0].rstrip() + '\n')
             else:
-                print(line['original'].split(';')[0].rstrip(), end='')
+                print(line['original'].split(BEGIN_COMMENT)[0].rstrip(), end='')
 
     def export_binary(self, file_path):
         for line in self.collection:
             if line['isEmpty']: continue
             if line.get('hex'):
-                file_path.write(line['hex'].to_bytes(2, byteorder='big'))
+                file_path.write(line['hex'].to_bytes(OP_CODE_SIZE, byteorder='big'))
             elif line.get('ddhex'):
                 for i in range(len(line['ddhex'])):
                     file_path.write(line['ddhex'][i].to_bytes(line['dataType'] , byteorder='big'))
@@ -130,13 +150,13 @@ class blackbean:
             return
         for VERSION in OP_CODES[tokens['instruction']]:
             issue = False
-            if len(VERSION['args']) != len(tokens['arguments']):
+            if len(VERSION[OP_ARGS]) != len(tokens['arguments']):
                 continue
-            if len(VERSION['args']) == 0:
-                tokens['hex'] = int(VERSION['machine'],16)
+            if len(VERSION[OP_ARGS]) == 0:
+                tokens['hex'] = int(VERSION[OP_HEX],16)
                 break
-            tmp = VERSION['machine']
-            for i, ARG_TYPE in enumerate(VERSION['args']):
+            tmp = VERSION[OP_HEX]
+            for i, ARG_TYPE in enumerate(VERSION[OP_ARGS]):
                 cur_arg = tokens['arguments'][i]
                 if ARG_TYPE == cur_arg:
                     continue
@@ -215,7 +235,7 @@ class blackbean:
             self.mmap[tokens.get('tag')] = self.address
         if tokens.get('instruction'):
             tokens['address'] = self.address
-            self.address += 2
+            self.address += OP_CODE_SIZE
         elif tokens.get('dataType'):
             tokens['address'] = self.address
             self.address += (len(tokens['declarations']) * tokens['dataType'])
@@ -231,15 +251,15 @@ class blackbean:
             return tokens
 
         # Remove Comment only lines
-        if line.startswith(';'):
+        if line.startswith(BEGIN_COMMENT):
             tokens['comment'] = line.rstrip()
             return tokens
 
         tokens['isEmpty'] = False
 
         # Check for any comments
-        tokens['comment'] = line.split(';')[1:]
-        line = line.split(';')[0].rstrip()
+        tokens['comment'] = line.split(BEGIN_COMMENT)[1:]
+        line = line.split(BEGIN_COMMENT)[0].rstrip()
 
         # Breakout into array
         line_array = list(filter(None, line.lower().split(' ')))
@@ -291,8 +311,8 @@ def util_strip_comments(file_path, outpout_handler=None):
     with open(file_path) as fhandler:
         for line in fhandler:
             if line.isspace(): continue
-            if line.lstrip().startswith(';'): continue
-            line = line.split(';')[0].rstrip()
+            if line.lstrip().startswith(BEGIN_COMMENT): continue
+            line = line.split(BEGIN_COMMENT)[0].rstrip()
             if outpout_handler==None:
                 print(line)
             else:
@@ -303,7 +323,7 @@ def util_add_listing(file_path, outpout_handler=None):
     with open(file_path) as fhandler:
         for line in fhandler:
             mem_inc = 2
-            nocomment = line.split(';')[0].rstrip().lower()
+            nocomment = line.split(BEGIN_COMMENT)[0].rstrip().lower()
             if not nocomment or nocomment.endswith(':') or any(s in nocomment for s in PRE_PROC):
                 line = (' ' * 10) + line
             else:
