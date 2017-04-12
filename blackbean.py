@@ -4,19 +4,6 @@ import os
 import sys
 import argparse
 
-# Features:
-# Generate code only
-# Generate memory addresses (list)
-# assemble
-#
-# Input flags:
-#
-# -i, --input           [expects param after]
-# -o, --output          [expects param after]
-# -l, --list, --listing [expects param after]
-# -s, --strip           *Need param? Better name?
-#
-
 # Issues:
 #   No support for "$" notation
 
@@ -28,9 +15,11 @@ import argparse
 #   preProcess - Whole line, not used right now
 #   address    - If asm or dd then address is populated
 #   dataType   - 1,2,4
-#       declarations - [list of data decl]
-#   instruction
-#       arguments - [list of args]
+#       declarations - [list of data decl in orignal form]
+#       ddhex  - [list of ints]
+#   instruction - "cls", "ret" etc
+#       arguments - [list of args in original form]
+#       hex - single int for machine code
 
 #Opcode reminders: SHR, SHL, XOR, and SUBN/SM are NOT offically supported by original spec
 #                  SHR and SHL may or may not move Y (Shifted) into X or just shift X.
@@ -46,7 +35,7 @@ REGISTERS=( 'v0','v1','v2','v3',
 OP_CODES={  'cls' :[{'args':[],'machine':'00E0'}],
             'ret' :[{'args':[],'machine':'00EE'}],
             'sys' :[{'args':['address'],'machine':'1xxx'}],
-            'call':[{'args':['address'],'machine':'1xxx'}],
+            'call':[{'args':['address'],'machine':'2xxx'}],
             'skp' :[{'args':['register'],'machine':'Ex9E'}],
             'sknp':[{'args':['register'],'machine':'ExA1'}],
             'se'  :[{'args':['register','register'],'machine':'5xy0'},
@@ -96,14 +85,17 @@ class blackbean:
             self.collection.append(t)
         for t in self.collection:
             self.calc_opcode(t)
+            self.calc_data_declares(t)
 
     def print_listing(self, file_handler):
         for line in self.collection:
             if line.get('hex'):
-                form_line = format(line['address'], '#06x') + (4*' ') + format(line['hex'], '#06x') + (4*' ') + line['original']
+                form_line = format(line['address'], '#06x') + (4*' ') +\
+                            format(line['hex'], '#06x') + (4*' ') +\
+                            line['original']
             elif line.get('dataType'):
-                #TODO print out data declares as word grouping
-                form_line = format(line['address'], '#06x') + (14*' ') + line['original']
+                form_line = format(line['address'], '#06x') + (14*' ') +\
+                            line['original']
             else:
                 form_line = (' ' * 20) + line['original']
             if file_handler:
@@ -120,7 +112,14 @@ class blackbean:
                 print(line['original'].split(';')[0].rstrip(), end='')
 
     def export_binary(self, file_path):
-        print("TODO")
+        for line in self.collection:
+            if line['isEmpty']: continue
+            if line.get('hex'):
+                file_path.write(line['hex'].to_bytes(2, byteorder='big'))
+            elif line.get('ddhex'):
+                for i in range(len(line['ddhex'])):
+                    print(line['ddhex'][i])
+                    file_path.write(line['ddhex'][i].to_bytes(line['dataType'] , byteorder='big'))
 
     def calc_opcode(self, tokens):
         if not tokens.get('instruction'):
@@ -182,10 +181,30 @@ class blackbean:
             if not issue:
                 tokens['hex'] = int(tmp,16)
                 break
-
         if not tokens.get('hex'):
             #TODO raise error
             print("ERROR: Unkown mnemonic-argument combination.")
+
+    def calc_data_declares(self, tokens):
+        if not tokens.get('declarations'):
+            return
+        ddhex = []
+        for arg in tokens['declarations']:
+            if arg[0] is HEX_ESC:
+                arg = arg[1:]
+                if len(arg) != (2 * tokens['dataType']):
+                    #TODO raise error
+                    print("ERROR: Data size of declare is incorrect.")
+                #TODO wrap int parse in try
+                val = int(arg,16)
+            else:
+                #TODO wrap int parse in try
+                val = int(arg)
+            if val >= pow(256,tokens['dataType']):
+                #TODO raise error
+                print("ERROR: Data declaration overflow.")
+            ddhex.append(val)
+        tokens['ddhex'] = ddhex
 
     def calc_mem_address(self, tokens):
         if tokens.get('isEmpty'):
@@ -236,12 +255,11 @@ class blackbean:
             print("ERROR: Multiple Memory Tags found on same line.")
 
         # Check for any pre-processor commands
-        #TODO Pre proc directives are not respected right now
-        for i,lex in enumerate(line_array):
-            if lex in PRE_PROC:
+        for i in line_array:
+            if i in PRE_PROC:
                 tokens['preProcess'] = ' '.join(line_array)
-                line_array.pop(i)
-                #TODO continue to tokenize
+                #TODO raise error
+                print("ERROR: PreProcessor command found.")
                 return tokens
 
         # Check for data declarations
@@ -251,35 +269,20 @@ class blackbean:
             if not line_array:
                 #TODO raise error
                 print("ERROR: Expected data declaration.")
-            ddargs = ''.join(line_array).split(',')
-            dec = []
-            for arg in ddargs:
-                if arg[0] is HEX_ESC:
-                    arg = arg[1:]
-                    if len(arg) != (2 * tokens['dataType']):
-                        #TODO raise error
-                        print("ERROR: Data size of declare is incorrect.")
-                    #TODO wrap int parse in try
-                    val = int(arg,16)
-                else:
-                    #TODO wrap int parse in try
-                    val = int(arg)
-                if val >= pow(256,tokens['dataType']):
-                    #TODO raise error
-                    print("ERROR: Data declaration overflow.")
-                dec.append(val)
-            tokens['declarations'] = dec
+            tokens['declarations'] = ''.join(line_array).split(',')
             return tokens
 
         # Check for assembly instruction
         if line_array[0] in OP_CODES:
             tokens['instruction'] = line_array[0]
             line_array.pop(0)
-            tokens['arguments'] = list(filter(None,''.join(line_array).split(',')))
+            tokens['arguments'] = []
+            if line_array:
+                tokens['arguments'] = ''.join(line_array).split(',')
             return tokens
 
         # Trash
-        print("ERROR: Unkown command ")
+        print("ERROR: Unkown command.")
         return tokens
 
 def util_strip_comments(file_path, outpout_handler=None):
@@ -314,12 +317,12 @@ def util_add_listing(file_path, outpout_handler=None):
                 outpout_handler.write(line, end='')
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Description of your program')
-    parser.add_argument('input', help='Input file to assemble')
-    parser.add_argument('-i','--input', help='Input file to assemble')
-    parser.add_argument('-o','--output',help='Binary file for output.')
-    parser.add_argument('-l','--list',  help='Generate listing file',action='store_true')
-    parser.add_argument('-s','--strip', help='Strip comments',action='store_true')
+    parser = argparse.ArgumentParser(description='Blackbean will assemble your CHIP-8 programs to executable machine code. BB can also generate listing files and comment-striped files. Options do not yet exist to toggle support off for the undocumented functions (Shifts, XOR, SUBN) or to disable/enable the undocumented L/R shift behavior.')
+    parser.add_argument('input', help='file to assemble. Only used when invoked with "-i" flag.')
+    parser.add_argument('-i','--input', help='file to assemble.')
+    parser.add_argument('-o','--output',help='file to store binary executable to.')
+    parser.add_argument('-l','--list',  help='generate listing file and store to OUTPUT.lst file.',action='store_true')
+    parser.add_argument('-s','--strip', help='strip comments and store to OUTPUT.strip file.',action='store_true')
     opts = parser.parse_args()
 
     if not opts.input:
@@ -341,16 +344,16 @@ def main(opts):
     with open(opts.input) as FH:
         bb.assemble(FH)
     if opts.list:
-        with open(opts.output + '.lst', 'w+') as FH:
+        with open(opts.output + '.lst', 'w') as FH:
             bb.print_listing(FH)
     if opts.strip:
-        with open(opts.output + '.strip', 'w+') as FH:
+        with open(opts.output + '.strip', 'w') as FH:
             bb.print_strip(FH)
     if opts.input == opts.output:
-        with open(opts.output + '.bin', 'w+') as FH:
+        with open(opts.output + '.bin', 'w') as FH:
             bb.export_binary(FH)
     else:
-        with open(opts.output, 'w+') as FH:
+        with open(opts.output, 'wb') as FH:
             bb.export_binary(FH)
 
 if __name__ == '__main__':
