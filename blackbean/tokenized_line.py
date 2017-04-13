@@ -39,7 +39,7 @@ class tokenized_line:
         line = line.split(BEGIN_COMMENT)[0].rstrip()
 
         # Breakout into array
-        line_array = list(filter(None, line.lower().split(' ')))
+        line_array = line.lower().split()
 
         # Check if tag exists, must be left most
         if line_array[0].endswith(':'):
@@ -58,6 +58,7 @@ class tokenized_line:
             if i in PRE_PROC:
                 self.pp_directive = ' '.join(line_array)
                 #TODO raise error
+                print("ERROR: Pre-processor directive found.")
                 #raise ValueError("Pre-processor directive found.")
                 return
 

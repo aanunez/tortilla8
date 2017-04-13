@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-PRE_PROC=('ifdef','else','endif','option','align','equ','=')
+PRE_PROC=('ifdef','ifndef','else','elif','elseif','endif','option','align','equ','=')
 
 BEGIN_COMMENT=';'
 HEX_ESC='#'
