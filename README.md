@@ -1,5 +1,4 @@
 # tortilla8
-A collection of Chip-8 tools written in python.
 
 **Blackbean**
 
