@@ -18,16 +18,32 @@ from assembler_constants import *
 #TODO Use the "enfore" flag
 
 class blackbean:
+    """
+    Blackbean is an assembler class that can take file handlers,
+    assemble the contents, and return a stripped (comment free),
+    listing, or binary file.
+    """
 
     def __init__(self):
+        """
+        Init the token collection and memory map.
+        Memory addresses start at 0x0200 on the CHIP 8.
+        """
         self.collection = []
         self.mmap       = {}
         self.address    = 0x0200
 
     def reset(self):
+        """
+        Reset the blackbean to assemble another file.
+        """
         __init__()
 
     def assemble(self, file_handler):
+        """
+        Assemble a file. Tokenizes, calculates memory addreses, and
+        translates mnemonic instructions into hex.
+        """
         # Pass One, Tokenize and Address
         for i,line in enumerate(file_handler):
             t = tzdl.tokenized_line(line, i)
@@ -41,6 +57,18 @@ class blackbean:
             self.calc_data_declares(t)
 
     def print_listing(self, file_handler):
+        """
+        Prints a the orignal file with two additonal column, the first
+        being the memory address of the first byte of the line and the
+        second being the calculated hex value for the mnemonic on the
+        line. Data declarations do not have their calculated hex 
+        values shown as they may take more than the normal two bytes
+        for all other assembler instructions.
+        """
+        if not self.collection:
+            #TODO raise error
+            Print("ERROR: Nothing to print.")
+            return
         for line in self.collection:
             if line.instruction_int:
                 form_line = format(line.mem_address, '#06x') + (4*' ') +\
@@ -57,6 +85,14 @@ class blackbean:
                 print(form_line, end='')
 
     def print_strip(self, file_handler):
+        """
+        Prints a copy of the input file with all comments and white
+        space lines removed. Useful for CHIP 8 interpreters. 
+        """
+        if not self.collection:
+            #TODO rasie error
+            Print("ERROR: Nothing to print.")
+            return
         for line in self.collection:
             if line.is_empty:
                 continue
@@ -66,6 +102,13 @@ class blackbean:
                 print(line.original.split(BEGIN_COMMENT)[0].rstrip(), end='')
 
     def export_binary(self, file_path):
+        """
+        Writes the assembled file to a binary blob. 
+        """
+        if not self.collection:
+            #TODO rasie error
+            Print("ERROR: Nothing to export.")
+            return
         for line in self.collection:
             if line.is_empty:
                 continue
@@ -76,6 +119,10 @@ class blackbean:
                     file_path.write(line.dd_ints[i].to_bytes(line.data_size , byteorder='big'))
 
     def calc_opcode(self, tl):
+        """
+        Resolve mnemonics into hex string then to ints.These
+        can be easily written out. All instructions are 2 bytes.
+        """
         if not tl.instruction:
             return
         for VERSION in OP_CODES[tl.instruction]:
@@ -140,6 +187,11 @@ class blackbean:
             print("ERROR: Unkown mnemonic-argument combination.")
 
     def calc_data_declares(self, tl):
+        """
+        Resolve data declarations on a line into list of ints. These
+        can be easily written out. Size (# of bytes) was found when
+        tokenizing the line.
+        """
         if not tl.data_declarations:
             return
         for arg in tl.data_declarations:
@@ -165,6 +217,11 @@ class blackbean:
             tl.dd_ints.append(val)
 
     def calc_mem_address(self, tl):
+        """
+        Assign memory addresses to mnemonics (now packed in tokenized
+        lines). Store any memory tags found in the memory map to be
+        used on the second pass.
+        """
         if tl.mem_tag:
             self.mmap[tl.mem_tag] = self.address
         if tl.instruction:
@@ -175,6 +232,9 @@ class blackbean:
             self.address += (len(tl.data_declarations) * tl.data_size)
 
 def parse_args():
+    """
+    Parse arguments to blackbean when called as a script.
+    """
     parser = argparse.ArgumentParser(description='Blackbean will assemble your CHIP-8 programs to executable machine code. BB can also generate listing files and comment-striped files. The "enforce" option is not currently supported.')
     parser.add_argument('input', help='file to assemble.')
     parser.add_argument('-o','--output',help='file to store binary executable to, by default INPUT.bin is used.')
@@ -194,6 +254,9 @@ def parse_args():
     return opts
 
 def main(opts):
+    """
+    Handles blackbean being called as a script.
+    """
     bb = blackbean()
     with open(opts.input) as FH:
         bb.assemble(FH)

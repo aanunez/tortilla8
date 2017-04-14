@@ -3,8 +3,15 @@
 from assembler_constants import *
 
 class tokenized_line:
+    '''
+    Data container class for Blackbean.
+    '''
 
     def __init__(self, line, line_number):
+        """
+        Intializes by parsing the line and storing the line_number.
+        The object is then used as a data container for Blackbean.
+        """
         self.is_empty = True         #Default
         self.original = line         #whole, unedited, line
         self.comment  = ""           #comment on the line
