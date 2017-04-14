@@ -50,7 +50,8 @@ class blackbean:
             self.collection.append(t)
             if t.is_empty: continue
             self.calc_mem_address(t)
-        # Pass Two, decode
+            
+        # Pass Two, decode mnemonics
         for t in self.collection:
             if t.is_empty: continue
             self.calc_opcode(t)
@@ -69,6 +70,7 @@ class blackbean:
             #TODO raise error
             Print("ERROR: Nothing to print.")
             return
+        
         for line in self.collection:
             if line.instruction_int:
                 form_line = format(line.mem_address, '#06x') + (4*' ') +\
@@ -93,6 +95,7 @@ class blackbean:
             #TODO rasie error
             Print("ERROR: Nothing to print.")
             return
+        
         for line in self.collection:
             if line.is_empty:
                 continue
@@ -109,6 +112,7 @@ class blackbean:
             #TODO rasie error
             Print("ERROR: Nothing to export.")
             return
+        
         for line in self.collection:
             if line.is_empty:
                 continue
@@ -123,68 +127,75 @@ class blackbean:
         Resolve mnemonics into hex string then to ints.These
         can be easily written out. All instructions are 2 bytes.
         """
+        # Skip empty lines
         if not tl.instruction:
             return
+        
         for VERSION in OP_CODES[tl.instruction]:
             issue = False
+            
+            # Skips versions of the OPCODE that can't work
             if len(VERSION[OP_ARGS]) != len(tl.arguments):
                 continue
+            
+            # Easy matches
             if len(VERSION[OP_ARGS]) == 0:
-                tl.instruction_int = int(VERSION[OP_HEX],16)
+                tl.instruction_int = int(VERSION[OP_HEX], 16)
                 break
+            
             tmp = VERSION[OP_HEX]
             for i, ARG_TYPE in enumerate(VERSION[OP_ARGS]):
-                cur_arg = tl.arguments[i]
-                if ARG_TYPE == cur_arg:
-                    continue
-                elif ARG_TYPE is 'register':
-                    if cur_arg in REGISTERS:
-                        tmp = tmp.replace(ARG_SUB[i], cur_arg[1])
-                    else: issue = True
-                elif ARG_TYPE is 'address':
-                    if cur_arg[0] is HEX_ESC:
-                        cur_arg = cur_arg[1:]
-                        if len(cur_arg) == 3:
-                            tmp = tmp.replace(ARG_SUB[i] * 3, cur_arg)
-                        else:
-                            issue = True
-                    elif cur_arg in self.mmap:
-                        tmp = tmp.replace(ARG_SUB[i] * 3, hex(self.mmap[cur_arg])[2:])
-                    else: issue = True
-                elif ARG_TYPE is 'byte':
-                    if cur_arg[0] is HEX_ESC:
-                        cur_arg = cur_arg[1:]
-                    else:
-                        try:
-                            cur_arg = hex(int(cur_arg)).zfill(2)[2:].zfill(2)
-                        except: pass
-                    if len(cur_arg) != 2:
-                        issue = True
-                    else:
-                        try:
-                            int(cur_arg, 16)
-                            tmp = tmp.replace(ARG_SUB[i] * 2, cur_arg)
-                        except:
-                            issue = True
-                elif ARG_TYPE is 'nibble':
-                    if cur_arg[0] is HEX_ESC:
-                        cur_arg = cur_arg[1:]
-                    if len(cur_arg) != 1:
-                        issue = True
-                    else:
-                        try:
-                            int(cur_arg, 16)
-                            tmp = tmp.replace(ARG_SUB[i], cur_arg)
-                        except:
-                            issue = True
-                else:
-                    issue = True
-            if not issue:
+                tmp = is_valid_instruction_arg(ARG_TYPE, tl.arguments[i], tmp)
+                if not tmp:
+                    break
+            
+            if tmp:
                 tl.instruction_int = int(tmp, 16)
                 break
+            
         if not tl.instruction_int:
             #TODO raise error
             print("ERROR: Unkown mnemonic-argument combination.")
+
+    def is_valid_instruction_arg(arg_type, arg_value, hex_template):
+        if arg_type == arg_value:
+            return ''
+        
+        if arg_type is 'register' 
+            if arg_value in REGISTERS:
+                return hex_template.replace(ARG_SUB[i], arg_value[1])
+        
+        elif arg_type is 'address':
+            if arg_value[0] is HEX_ESC:
+                arg_value = arg_value[1:]
+                if len(arg_value) == 3:
+                    return hex_template.replace(ARG_SUB[i] * 3, arg_value)
+            elif arg_value in self.mmap:
+                return hex_template.replace(ARG_SUB[i] * 3, hex(self.mmap[arg_value])[2:])
+        
+        elif arg_type is 'byte':
+            if arg_value[0] is HEX_ESC:
+                arg_value = arg_value[1:]
+            else:
+                try:
+                    arg_value = hex(int(arg_value))[2:].zfill(2)
+                except: pass
+            if len(arg_value) == 2:
+                try:
+                    int(arg_value, 16) # Make sure its hex
+                    return hex_template.replace(ARG_SUB[i] * 2, arg_value)
+                except: pass
+            
+        elif arg_type is 'nibble':
+            if arg_value[0] is HEX_ESC:
+                arg_value = arg_value[1:]
+            if len(arg_value) == 1:
+                try:
+                    int(arg_value, 16) # Make usre its hex
+                    return hex_template.replace(ARG_SUB[i], arg_value)
+                except: pass
+            
+        return ''
 
     def calc_data_declares(self, tl):
         """
@@ -192,28 +203,31 @@ class blackbean:
         can be easily written out. Size (# of bytes) was found when
         tokenizing the line.
         """
+        # Skip lines w/o dd
         if not tl.data_declarations:
             return
+        
         for arg in tl.data_declarations:
+            
+            # Try to parse the values
             if arg[0] is HEX_ESC:
                 arg = arg[1:]
-                if len(arg) != (2 * tl.data_size):
-                    #TODO raise error
-                    print("ERROR: Data size of declare is incorrect.")
-                try:
-                    val = int(arg,16)
-                except:
-                    #TODO raise error
-                    print("ERROR: Data declaration not valid. Expected hex value.")
-            else:
-                try:
-                    val = int(arg)
-                except:
-                    #TODO raise error
-                    print("ERROR: Data declaration not valid. Expected decimal value.")
+                if len(arg) == (2 * tl.data_size):
+                    try: val = int(arg, 16)
+                    except: pass
+            elif arg.isdigit():
+                val = int(arg)
+            
+            # Raise errors if parse failed or val too large
+            if not val:
+                #TODO raise error
+                print("ERROR: Incorrectly formated data declaration.")
+                break
             if val >= pow(256, tl.data_size):
                 #TODO raise error
                 print("ERROR: Data declaration overflow.")
+                break
+            
             tl.dd_ints.append(val)
 
     def calc_mem_address(self, tl):
@@ -222,8 +236,11 @@ class blackbean:
         lines). Store any memory tags found in the memory map to be
         used on the second pass.
         """
+        # Add any tags to the mem map
         if tl.mem_tag:
             self.mmap[tl.mem_tag] = self.address
+        
+        # One or the other per line, if both then errors are raised
         if tl.instruction:
             tl.mem_address = self.address
             self.address += OP_CODE_SIZE
@@ -279,7 +296,7 @@ if __name__ == '__main__':
 
 ############################################################
 # Below are utility functions usefull if creating a class
-# is over shootingyour needs.
+# is over shooting your needs.
 
 def util_strip_comments(file_path, outpout_handler = None):
     with open(file_path) as fhandler:
