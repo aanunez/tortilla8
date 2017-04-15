@@ -6,16 +6,14 @@ import argparse
 import tokenized_line as tzdl
 from assembler_constants import *
 
-
-# Issues:
-#   No support for "$" notation
-
 #Opcode reminders: SHR, SHL, XOR, and SUBN/SM are NOT offically supported by original spec
 #                  SHR and SHL may or may not move Y (Shifted) into X or just shift X.
 
-#TODO check if memory overflow
 #TODO don't allow modifying VF
 #TODO Use the "enfore" flag
+#TODO allow SHR/SHL without second reg defined (above, in constants)
+#TODO all these damn errors
+#TODO support for $ notation
 
 class blackbean:
     """
@@ -50,7 +48,7 @@ class blackbean:
             self.collection.append(t)
             if t.is_empty: continue
             self.calc_mem_address(t)
-            
+
         # Pass Two, decode mnemonics
         for t in self.collection:
             if t.is_empty: continue
@@ -62,7 +60,7 @@ class blackbean:
         Prints a the orignal file with two additonal column, the first
         being the memory address of the first byte of the line and the
         second being the calculated hex value for the mnemonic on the
-        line. Data declarations do not have their calculated hex 
+        line. Data declarations do not have their calculated hex
         values shown as they may take more than the normal two bytes
         for all other assembler instructions.
         """
@@ -70,7 +68,7 @@ class blackbean:
             #TODO raise error
             Print("ERROR: Nothing to print.")
             return
-        
+
         for line in self.collection:
             if line.instruction_int:
                 form_line = format(line.mem_address, '#06x') + (4*' ') +\
@@ -89,13 +87,13 @@ class blackbean:
     def print_strip(self, file_handler):
         """
         Prints a copy of the input file with all comments and white
-        space lines removed. Useful for CHIP 8 interpreters. 
+        space lines removed. Useful for CHIP 8 interpreters.
         """
         if not self.collection:
             #TODO rasie error
             Print("ERROR: Nothing to print.")
             return
-        
+
         for line in self.collection:
             if line.is_empty:
                 continue
@@ -106,13 +104,13 @@ class blackbean:
 
     def export_binary(self, file_path):
         """
-        Writes the assembled file to a binary blob. 
+        Writes the assembled file to a binary blob.
         """
         if not self.collection:
             #TODO rasie error
             Print("ERROR: Nothing to export.")
             return
-        
+
         for line in self.collection:
             if line.is_empty:
                 continue
@@ -130,49 +128,58 @@ class blackbean:
         # Skip empty lines
         if not tl.instruction:
             return
-        
+
         for VERSION in OP_CODES[tl.instruction]:
             issue = False
-            
+
             # Skips versions of the OPCODE that can't work
             if len(VERSION[OP_ARGS]) != len(tl.arguments):
                 continue
-            
+
             # Easy matches
             if len(VERSION[OP_ARGS]) == 0:
                 tl.instruction_int = int(VERSION[OP_HEX], 16)
                 break
-            
-            tmp = VERSION[OP_HEX]
+
+            # Validate every argument provided to the instruction
+            working_hex = VERSION[OP_HEX]
             for i, ARG_TYPE in enumerate(VERSION[OP_ARGS]):
-                tmp = is_valid_instruction_arg(ARG_TYPE, tl.arguments[i], tmp)
-                if not tmp:
+                working_hex = self.is_valid_instruction_arg(ARG_TYPE, tl.arguments[i], working_hex, ARG_SUB[i])
+                if not working_hex:
                     break
-            
-            if tmp:
-                tl.instruction_int = int(tmp, 16)
+            if working_hex:
+                tl.instruction_int = int(working_hex, 16)
                 break
-            
+
         if not tl.instruction_int:
             #TODO raise error
             print("ERROR: Unkown mnemonic-argument combination.")
 
-    def is_valid_instruction_arg(arg_type, arg_value, hex_template):
+    def is_valid_instruction_arg(self, arg_type, arg_value, hex_template, sub_string):
+        """
+        Validates an instruction's arg_value to insure it meets the parameters
+        of arg_type. If so, hex_template is returned with sub_string correctly
+        updated.
+        """
         if arg_type == arg_value:
-            return ''
-        
-        if arg_type is 'register' 
+            return hex_template
+
+        if arg_type is 'register':
             if arg_value in REGISTERS:
-                return hex_template.replace(ARG_SUB[i], arg_value[1])
-        
+                return hex_template.replace(sub_string, arg_value[1])
+
         elif arg_type is 'address':
             if arg_value[0] is HEX_ESC:
                 arg_value = arg_value[1:]
                 if len(arg_value) == 3:
-                    return hex_template.replace(ARG_SUB[i] * 3, arg_value)
+                    try:
+                        int(arg_value, 16)
+                        return hex_template.replace(sub_string * 3, arg_value)
+                    except: pass
             elif arg_value in self.mmap:
-                return hex_template.replace(ARG_SUB[i] * 3, hex(self.mmap[arg_value])[2:])
-        
+                if self.mmap.get(arg_value):
+                    return hex_template.replace(sub_string * 3, hex(self.mmap[arg_value])[2:])
+
         elif arg_type is 'byte':
             if arg_value[0] is HEX_ESC:
                 arg_value = arg_value[1:]
@@ -182,33 +189,33 @@ class blackbean:
                 except: pass
             if len(arg_value) == 2:
                 try:
-                    int(arg_value, 16) # Make sure its hex
-                    return hex_template.replace(ARG_SUB[i] * 2, arg_value)
+                    int(arg_value, 16)
+                    return hex_template.replace(sub_string * 2, arg_value)
                 except: pass
-            
+
         elif arg_type is 'nibble':
             if arg_value[0] is HEX_ESC:
                 arg_value = arg_value[1:]
             if len(arg_value) == 1:
                 try:
-                    int(arg_value, 16) # Make usre its hex
-                    return hex_template.replace(ARG_SUB[i], arg_value)
+                    int(arg_value, 16)
+                    return hex_template.replace(sub_string, arg_value)
                 except: pass
-            
+
         return ''
 
     def calc_data_declares(self, tl):
         """
-        Resolve data declarations on a line into list of ints. These
-        can be easily written out. Size (# of bytes) was found when
+        Resolve a data declarations into list of ints. These can
+        be easily written out. Size (# of bytes) was found when
         tokenizing the line.
         """
         # Skip lines w/o dd
         if not tl.data_declarations:
             return
-        
+
         for arg in tl.data_declarations:
-            
+
             # Try to parse the values
             if arg[0] is HEX_ESC:
                 arg = arg[1:]
@@ -217,9 +224,9 @@ class blackbean:
                     except: pass
             elif arg.isdigit():
                 val = int(arg)
-            
+
             # Raise errors if parse failed or val too large
-            if not val:
+            if val == None:
                 #TODO raise error
                 print("ERROR: Incorrectly formated data declaration.")
                 break
@@ -227,7 +234,7 @@ class blackbean:
                 #TODO raise error
                 print("ERROR: Data declaration overflow.")
                 break
-            
+
             tl.dd_ints.append(val)
 
     def calc_mem_address(self, tl):
@@ -239,7 +246,7 @@ class blackbean:
         # Add any tags to the mem map
         if tl.mem_tag:
             self.mmap[tl.mem_tag] = self.address
-        
+
         # One or the other per line, if both then errors are raised
         if tl.instruction:
             tl.mem_address = self.address
@@ -247,6 +254,10 @@ class blackbean:
         elif tl.data_size:
             tl.mem_address = self.address
             self.address += (len(tl.data_declarations) * tl.data_size)
+
+        if self.address >= OVERFLOW_ADDRESS:
+            #TODO raise error
+            print("ERROR: Memory overflow!")
 
 def parse_args():
     """

@@ -2,6 +2,8 @@
 
 PRE_PROC=('ifdef','ifndef','else','elif','elseif','endif','option','align','equ','=')
 
+OVERFLOW_ADDRESS=0x0EA0
+
 BEGIN_COMMENT=';'
 HEX_ESC='#'
 
