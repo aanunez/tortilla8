@@ -22,7 +22,7 @@ Pre-processor that hasn't been written yet.
 
 **Cilantro**
 
-A lexer/tokenizer used by blackbean and jalapeno.
+A lexer/tokenizer used by blackbean and jalapeno for individual lines. The initialiser does the tokenizing, the class is then used as a data container.
 
 **Guac**
 

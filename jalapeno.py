@@ -5,57 +5,74 @@ import argparse
 from cilantro import cilantro
 from tortilla8_constants.py import *
 
+#TODO do something with mode options
+#TODO clean up
+#TODO write main
+
 class jalapeno:
 
     def __init__(self):
         self.collection = []
+        self.symbols = {}
 
     def reset(self):
         self.__init__(self)
 
-    def process(self, in_handler, out_handler, definitions = []):
+    def process(self, file_handler, definitions = []):
         skipping_lines = False
         awaiting_end = False
 
-        for line in in_handler:
-            piece = line.lower().split(BEGIN_COMMENT)[0].split()[0]
+        for i,line in enumerate(file_handler):
+            t = cilantro(line, i)
 
             if skipping_lines:
-                if piece[0] in ('endif', 'else'):
+                if (t.pp_directive in ('endif','else')) or\
+                  ((t.pp_directive in ELSE_IF) and (t.pp_args[0] in definitions)):
                     skipping_lines = False
-                    continue
-                if piece[0] in ('elif', 'elseif') and piece[1] in definitions:
-                    skipping_lines = False
-                    continue
-
-            if piece[0] is BEGIN_COMMENT:
-                out_handler.write(line)
                 continue
 
-            if awaiting_end and piece[0] in ('endif', 'else'):
-                #bork
-
-            if piece[0] is 'ifdef' and piece[1] in definitions:
-                continue
-            else:
-                skipping_lines = True
+            if not t.pp_directive:
+                self.collection.append(t)
                 continue
 
-            if piece[0] is 'ifndef' and piece[1] not in definitions:
-                continue.
-            else:
-                skipping_lines = True
+            if awaiting_end and t.pp_directive in END_MARKS:
+                awaiting_end = False
                 continue
 
-            if piece[0] is 'option':
-                continue #Throw away for now
-            if piece[0] is 'align':
+            if t.pp_directive is 'ifdef':
+                if t.pp_args[0] in definitions:
+                    awaiting_end = True
+                else:
+                    skipping_lines = True
+                continue
+
+            if t.pp_directive is 'ifndef':
+                if t.pp_args[0] not in definitions:
+                    awaiting_end = True
+                else:
+                    skipping_lines = True
+                continue
+
+            if t.pp_directive in MODE_MARKS:
                 continue #Throw away for now
 
-            if piece[1] in ('equ','='):
+            if t.pp_directive in ('equ','='):
+                self.symbols[t.pp_args[0]] = t.pp_args[1]
 
+            self.collection.append(t)
 
-            out_handler.write(line)
+        for sym in self.symbols:
+            for tl in self.collection:
+                for i,arg in enumerate(tl.arguments):
+                    if arg is sym:
+                        tl.arguments[i] = self.symbols[sym]
+                for i,arg in enumerate(tl.data_declarations):
+                    if arg is sym:
+                        tl.data_declarations[i] = self.symbols[sym]
+
+    def print_processed_source(self, file_handler):
+        for tl in self.collection:
+            file_handler.write(tl.original)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Description of your program')

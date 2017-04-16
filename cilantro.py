@@ -23,9 +23,9 @@ class cilantro:
         self.pp_directive = ""       #pre-procs directive on the line
         self.pp_args      = []       #arguments after or surounding a pp directive
 
-        self.data_declarations = []  #list of ints of size dataType
+        self.data_declarations = []  #list of strings in original form
         self.data_size         = 0   #size (in bytes) of data defined on line
-        self.dd_ints           = []  #ints for machine code
+        self.dd_ints           = []  #ints for machine code of size dataType
 
         self.instruction     = ""    #"cls", "ret" etc
         self.arguments       = []    #list of args in original form
@@ -52,14 +52,14 @@ class cilantro:
         line_array = line.lower().split()
 
         # Check if tag exists, must be left most
-        if line_array[0].endswith(':'):
+        if line_array[0].endswith(END_MEM_TAG):
             self.mem_tag = line_array[0][:-1]
             line_array.pop(0)
             if not line_array:
                 return
 
         # If there are additional tags raise error
-        if ':' in ''.join(line_array):
+        if END_MEM_TAG in ''.join(line_array):
             #TODO raise error
             print("ERROR: Multiple Memory Tags found on same line.")
 

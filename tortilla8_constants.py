@@ -2,13 +2,18 @@
 
 # General
 BEGIN_COMMENT=';'
+END_MEM_TAG=':'
 HEX_ESC='#'
 BIN_ESC='$' #TODO not used yet
 
 # Pre Processor
-PRE_PROC=('ifdef','ifndef','else','elif','elseif','endif','option','align','equ','=')
+ELSE_IF=('elif','elseif','elifdef','elseifdef')
+END_MARKS=('endif','else')+ELSE_IF
+EQU_MARKS=('equ','=')
+MODE_MARKS=('option','align')
+PRE_PROC=('ifdef','ifndef')+END_MARKS+EQU_MARKS+MODE_MARKS
 
-# Assembler ONLY
+# Assembler ONLYelse
 OVERFLOW_ADDRESS=0x0EA0
 ARG_SUB={0:'x',1:'y',2:'z'}
 REGISTERS=( 'v0','v1','v2','v3',
