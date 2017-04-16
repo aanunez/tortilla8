@@ -33,7 +33,7 @@ class blackbean:
         """
         self.collection = token_collection
         self.mmap       = {}
-        self.address    = 0x0200
+        self.address    = PROGRAM_BEGIN_ADDRESS
 
     def reset(self, token_collection = []):
         """
@@ -295,14 +295,17 @@ def parse_args():
 
 @contextlib.contextmanager
 def smart_open(filename = None, mode = 'r'):
+    """
+    Open file OR use stdin. This is used to support piping.
+    """
     if filename and filename != '-':
         fh = open(filename, mode)
     else:
-        fh = sys.stdout
+        fh = sys.stdin
     try:
         yield fh
     finally:
-        if fh is not sys.stdout:
+        if fh is not sys.stdin:
             fh.close()
 
 def main(opts):

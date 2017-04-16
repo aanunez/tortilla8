@@ -14,15 +14,29 @@ from tortilla8_constants import *
 #TODO remove excess white space
 
 class jalapeno:
+    """
+    Jalapeno is a pre-processor class that can take file handlers,
+    process all common chip 8 pre processor directives and return
+    a flatten source file.
+    """
 
     def __init__(self):
+        """
+        Init the token collection and symbols list.
+        """
         self.collection = []
         self.symbols = {}
 
     def reset(self):
+        """
+        Reset the pre-processor to process another file.
+        """
         self.__init__(self)
 
     def process(self, file_handler, definitions = []):
+        """
+        TODO write some good stuff here
+        """
         skipping_lines = False
         awaiting_end = False
 
@@ -78,6 +92,9 @@ class jalapeno:
                 tl.pp_line = tl.original.replace(sym, self.symbols[sym])
 
     def print_processed_source(self, file_handler = None):
+        """
+        Print flattened source code to stdout or file handler.
+        """
         print(self.symbols)
         for tl in self.collection:
             if file_handler:
@@ -86,7 +103,10 @@ class jalapeno:
                 print(tl.pp_line, end='')
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Description of your program')
+    """
+    Parse arguments to guacamole when called as a script.
+    """
+    parser = argparse.ArgumentParser(description='Jalapeno will scan your CHIP-8 source code for pre-processing directives, apply them as needed, and produce a flatten source file that can be assembled with blackbean.')
     parser.add_argument('input', help='File to assemble')
     parser.add_argument('-o','--output',help='file to store processed source to, by default INPUT.jala is used.')
     opts = parser.parse_args()
@@ -102,6 +122,9 @@ def parse_args():
     return opts
 
 def main(opts):
+    """
+    Handles guacamole being called as a script.
+    """
     jala = jalapeno()
     with open(opts.input) as FH:
         jala.process(FH)
@@ -109,6 +132,8 @@ def main(opts):
         jala.print_processed_source(FH)
 
 if __name__ == '__main__':
+    """
+    """
     main(parse_args())
 
 
