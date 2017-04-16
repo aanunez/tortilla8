@@ -1,13 +1,15 @@
 #!/usr/bin/python3
 
+import os
 import sys
 import argparse
 from cilantro import cilantro
-from tortilla8_constants.py import *
+from tortilla8_constants import *
 
 #TODO do something with mode options
 #TODO clean up
 #TODO write main
+#TODO correct file naming issues
 
 class jalapeno:
 
@@ -27,8 +29,9 @@ class jalapeno:
 
             if skipping_lines:
                 if (t.pp_directive in ('endif','else')) or\
-                  ((t.pp_directive in ELSE_IF) and (t.pp_args[0] in definitions)):
+                   (t.pp_directive in ELSE_IF and t.pp_args[0] in definitions):
                     skipping_lines = False
+                    awaiting_end = True
                 continue
 
             if not t.pp_directive:
@@ -39,14 +42,14 @@ class jalapeno:
                 awaiting_end = False
                 continue
 
-            if t.pp_directive is 'ifdef':
+            if t.pp_directive == 'ifdef':
                 if t.pp_args[0] in definitions:
                     awaiting_end = True
                 else:
                     skipping_lines = True
                 continue
 
-            if t.pp_directive is 'ifndef':
+            if t.pp_directive == 'ifndef':
                 if t.pp_args[0] not in definitions:
                     awaiting_end = True
                 else:
@@ -54,14 +57,15 @@ class jalapeno:
                 continue
 
             if t.pp_directive in MODE_MARKS:
-                continue #Throw away for now
+                continue #TODO Throw away for now
 
             if t.pp_directive in ('equ','='):
                 self.symbols[t.pp_args[0]] = t.pp_args[1]
+                continue
 
             self.collection.append(t)
 
-        for sym in self.symbols:
+        for sym in self.symbols:                 #TODO Can this loop be better?
             for tl in self.collection:
                 for i,arg in enumerate(tl.arguments):
                     if arg is sym:
@@ -70,9 +74,12 @@ class jalapeno:
                     if arg is sym:
                         tl.data_declarations[i] = self.symbols[sym]
 
-    def print_processed_source(self, file_handler):
+    def print_processed_source(self, file_handler = None):
         for tl in self.collection:
-            file_handler.write(tl.original)
+            if file_handler:
+                file_handler.write(tl.original) #TODO Not writing out translations
+            else:
+                print(form_line, end='')
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Description of your program')
@@ -90,10 +97,12 @@ def parse_args():
 
     return opts
 
-def main(args):
+def main(opts):
     jala = jalapeno()
     with open(opts.input) as FH:
         jala.process(FH)
+    with open(opts.output + '.jala', 'w') as FH:
+        jala.print_processed_source(FH)
 
 if __name__ == '__main__':
     main(parse_args())

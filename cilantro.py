@@ -91,5 +91,5 @@ class cilantro:
             return
 
         # Trash
-        print("ERROR: Unkown command.")
+        print("ERROR: Unkown command: " + line_array[0])
         return

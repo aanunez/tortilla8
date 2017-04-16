@@ -16,6 +16,7 @@ from tortilla8_constants import *
 #TODO Use the "enfore" flag
 #TODO all these damn errors
 #TODO support for $ notation
+#TODO correct file naming issues
 
 class blackbean:
     """
