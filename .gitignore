@@ -7,6 +7,9 @@ foo
 *.bin
 *.strip
 *.stp
+*.jala
+*.SRC
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
