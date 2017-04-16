@@ -22,6 +22,7 @@ class cilantro:
 
         self.pp_directive = ""       #pre-procs directive on the line
         self.pp_args      = []       #arguments after or surounding a pp directive
+        self.pp_line      = ""       #line with pp applied
 
         self.data_declarations = []  #list of strings in original form
         self.data_size         = 0   #size (in bytes) of data defined on line

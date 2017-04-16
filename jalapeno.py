@@ -6,10 +6,12 @@ import argparse
 from cilantro import cilantro
 from tortilla8_constants import *
 
+#TODO not correctly replacing EQU and = stuff
 #TODO do something with mode options
 #TODO clean up
 #TODO write main
 #TODO correct file naming issues
+#TODO remove excess white space
 
 class jalapeno:
 
@@ -68,18 +70,20 @@ class jalapeno:
         for sym in self.symbols:                 #TODO Can this loop be better?
             for tl in self.collection:
                 for i,arg in enumerate(tl.arguments):
-                    if arg is sym:
+                    if arg == sym:
                         tl.arguments[i] = self.symbols[sym]
                 for i,arg in enumerate(tl.data_declarations):
-                    if arg is sym:
+                    if arg == sym:
                         tl.data_declarations[i] = self.symbols[sym]
+                tl.pp_line = tl.original.replace(sym, self.symbols[sym])
 
     def print_processed_source(self, file_handler = None):
+        print(self.symbols)
         for tl in self.collection:
             if file_handler:
-                file_handler.write(tl.original) #TODO Not writing out translations
+                file_handler.write(tl.pp_line) #TODO Not writing out translations
             else:
-                print(form_line, end='')
+                print(tl.pp_line, end='')
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Description of your program')
