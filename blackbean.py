@@ -2,7 +2,10 @@
 
 import os
 import sys
+import select
 import argparse
+import contextlib
+
 from cilantro import cilantro
 from tortilla8_constants import *
 
@@ -264,15 +267,23 @@ def parse_args():
     Parse arguments to blackbean when called as a script.
     """
     parser = argparse.ArgumentParser(description='Blackbean will assemble your CHIP-8 programs to executable machine code. BB can also generate listing files and comment-striped files. The "enforce" option is not currently supported.')
-    parser.add_argument('input', help='file to assemble.')
+    parser.add_argument('input', nargs='?', help='file to assemble.')
     parser.add_argument('-o','--output',help='file to store binary executable to, by default INPUT.bin is used.')
     parser.add_argument('-l','--list',  help='generate listing file and store to OUTPUT.lst file.',action='store_true')
     parser.add_argument('-s','--strip', help='strip comments and store to OUTPUT.strip file.',action='store_true')
     parser.add_argument('-e','--enforce',help='force original Chip-8 specification and do not allow SHR, SHL, XOR, or SUBN instructions.',action='store_true')
     opts = parser.parse_args()
 
-    if not os.path.isfile(opts.input):
+    if not opts.input:
+        if select.select([sys.stdin,],[],[],0.0)[0]:
+            opts.input = sys.stdin
+            if not opts.output:
+                opts.output = sys.stdout
+        else:
+            raise OSError("No input provided.")
+    elif not os.path.isfile(opts.input):
         raise OSError("File '" + opts.input + "' does not exist.")
+
     if not opts.output:
         if opts.input.endswith('.src'):
             opts.output = opts.input[:-4]
@@ -281,12 +292,24 @@ def parse_args():
 
     return opts
 
+@contextlib.contextmanager
+def smart_open(filename = None, mode = 'r'):
+    if filename and filename != '-':
+        fh = open(filename, mode)
+    else:
+        fh = sys.stdout
+    try:
+        yield fh
+    finally:
+        if fh is not sys.stdout:
+            fh.close()
+
 def main(opts):
     """
     Handles blackbean being called as a script.
     """
     bb = blackbean()
-    with open(opts.input) as FH:
+    with smart_open(opts.input) as FH:
         bb.assemble(FH)
     if opts.list:
         with open(opts.output + '.lst', 'w') as FH:
