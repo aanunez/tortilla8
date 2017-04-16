@@ -3,15 +3,14 @@
 import os
 import sys
 import argparse
-import tokenized_line as tzdl
-from assembler_constants import *
+from cilantro import cilantro
+from tortilla8_constants import *
 
 #Opcode reminders: SHR, SHL, XOR, and SUBN/SM are NOT offically supported by original spec
 #                  SHR and SHL may or may not move Y (Shifted) into X or just shift X.
 
 #TODO don't allow modifying VF
 #TODO Use the "enfore" flag
-#TODO allow SHR/SHL without second reg defined (above, in constants)
 #TODO all these damn errors
 #TODO support for $ notation
 
@@ -22,20 +21,21 @@ class blackbean:
     listing, or binary file.
     """
 
-    def __init__(self):
+    def __init__(self, token_collection = []):
         """
-        Init the token collection and memory map.
-        Memory addresses start at 0x0200 on the CHIP 8.
+        Init the token collection and memory map. Pre-Processor may
+        have already done the hard bit for us. Memory addresses
+        start at 0x0200 on the CHIP 8.
         """
-        self.collection = []
+        self.collection = token_collection
         self.mmap       = {}
         self.address    = 0x0200
 
-    def reset(self):
+    def reset(self, token_collection = []):
         """
         Reset the blackbean to assemble another file.
         """
-        __init__()
+        self.__init__(token_collection)
 
     def assemble(self, file_handler):
         """
@@ -44,7 +44,7 @@ class blackbean:
         """
         # Pass One, Tokenize and Address
         for i,line in enumerate(file_handler):
-            t = tzdl.tokenized_line(line, i)
+            t = cilantro(line, i)
             self.collection.append(t)
             if t.is_empty: continue
             self.calc_mem_address(t)

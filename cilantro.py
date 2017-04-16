@@ -1,10 +1,11 @@
 #!/usr/bin/python3
 
-from assembler_constants import *
+from tortilla8_constants import *
 
-class tokenized_line:
+class cilantro:
     '''
-    Data container class for Blackbean.
+    Lexer/tokenizer for Chip 8 instructions. Used by Blackbean (assembler)
+    and Jalapeno (pre-processor).
     '''
 
     def __init__(self, line, line_number):
@@ -16,9 +17,11 @@ class tokenized_line:
         self.original = line         #whole, unedited, line
         self.comment  = ""           #comment on the line
         self.mem_tag  = ""           #tag/label for the line, no ":"
-        self.pp_directive = ""       #any pre-procs on the line
         self.mem_address  = 0        #address
         self.line_numb = line_number #1 index line number
+
+        self.pp_directive = ""       #pre-procs directive on the line
+        self.pp_args      = []       #arguments after or surounding a pp directive
 
         self.data_declarations = []  #list of ints of size dataType
         self.data_size         = 0   #size (in bytes) of data defined on line
@@ -61,12 +64,11 @@ class tokenized_line:
             print("ERROR: Multiple Memory Tags found on same line.")
 
         # Check for any pre-processor commands
-        for i in line_array:
-            if i in PRE_PROC:
-                self.pp_directive = ' '.join(line_array)
-                #TODO raise error
-                print("ERROR: Pre-processor directive found.")
-                #raise ValueError("Pre-processor directive found.")
+        for i,word in enumerate(line_array):
+            if word in PRE_PROC:
+                self.pp_directive = word
+                line_array.pop(i)
+                self.pp_args = line_array
                 return
 
         # Check for data declarations

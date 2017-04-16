@@ -1,21 +1,23 @@
 #!/usr/bin/python3
 
-PRE_PROC=('ifdef','ifndef','else','elif','elseif','endif','option','align','equ','=')
-
-OVERFLOW_ADDRESS=0x0EA0
-
+# General
 BEGIN_COMMENT=';'
 HEX_ESC='#'
+BIN_ESC='$' #TODO not used yet
 
+# Pre Processor
+PRE_PROC=('ifdef','ifndef','else','elif','elseif','endif','option','align','equ','=')
+
+# Assembler ONLY
+OVERFLOW_ADDRESS=0x0EA0
 ARG_SUB={0:'x',1:'y',2:'z'}
-
-DATA_DECLARE={'db':1,'dw':2,'dd':4}
-
 REGISTERS=( 'v0','v1','v2','v3',
             'v4','v5','v6','v7',
             'v8','v9','va','vb',
             'vc','vd','ve','vf')
 
+# OP CODE related
+DATA_DECLARE={'db':1,'dw':2,'dd':4}
 OP_ARGS=0
 OP_HEX=1
 OP_CODE_SIZE=2
@@ -37,8 +39,10 @@ OP_CODES={  'cls' :[[[],'00E0']],
             'xor' :[[['register','register'],'8xy3']],    #TODO not in orig spec.
             'sub' :[[['register','register'],'8xy5']],
             'subn':[[['register','register'],'8xy7']],    #TODO not in orig spec.
-            'shr' :[[['register','register'],'8xy6']],    #TODO not in orig spec. 2nd reg is opt
-            'shl' :[[['register','register'],'8xyE']],    #TODO not in orig spec. 2nd reg is opt
+            'shr' :[[['register'],'8x06'],                #TODO not in orig spec.
+                    [['register','register'],'8xy6']],    #TODO not in orig spec.
+            'shl' :[[['register'],'8x0E'],                #TODO not in orig spec.
+                    [['register','register'],'8xyE']],    #TODO not in orig spec.
             'rnd' :[[['register','byte'],'cxyy']],
             'jp'  :[[['address'],'1xxx'],
 		            [['v0','address'],'Byyy']],           #This works! V0 is checked before generic regs

@@ -2,19 +2,16 @@
 
 import sys
 import argparse
-
-# Eventually, this will be the pre-processor
-
-BEGIN_COMMENT=';'
-PRE_PROC=('ifdef','ifndef','else','elif','elseif','endif','option','align','equ','=')
+from cilantro import cilantro
+from tortilla8_constants.py import *
 
 class jalapeno:
 
     def __init__(self):
-        print("None")
+        self.collection = []
 
     def reset(self):
-        __init__(self)
+        self.__init__(self)
 
     def process(self, in_handler, out_handler, definitions = []):
         skipping_lines = False
