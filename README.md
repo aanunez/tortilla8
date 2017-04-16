@@ -17,7 +17,7 @@ To-do:
 
 **Jalapeno**
 
-Pre-processor that hasn't been written yet.
+Chip-8 pre-processor that mostly works. Currently it is not replacing EQU directives correctly.
 
 
 **Cilantro**
