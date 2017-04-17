@@ -22,16 +22,18 @@ REGISTERS=( 'v0','v1','v2','v3',
             'vc','vd','ve','vf')
 
 # Memory Addresses and Related
-OVERFLOW_ADDRESS=0x0EA0
-PROGRAM_BEGIN_ADDRESS=0x0200
+OVERFLOW_ADDRESS=0xEA0
+PROGRAM_BEGIN_ADDRESS=0x200
 BYTES_OF_RAM=4096
 STACK_DEPTH=12
 GFX_RESOLUTION=64*32
-#0x0000-0x01FF - Chip 8 interpreter
-#0x0050-0x00A0 - Used for the built in 4x5 pixel font set (0-F)
-#0x0200-0x0E9F - Program ROM
-#0x0EA0-0x0EFF - Call stack
-#0x0F00-0x0FFF - Display
+FONT_ADDRESS=0x050
+GFX_ADDRESS=0xF00
+#0x000-0x1FF - Chip 8 interpreter
+#0x050-0x0A0 - Used for the built in 4x5 pixel font set (0-F)
+#0x200-0xE9F - Program ROM
+#0xEA0-0xEFF - Call stack
+#0xF00-0xFFF - Display
 
 # OP CODE related
 DATA_DECLARE={'db':1,'dw':2,'dd':4}

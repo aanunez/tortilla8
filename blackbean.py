@@ -29,7 +29,7 @@ class blackbean:
         """
         Init the token collection and memory map. Pre-Processor may
         have already done the hard bit for us. Memory addresses
-        start at 0x0200 on the CHIP 8.
+        start at 0x200 on the CHIP 8.
         """
         if token_collection is None:
             self.collection = []

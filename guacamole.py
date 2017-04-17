@@ -24,14 +24,28 @@ class guacamole:
         self.delay_timer_register = 0
         self.sound_timer_register = 0
 
+        # Load Font data
+        for i in FONT:
+            self.ram[FONT_ADDRESS + i] = FONT[i]
+
+        # Clear gfx buffer
+        for i in range(GFX_RESOLUTION):
+            self.ram[GFX_ADDRESS + i] = 0x00
+
     def reset(self):
         self.__init__()
 
     def tick(self, instruction):
+        print("tick")
 
     def draw(self):
+        print("draw")
 
     def check_key_press(self):
+        print("key")
+
+    def dump_ram():
+        print(self.ram)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Description of your program')
