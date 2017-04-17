@@ -25,17 +25,20 @@ class blackbean:
     listing, or binary file.
     """
 
-    def __init__(self, token_collection = []):
+    def __init__(self, token_collection=None):
         """
         Init the token collection and memory map. Pre-Processor may
         have already done the hard bit for us. Memory addresses
         start at 0x0200 on the CHIP 8.
         """
-        self.collection = token_collection
+        if token_collection is None:
+            self.collection = []
+        else:
+            self.collection = token_collection
         self.mmap       = {}
         self.address    = PROGRAM_BEGIN_ADDRESS
 
-    def reset(self, token_collection = []):
+    def reset(self, token_collection=None):
         """
         Reset the blackbean to assemble another file.
         """
@@ -59,7 +62,7 @@ class blackbean:
             self.calc_opcode(t)
             self.calc_data_declares(t)
 
-    def print_listing(self, file_handler):
+    def print_listing(self, file_handler=None):
         """
         Prints a the orignal file with two additonal column, the first
         being the memory address of the first byte of the line and the
@@ -87,8 +90,12 @@ class blackbean:
                 file_handler.write(form_line)
             else:
                 print(form_line, end='')
+            if file_handler is None:
+                print(form_line, end='')
+            else:
+                file_handler.write(form_line)
 
-    def print_strip(self, file_handler):
+    def print_strip(self, file_handler=None):
         """
         Prints a copy of the input file with all comments and white
         space lines removed. Useful for CHIP 8 interpreters.
@@ -101,10 +108,10 @@ class blackbean:
         for line in self.collection:
             if line.is_empty:
                 continue
-            if file_handler:
-                file_handler.write(line.original.split(BEGIN_COMMENT)[0].rstrip() + '\n')
-            else:
+            if file_handler is None:
                 print(line.original.split(BEGIN_COMMENT)[0].rstrip(), end='')
+            else:
+                file_handler.write(line.original.split(BEGIN_COMMENT)[0].rstrip() + '\n')
 
     def export_binary(self, file_path):
         """

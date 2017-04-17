@@ -33,12 +33,14 @@ class jalapeno:
         """
         self.__init__(self)
 
-    def process(self, file_handler, definitions = []):
+    def process(self, file_handler, definitions=None):
         """
         TODO write some good stuff here
         """
         skipping_lines = False
         awaiting_end = False
+        if definitions is None:
+            definitions = []
 
         for i,line in enumerate(file_handler):
             t = cilantro(line, i)
@@ -91,16 +93,17 @@ class jalapeno:
                         tl.data_declarations[i] = self.symbols[sym]
                 tl.pp_line = tl.original.replace(sym, self.symbols[sym])
 
-    def print_processed_source(self, file_handler = None):
+    def print_processed_source(self, file_handler=None):
         """
         Print flattened source code to stdout or file handler.
         """
         print(self.symbols)
         for tl in self.collection:
-            if file_handler:
-                file_handler.write(tl.pp_line) #TODO Not writing out translations
-            else:
+            if file_handler is None:
                 print(tl.pp_line, end='')
+            else:
+                file_handler.write(tl.pp_line) #TODO Not writing out translations
+
 
 def parse_args():
     """
