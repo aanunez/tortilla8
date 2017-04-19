@@ -22,18 +22,36 @@ REGISTERS=( 'v0','v1','v2','v3',
             'vc','vd','ve','vf')
 
 # Memory Addresses and Related
-OVERFLOW_ADDRESS=0xEA0
+MAX_ROM_SIZE=3232
 PROGRAM_BEGIN_ADDRESS=0x200
+OVERFLOW_ADDRESS=PROGRAM_BEGIN_ADDRESS+MAX_ROM_SIZE
+#PROGRAM_BEGIN_ADDRESS=0x600 #I dunno who uses this
 BYTES_OF_RAM=4096
 STACK_DEPTH=12
-GFX_RESOLUTION=64*32
+#STACK_ADDRESS=0xEA0 #Not really used, original calls for
+GFX_RESOLUTION=int((64*32)/8)
+#GFX_RESOLUTION=int((64*48)/8) #Used by ETI 660
+#GFX_RESOLUTION=int((64*64)/8) #Used by ETI 660
 FONT_ADDRESS=0x050
 GFX_ADDRESS=0xF00
-#0x000-0x1FF - Chip 8 interpreter
-#0x050-0x0A0 - Used for the built in 4x5 pixel font set (0-F)
-#0x200-0xE9F - Program ROM
-#0xEA0-0xEFF - Call stack
-#0xF00-0xFFF - Display
+
+# Data Type Enum - Probably not a good idea
+from enum import Enum
+class argument(Enum):
+    address  = auto()
+    register = auto()
+    byte     = auto()
+    nibble   = auto()
+    i        = auto()
+    [i]      = auto()
+    v0       = auto()
+    dt       = auto()
+    st       = auto()
+    b        = auto()
+    f        = auto()
+
+    def __str__(self):
+        return self.name
 
 # OP CODE related
 DATA_DECLARE={'db':1,'dw':2,'dd':4}

@@ -11,7 +11,6 @@ from tortilla8_constants import *
 #TODO clean up
 #TODO write main
 #TODO correct file naming issues
-#TODO remove excess white space
 
 class jalapeno:
     """
