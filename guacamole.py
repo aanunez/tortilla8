@@ -73,6 +73,7 @@ class guacamole:
 
     def cpu_tick(self):
         # Fetch instruction from ram
+        print(hex(self.program_counter))
         instruction = hex(self.ram[self.program_counter])[2:] + hex(self.ram[self.program_counter + 1])[2:]
 
         for reg_pattern in OP_REG:
@@ -88,7 +89,7 @@ class guacamole:
         reg2       = int(hex_code[2],16)
         reg2_val   = self.register[reg2]
         lower_byte = hex_code[2:4]
-        addr       = int(hex_code[0:3], 16)
+        addr       = int(hex_code[1:4], 16)
 
         if mnemonic is 'cls':
             self.clear_gfx()
@@ -195,9 +196,9 @@ class guacamole:
             else:
                 self.index_register = addr
 
-        elif mnemonic is 'drw':               # TODO this is borked
+        elif mnemonic is 'drw':
             height = int(hex_code[4],16)
-            origin = GFX_ADDRESS + reg1 + reg2
+            origin = GFX_ADDRESS + reg1_val + (reg2_val * GFX_WIDTH)
             flag = False
             for x in range(SPRITE_WIDTH):
                 for y in range(height):
