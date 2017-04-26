@@ -28,8 +28,9 @@ OVERFLOW_ADDRESS=PROGRAM_BEGIN_ADDRESS+MAX_ROM_SIZE
 #PROGRAM_BEGIN_ADDRESS=0x600 #I dunno who uses this
 BYTES_OF_RAM=4096
 STACK_SIZE=12
+STACK_ADDRESS=None
 #STACK_ADDRESS=0xEA0 #Not really used, original calls for
-SPRITE_WIDTH
+SPRITE_WIDTH=8
 GFX_HEIGHT=32
 GFX_WIDTH=64
 GFX_RESOLUTION=int((GFX_WIDTH*GFX_HEIGHT)/8)
@@ -105,7 +106,7 @@ OP_CODES={'cls' :[[[],'00E0']],
 		          [['[i]','register'],'Fy55']],
           'drw' :[[['register','register','nibble'],'Dxyz']]}
 
-REG_OP={'00E0':['cls',0],
+OP_REG={'00E0':['cls',0],
         '00EE':['ret',0],
         '1...':['sys',0],
         '2...':['call',0],
@@ -122,11 +123,11 @@ REG_OP={'00E0':['cls',0],
         '8..5':['sub',0],
         '8..6':['shr',0], #TODO no support for emulating the "more correct" form of shift
         '8..7':['subn',0],
-        '8..E':['shl',0], #TODO above 
+        '8..E':['shl',0], #TODO above
         '9..0':['sne',0],
 		'A...':['ld',5],
 		'B...':['jp',0],
-        'C...':['rnd',0], 
+        'C...':['rnd',0],
         'D...':['drw',0],
         'E.9E':['skp',0],
         'E.A1':['sknp',0],

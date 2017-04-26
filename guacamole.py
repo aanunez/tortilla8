@@ -19,7 +19,7 @@ class guacamole:
         self.stack = []
         self.stack_pointer = 0
 
-        self.key_state = 0x00
+        self.keypad = [0]*16
         self.opcode = []
 
         self.register = [0]*16
@@ -64,101 +64,138 @@ class guacamole:
             if CPU_WAIT_TIME <= (time.time() - cpu_time):
                 cpu_time = time.time()
                 self.cpu_tick()
+                # TODO Draw to screen
             if AUDIO_WAIT_TIME <= (time.time() - audio_time):
                 audio_time = time.time()
                 self.audio_tick()
 
+        # TODO Update keys
+
     def cpu_tick(self):
         # Fetch instruction from ram
         instruction = hex(self.ram[self.program_counter])[2:] + hex(self.ram[self.program_counter + 1])[2:]
-        
+
         for reg_pattern in OP_REG:
             if re.match(reg_pattern, instruction):
-                execute_op_code(OP_REG[reg_pattern][0],OP_REG[reg_pattern][1],instruction)
+                self.execute_op_code(OP_REG[reg_pattern][0],OP_REG[reg_pattern][1],instruction)
 
         self.program_counter += 2
 
-        # Draw to screen
-        # Update keys
-
     def execute_op_code(self, mnemonic, version, hex_code):
         #alias common stuff
-        reg1       = hex_code[1]
-        reg1_val   = self.register[int(hex_code[1])]
-        reg2       = hex_code[2]
-        reg2_val   = self.register[int(hex_code[1])]
+        reg1       = int(hex_code[1],16)
+        reg1_val   = self.register[reg1]
+        reg2       = int(hex_code[2],16)
+        reg2_val   = self.register[reg2]
         lower_byte = hex_code[2:4]
         addr       = int(hex_code[0:3], 16)
 
         if mnemonic is 'cls':
             self.clear_gfx()
-        
-        elif mnemoinc is 'ret':
+
+        elif mnemonic is 'ret':
             self.program_counter = self.stack_pop()
 
-        elif mnemoinc is 'sys':
+        elif mnemonic is 'sys':
             self.stack_push(self.program_counter)
             self.program_counter = addr
-            
-        elif mnemoinc is 'call':
+
+        elif mnemonic is 'call':
             print("ERROR: RCA 1802 calls are not permitted")
 
-        elif mnemoinc is 'se':
-            ins_skip(1, reg1_val, version, 1 if "byte" in OP_CODES[mnemoinc][version] else 0 )
+        elif mnemonic is 'skp':
+            if self.keypad[reg1_val & 0x0F]:
+                self.program_counter += 2
 
-        elif mnemoinc is 'sne':
-            ins_skip(0, reg1_val, version, 1 if "byte" in OP_CODES[mnemoinc][version] else 0 )
+        elif mnemonic is 'sknp':
+            if not self.keypad[reg1_val & 0x0F]:
+                self.program_counter += 2
 
-        elif mnemoinc is 'shl':
-            if reg1_val >= 0x80:
-                self.register[reg1] = (reg1_val << 1) & 0xFF
-                self.register[0xF]  = 0xF
-            else:
-                self.register[reg1] = reg1_val << 1
-                self.register[0xF]  = 0x0
+        elif mnemonic is 'se':
+            comp = lower_byte if "byte" in OP_CODES[mnemonic][version][OP_ARGS] else reg2_val
+            if reg1_val == comp:
+                self.program_counter += 2
 
-        elif mnemoinc is 'shr':
+        elif mnemonic is 'sne':
+            comp = lower_byte if "byte" in OP_CODES[mnemonic][version][OP_ARGS] else reg2_val
+            if reg1_val != comp:
+                self.program_counter += 2
+
+        elif mnemonic is 'shl':                                         #TODO add option to respect "old" shift
+            self.register[reg1] = (reg1_val << 1) & 0xFF
+            self.register[0xF] = 0xF if reg1_val >= 0x80 else 0x0
+
+        elif mnemonic is 'shr':                                         #TODO add option to respect "old" shift
             self.register[reg1] = reg1_val >> 1
-            if (reg1_val % 2) == 1:
-                self.register[0xF]  = 0xF
-            else:
-                self.register[0xF]  = 0x0
-        
-        elif mnemoinc is 'or':
+            self.register[0xF] = 0xF if (reg1_val % 2) == 1 else 0x0
+
+        elif mnemonic is 'or':
             self.register[reg1] = reg1_val | reg2_val
 
-        elif mnemoinc is 'and':
+        elif mnemonic is 'and':
             self.register[reg1] = reg1_val & reg2_val
 
-        elif mnemoinc is 'xor':
+        elif mnemonic is 'xor':
             self.register[reg1] = reg1_val ^ reg2_val
 
-        elif mnemoinc is 'sub':
-            ins_sub(self, reg1_val, reg2_val, reg1)
+        elif mnemonic is 'sub':
+            self.ins_sub(self, reg1_val, reg2_val, reg1)
 
-        elif mnemoinc is 'subn':
-            ins_sub(self, reg2_val, reg1_val, reg1)
+        elif mnemonic is 'subn':
+            self.ins_sub(self, reg2_val, reg1_val, reg1)
 
-        elif mnemoinc is 'jp':
+        elif mnemonic is 'jp':
             self.stack_push(self.program_counter)
             self.program_counter = addr + self.register[0]
 
-        elif mnemoinc is 'rnd':
+        elif mnemonic is 'rnd':
             self.resgister[reg1] = random.randint(0, 255) & lower_byte
-            
-        elif mnemoinc is 'add':
-            if 'byte' in OP_CODES[mnemoinc][version]:
+
+        elif mnemonic is 'add':
+            if 'byte' in OP_CODES[mnemonic][version][OP_ARGS]:
                 self.resgister[reg1] += lower_byte
-            elif 'i' in OP_CODES[mnemoinc][version]:
+            elif 'i' in OP_CODES[mnemonic][version][OP_ARGS]:
                 self.index_register += reg1_val
             else:
                 self.resgister[reg1] += reg2_val
                 if reg1_val + reg2_val > 0xFF:
-                    self.resgister[reg1] &= 0xFF          
+                    self.resgister[reg1] &= 0xFF
 
-        elif mnemoinc is 'ld':
+        elif mnemonic is 'ld':
+            if 'register' is OP_CODES[mnemonic][version][OP_ARGS][0]:
+                if   'byte' is OP_CODES[mnemonic][version][OP_ARGS][1]:
+                    self.register[reg1] = lower_byte
+                elif 'register'  is OP_CODES[mnemonic][version][OP_ARGS][1]:
+                    self.register[reg1] = reg2_val
+                elif 'dt'   is OP_CODES[mnemonic][version][OP_ARGS][1]:
+                    self.register[reg1] = self.delay_timer_register
+                elif 'k'    is OP_CODES[mnemonic][version][OP_ARGS][1]:
+                    self.register[reg1] = 0x00 # TODO impliment key press
+                elif '[i]'  is OP_CODES[mnemonic][version][OP_ARGS][1]:
+                    for i in range(reg1):
+                        self.register[i] = self.ram[self.index_register + i]
+                else:
+                    print("ERROR: Bad Load")
+            elif 'register' is OP_CODES[mnemonic][version][OP_ARGS][1]:
+                if   'dt'  is OP_CODES[mnemonic][version][OP_ARGS][0]:
+                    self.delay_timer_register = reg1_val
+                elif 'st'  is OP_CODES[mnemonic][version][OP_ARGS][0]:
+                    self.sound_timer_register = reg1_val
+                elif 'f'   is OP_CODES[mnemonic][version][OP_ARGS][0]:
+                    self.index_register = FONT_ADDRESS + (5 * reg1_val)
+                elif 'b'   is OP_CODES[mnemonic][version][OP_ARGS][0]:
+                    reg1_val = str(reg1_val).zfill(3)
+                    for i in range(3):
+                        self.ram[self.index_register + i] = int(reg1_val[i])
+                elif '[i]' is OP_CODES[mnemonic][version][OP_ARGS][0]:
+                    for i in range(reg1):
+                        self.ram[self.index_register + i] = self.register[i]
+                else:
+                    print("ERROR: Bad Load")
+            else:
+                self.index_register = addr
 
-        elif mnemoinc is 'drw'
+        elif mnemonic is 'drw':               # TODO this is borked
             height = int(hex_code[4],16)
             origin = GFX_ADDRESS + reg1 + reg2
             flag = False
@@ -170,28 +207,24 @@ class guacamole:
                         flag = True
             self.registers[0xF] = 0xFF
 
-    def ins_sub(self, reg1_val, reg2_val, store_reg):
-        if reg1_val > reg2_val:
-            self.register[store_reg] = reg1_val - reg2_val
-            self.register[0xF]  = 0xF
         else:
-            self.register[store_reg] = 0xFF + reg1_val - reg2_val
-            self.register[0xF]  = 0x0
+            print("ERROR: Bad Instruction!")
 
-    def ins_skip(self, equal, reg, is_byte, arg):
-        if ( reg == int(arg[:is_byte + 1],16) ) == equal:
-            self.program_counter += 2
+    def ins_sub(self, reg1_val, reg2_val, store_reg):
+        self.register[store_reg] = reg1_val - reg2_val
+        self.register[store_reg] += 0x00 if reg1_val > reg2_val else 0xFF
+        self.register[0xF] = 0xF if reg1_val > reg2_val else 0x0
 
     def stack_push(self, val):
         if STACK_ADDRESS:
             self.ram[stack_pointer] = val
             stack_pointer += 1
             if stack_pointer > STACK_SIZE:
-                print("ERROR: Stack overflow") 
+                print("ERROR: Stack overflow")
         else:
             self.stack.append(val)
             if len(self.stack) > STACK_SIZE:
-                print("ERROR: Stack overflow") 
+                print("ERROR: Stack overflow")
 
     def stack_pop(self):
         if STACK_ADDRESS:
@@ -235,7 +268,10 @@ def parse_args():
 def main(opts):
     guac = guacamole()
     guac.load_rom(opts.rom)
-    guac.dump_ram()
+    for i in range(200):
+        time.sleep(0.2)
+        guac.cpu_tick()
+    #guac.dump_ram()
 
 if __name__ == '__main__':
     main(parse_args())
