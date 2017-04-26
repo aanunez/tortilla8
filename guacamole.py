@@ -73,12 +73,18 @@ class guacamole:
 
     def cpu_tick(self):
         # Fetch instruction from ram
-        print(hex(self.program_counter))
-        instruction = hex(self.ram[self.program_counter])[2:] + hex(self.ram[self.program_counter + 1])[2:]
+        flag = False
+        instruction =  hex(self.ram[self.program_counter + 0])[2:].zfill(2)
+        instruction += hex(self.ram[self.program_counter + 1])[2:].zfill(2)
 
         for reg_pattern in OP_REG:
-            if re.match(reg_pattern, instruction):
+            if re.match(reg_pattern.lower(), instruction):
+                print(hex(self.program_counter) + "  " + OP_REG[reg_pattern][0])
                 self.execute_op_code(OP_REG[reg_pattern][0],OP_REG[reg_pattern][1],instruction)
+                flag = True
+
+        if not flag:
+            print("ERROR: Unknown instruction! " + instruction)
 
         self.program_counter += 2
 
@@ -88,7 +94,7 @@ class guacamole:
         reg1_val   = self.register[reg1]
         reg2       = int(hex_code[2],16)
         reg2_val   = self.register[reg2]
-        lower_byte = hex_code[2:4]
+        lower_byte = int(hex_code[2:4], 16)
         addr       = int(hex_code[1:4], 16)
 
         if mnemonic is 'cls':
@@ -197,16 +203,16 @@ class guacamole:
                 self.index_register = addr
 
         elif mnemonic is 'drw':
-            height = int(hex_code[4],16)
+            height = int(hex_code[3],16)
             origin = GFX_ADDRESS + reg1_val + (reg2_val * GFX_WIDTH)
-            flag = False
+            self.register[0xF] = 0x00
             for x in range(SPRITE_WIDTH):
                 for y in range(height):
+                    print(" " + str(reg1_val) + " " + str(reg2_val))
                     original = self.ram[origin + x + (y * GFX_WIDTH)]
                     self.ram[origin + x + (y * GFX_WIDTH)] ^= self.ram[self.index_register + x + (y * GFX_WIDTH)]
-                    if not flag and ((self.ram[origin + x + (y * GFX_WIDTH)] ^ original) & original):
-                        flag = True
-            self.registers[0xF] = 0xFF
+                    if ((self.ram[origin + x + (y * GFX_WIDTH)] ^ original) & original):
+                        self.register[0xF] = 0xFF
 
         else:
             print("ERROR: Bad Instruction!")
