@@ -30,7 +30,6 @@ BYTES_OF_RAM=4096
 STACK_SIZE=12
 STACK_ADDRESS=None
 #STACK_ADDRESS=0xEA0 #Not really used, original calls for
-SPRITE_WIDTH=1 #Width of a sprite in bytes.
 GFX_HEIGHT_PX=32
 GFX_WIDTH_PX=64
 GFX_WIDTH=int(GFX_WIDTH_PX/8)  #64 pixels
@@ -39,24 +38,6 @@ GFX_RESOLUTION=int(GFX_WIDTH*GFX_HEIGHT_PX) #In bytes
 #GFX_RESOLUTION=int((64*64)/8) #Used by ETI 660
 FONT_ADDRESS=0x050
 GFX_ADDRESS=0xF00
-
-# Data Type Enum - Probably not a good idea
-#from enum import Enum
-#class argument(Enum):
-#    address  = auto()
-#    register = auto()
-#    byte     = auto()
-#    nibble   = auto()
-#    i        = auto()
-#    [i]      = auto()
-#    v0       = auto()
-#    dt       = auto()
-#    st       = auto()
-#    b        = auto()
-#    f        = auto()
-#
-#    def __str__(self):
-#        return self.name
 
 # Frequency
 CPU_HZ=60
@@ -109,7 +90,7 @@ OP_CODES={'cls' :[[[],'00E0']],
 
 OP_REG={'00E0':['cls',0],
         '00EE':['ret',0],
-        '0...':['sys',0],
+        '0.[^E].':['sys',0],   # we don't traverse the dict in order, so make sure this doesn't match to cls or ret
         '1...':['jp',1],
         '2...':['call',0],
 		'3...':['se',1],

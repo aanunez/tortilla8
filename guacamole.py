@@ -2,56 +2,48 @@
 
 import re
 import os
+import sys #TODO REMOVE
 import time
 import random
 import argparse
 from tortilla8_constants import *
 
-#TODO allow audio in seprate thread
-
 class guacamole:
 
     def __init__(self, rom=None):
-        self.ram = [None]*BYTES_OF_RAM
-        self.program_counter = PROGRAM_BEGIN_ADDRESS
+        self.ram = [None] * BYTES_OF_RAM
 
-        # Stack emulation, only used if STACK_ADDRESS is not defined
-        self.stack = []
-        self.stack_pointer = 0
-
-        self.keypad = [False]*16
-        self.draw_flag = False
-        
         self.register = [0]*16
         self.index_register = 0
         self.delay_timer_register = 0
         self.sound_timer_register = 0
 
+        self.program_counter = PROGRAM_BEGIN_ADDRESS
+
+        self.keypad = [False] * 16
+        self.draw_flag = False
+
+        # Stack emulation, only used if STACK_ADDRESS is not defined
+        self.stack = []
+        self.stack_pointer = 0
+        
         random.seed()
 
-        # Load Font data
-        for i,val in enumerate(FONT):
-            self.ram[FONT_ADDRESS + i] = val
-
-        self.clear_gfx()
-
+        # Load Font, clear screen
+        self.ram[FONT_ADDRESS:FONT_ADDRESS+len(FONT)] = [i for i in FONT]
+        self.ram[GFX_ADDRESS:GFX_ADDRESS + GFX_RESOLUTION] = [0x00] * GFX_RESOLUTION
+  
         # Load Rom
         if rom is not None:
             self.load_rom(self, rom)
 
-    def clear_gfx(self):
-        for i in range(GFX_RESOLUTION):
-            self.ram[GFX_ADDRESS + i] = 0x00
-
     def load_rom(self, file_path):
         file_size = os.path.getsize(file_path)
         if file_size > MAX_ROM_SIZE:
-            # TODO raise error
-            print("ERROR: Rom file too large")
+            print("Warning: Rom file exceeds MAX_ROM_SIZE. Loading anyway.")
 
         with open(file_path, "rb") as fh:
-            for i in range(file_size):
-                self.ram[PROGRAM_BEGIN_ADDRESS + i] = int.from_bytes(fh.read(1), 'big')
+            self.ram[PROGRAM_BEGIN_ADDRESS:PROGRAM_BEGIN_ADDRESS + file_size] = [int.from_bytes(fh.read(1), 'big') for i in range(file_size)]
 
     def reset(self):
         self.__init__()
@@ -62,25 +54,23 @@ class guacamole:
     def output_screen(self):
         return self.ram[GFX_ADDRESS:GFX_ADDRESS+GFX_RESOLUTION]
 
+    def output_draw_flag(self):
+        if self.draw_falg:
+            self.draw_falg = False
+            return True
+        return False
+
     def output_audio(self):
         return [self.delay_timer_register == 0, self.sound_timer_register == 0]
 
-    def run(self):
-        exit = False
-        audio_time = 0
-        cpu_time = 0
-        while not exit:
-            if CPU_WAIT_TIME <= (time.time() - cpu_time):
-                cpu_time = time.time()
-                self.cpu_tick()
-                if self.draw_flag:
-                    self.draw_flag = False
-                    # TODO Draw to screen
-            if AUDIO_WAIT_TIME <= (time.time() - audio_time):
-                audio_time = time.time()
-                self.audio_tick()
+    def run(self, audio_time=0, cpu_time=0):
+        if CPU_WAIT_TIME <= (time.time() - cpu_time):
+            cpu_time = time.time()
+            self.cpu_tick()
 
-        # TODO Update keys
+        if AUDIO_WAIT_TIME <= (time.time() - audio_time):
+            audio_time = time.time()
+            self.audio_tick()
 
     def cpu_tick(self):
         # Fetch instruction from ram
@@ -96,9 +86,16 @@ class guacamole:
                 break
 
         if not flag:
-            print("ERROR: Unknown instruction! " + instruction + " at " + hex(self.program_counter))
+            print("ERROR: Unknown instruction " + instruction + " at " + hex(self.program_counter))
 
         self.program_counter += 2
+
+    def audio_tick(self):
+        # Decrement sound registers
+        if self.delay_timer_register != 0:
+            self.delay_timer_register -= 1
+        if self.sound_timer_register != 0:
+            self.sound_timer_register -= 1
 
     def execute_op_code(self, mnemonic, version, hex_code):
         #alias common stuff
@@ -110,23 +107,31 @@ class guacamole:
         addr       = int(hex_code[1:4], 16)
 
         if mnemonic is 'cls':
-            self.clear_gfx()
+            self.ram[GFX_ADDRESS:] = [0x00 for i in range(GFX_RESOLUTION)]
 
         elif mnemonic is 'ret':
-            self.program_counter = self.stack_pop()
+            if STACK_ADDRESS:
+                self.stack_pointer -= 1
+                if self.stack_pointer < 0:
+                    print("ERROR: Stack underflow")
+                self.program_counter =  self.ram[self.stack_pointer]
+            else:
+                self.program_counter =  self.stack.pop()
 
         elif mnemonic is 'sys':
-            print("Warning: RCA 1802 call to " + hex(addr) + " was ",end="")
-            if self.ram[addr] is not None:
-                self.stack_push(self.program_counter)
-                self.program_counter = addr - 2
-                print("allowed as the call was within the rom.")
-            else:
-                print("disallowed as the call was to a null valued location.")
+            print("Warning: RCA 1802 call to " + hex(addr) + " was ignored.")
 
         elif mnemonic is 'call':
-            self.stack_push(self.program_counter)
-            self.program_counter = addr + self.register[0] - 2
+            if STACK_ADDRESS:
+                self.ram[stack_pointer] = self.program_counter
+                self.stack_pointer += 1
+                if self.stack_pointer > STACK_SIZE:
+                    print("ERROR: Stack overflow")
+            else:
+                self.stack.append(self.program_counter)
+                if len(self.stack) > STACK_SIZE:
+                    print("ERROR: Stack overflow")
+            self.program_counter = addr - 2
             
         elif mnemonic is 'skp':
             if self.keypad[reg1_val & 0x0F]:
@@ -188,44 +193,50 @@ class guacamole:
                 if reg1_val + reg2_val > 0xFF:
                     self.register[reg1] &= 0xFF
 
-        elif mnemonic is 'ld':                                     # TODO this sucks
-            if 'register' is OP_CODES[mnemonic][version][OP_ARGS][0]:
-                if   'byte' is OP_CODES[mnemonic][version][OP_ARGS][1]:
-                    self.register[reg1] = lower_byte
-                elif 'register'  is OP_CODES[mnemonic][version][OP_ARGS][1]:
-                    self.register[reg1] = reg2_val
-                elif 'dt'   is OP_CODES[mnemonic][version][OP_ARGS][1]:
-                    self.register[reg1] = self.delay_timer_register
-                elif 'k'    is OP_CODES[mnemonic][version][OP_ARGS][1]:
+        elif mnemonic is 'ld':
+            arg1 = OP_CODES[mnemonic][version][OP_ARGS][0]
+            arg2 = OP_CODES[mnemonic][version][OP_ARGS][1]
+
+            if 'register' is arg1:
+                if   'byte'     is arg2: self.register[reg1] = lower_byte
+                elif 'register' is arg2: self.register[reg1] = reg2_val
+                elif 'dt'       is arg2: self.register[reg1] = self.delay_timer_register
+                elif 'k'        is arg2:
                     original = ~int(''.join(['1' if x else '0' for x in self.keypad]),2)
                     new = 0x0000
                     while not (original & new):
                         new = int(''.join(['1' if x else '0' for x in self.keypad]),2)
                         continue
                     self.register[reg1] = new.find('1')
-                elif '[i]'  is OP_CODES[mnemonic][version][OP_ARGS][1]:
+
+                elif '[i]' == arg2:
                     for i in range(reg1):
                         self.register[i] = self.ram[self.index_register + i]
+
                 else:
                     print("ERROR: Bad Load")
-            elif 'register' is OP_CODES[mnemonic][version][OP_ARGS][1]:
-                if   'dt'  is OP_CODES[mnemonic][version][OP_ARGS][0]:
-                    self.delay_timer_register = reg1_val
-                elif 'st'  is OP_CODES[mnemonic][version][OP_ARGS][0]:
-                    self.sound_timer_register = reg1_val
-                elif 'f'   is OP_CODES[mnemonic][version][OP_ARGS][0]:
-                    self.index_register = FONT_ADDRESS + (5 * reg1_val)
-                elif 'b'   is OP_CODES[mnemonic][version][OP_ARGS][0]:
+
+            elif 'register' is arg2:
+                if   'dt' is arg1: self.delay_timer_register = reg1_val
+                elif 'st' is arg1: self.sound_timer_register = reg1_val
+                elif 'f'  is arg1: self.index_register = FONT_ADDRESS + (5 * reg1_val)
+                elif 'b'  is arg1:
                     reg1_val = str(reg1_val).zfill(3)
                     for i in range(3):
                         self.ram[self.index_register + i] = int(reg1_val[i])
-                elif '[i]' is OP_CODES[mnemonic][version][OP_ARGS][0]:
+
+                elif '[i]' == arg1:
                     for i in range(reg1):
                         self.ram[self.index_register + i] = self.register[i]
+
                 else:
                     print("ERROR: Bad Load")
-            else:
+
+            elif 'i' is arg1 and 'address' is arg2:
                 self.index_register = addr
+
+            else:
+                print("ERROR: Bad Load")
 
         elif mnemonic is 'drw':           # TODO Wrap around doesn't work
             if reg1_val >= GFX_WIDTH_PX:
@@ -257,33 +268,6 @@ class guacamole:
         self.register[store_reg] += 0x00 if reg1_val > reg2_val else 0xFF
         self.register[0xF] = 0xFF if reg1_val > reg2_val else 0x00
 
-    def stack_push(self, val):
-        if STACK_ADDRESS:
-            self.ram[stack_pointer] = val
-            stack_pointer += 1
-            if stack_pointer > STACK_SIZE:
-                print("ERROR: Stack overflow")
-        else:
-            self.stack.append(val)
-            if len(self.stack) > STACK_SIZE:
-                print("ERROR: Stack overflow")
-
-    def stack_pop(self):
-        if STACK_ADDRESS:
-            stack_pointer -= 1
-            if stack_pointer < 0:
-                print("ERROR: Stack underflow")
-            return self.ram[self.stack_pointer]
-        else:
-            return self.stack.pop()
-
-    def audio_tick(self):
-        # Decrement sound registers
-        if self.delay_timer_register != 0:
-            self.delay_timer_register -= 1
-        if self.sound_timer_register != 0:
-            self.sound_timer_register -= 1
-
     def dump_ram(self):
         for i,val in enumerate(self.ram):
             if val is None:
@@ -304,9 +288,8 @@ def parse_args():
 def main(opts):
     guac = guacamole()
     guac.load_rom(opts.rom)
-    for i in range(200):
-        time.sleep(0.2)
-        guac.cpu_tick()
+    while(True):
+        guac.run()
     #guac.dump_ram()
 
 if __name__ == '__main__':
