@@ -19,9 +19,9 @@ class guacamole:
         self.stack = []
         self.stack_pointer = 0
 
-        self.keypad = [0]*16
-        self.opcode = []
-
+        self.keypad = [False]*16
+        self.draw_flag = False
+        
         self.register = [0]*16
         self.index_register = 0
         self.delay_timer_register = 0
@@ -56,6 +56,15 @@ class guacamole:
     def reset(self):
         self.__init__()
 
+    def input_keys(self, pressed_keys):
+        self.keypad = pressed_keys
+        
+    def output_screen(self):
+        return self.ram[GFX_ADDRESS:GFX_ADDRESS+GFX_RESOLUTION]
+
+    def output_audio(self):
+        return [self.delay_timer_register == 0, self.sound_timer_register == 0]
+
     def run(self):
         exit = False
         audio_time = 0
@@ -64,7 +73,9 @@ class guacamole:
             if CPU_WAIT_TIME <= (time.time() - cpu_time):
                 cpu_time = time.time()
                 self.cpu_tick()
-                # TODO Draw to screen
+                if self.draw_flag:
+                    self.draw_flag = False
+                    # TODO Draw to screen
             if AUDIO_WAIT_TIME <= (time.time() - audio_time):
                 audio_time = time.time()
                 self.audio_tick()
@@ -78,13 +89,14 @@ class guacamole:
         instruction += hex(self.ram[self.program_counter + 1])[2:].zfill(2)
 
         for reg_pattern in OP_REG:
-            if re.match(reg_pattern.lower(), instruction):
-                print(hex(self.program_counter) + "  " + OP_REG[reg_pattern][0])
+            if re.match(reg_pattern.lower(), instruction):   # TODO probably should remove the need for .lower()
+                print(hex(self.program_counter) + " " + instruction + " " + OP_REG[reg_pattern][0])
                 self.execute_op_code(OP_REG[reg_pattern][0],OP_REG[reg_pattern][1],instruction)
                 flag = True
+                break
 
         if not flag:
-            print("ERROR: Unknown instruction! " + instruction)
+            print("ERROR: Unknown instruction! " + instruction + " at " + hex(self.program_counter))
 
         self.program_counter += 2
 
@@ -103,12 +115,18 @@ class guacamole:
         elif mnemonic is 'ret':
             self.program_counter = self.stack_pop()
 
-        elif mnemonic is 'sys':
-            self.stack_push(self.program_counter)
-            self.program_counter = addr
+        elif mnemonic is 'sys': # same as jp addr
+            #self.stack_push(self.program_counter) # TODO Online docs say to push, but that doesn't make any sense to me.
+            self.program_counter = addr - 2 
 
         elif mnemonic is 'call':
-            print("ERROR: RCA 1802 calls are not permitted")
+            print("Warning: RCA 1802 call to " + hex(addr) + " was ",end="")
+            if self.ram[addr] is not None:
+                self.stack_push(self.program_counter)
+                self.program_counter = addr - 2
+                print("allowed as the call was within the rom."
+            else:
+                print("disallowed as the call was to a null valued location.")
 
         elif mnemonic is 'skp':
             if self.keypad[reg1_val & 0x0F]:
@@ -130,11 +148,11 @@ class guacamole:
 
         elif mnemonic is 'shl':                                         #TODO add option to respect "old" shift
             self.register[reg1] = (reg1_val << 1) & 0xFF
-            self.register[0xF] = 0xF if reg1_val >= 0x80 else 0x0
+            self.register[0xF] = 0xFF if reg1_val >= 0x80 else 0x0
 
         elif mnemonic is 'shr':                                         #TODO add option to respect "old" shift
             self.register[reg1] = reg1_val >> 1
-            self.register[0xF] = 0xF if (reg1_val % 2) == 1 else 0x0
+            self.register[0xF] = 0xFF if (reg1_val % 2) == 1 else 0x0
 
         elif mnemonic is 'or':
             self.register[reg1] = reg1_val | reg2_val
@@ -153,20 +171,20 @@ class guacamole:
 
         elif mnemonic is 'jp':
             self.stack_push(self.program_counter)
-            self.program_counter = addr + self.register[0]
+            self.program_counter = addr + self.register[0] - 2
 
         elif mnemonic is 'rnd':
-            self.resgister[reg1] = random.randint(0, 255) & lower_byte
+            self.register[reg1] = random.randint(0, 255) & lower_byte
 
         elif mnemonic is 'add':
             if 'byte' in OP_CODES[mnemonic][version][OP_ARGS]:
-                self.resgister[reg1] += lower_byte
+                self.register[reg1] += lower_byte
             elif 'i' in OP_CODES[mnemonic][version][OP_ARGS]:
                 self.index_register += reg1_val
             else:
-                self.resgister[reg1] += reg2_val
+                self.register[reg1] += reg2_val
                 if reg1_val + reg2_val > 0xFF:
-                    self.resgister[reg1] &= 0xFF
+                    self.register[reg1] &= 0xFF
 
         elif mnemonic is 'ld':
             if 'register' is OP_CODES[mnemonic][version][OP_ARGS][0]:
@@ -177,7 +195,7 @@ class guacamole:
                 elif 'dt'   is OP_CODES[mnemonic][version][OP_ARGS][1]:
                     self.register[reg1] = self.delay_timer_register
                 elif 'k'    is OP_CODES[mnemonic][version][OP_ARGS][1]:
-                    self.register[reg1] = 0x00 # TODO impliment key press
+                    self.register[reg1] = 0x00                        # TODO impliment wait key press
                 elif '[i]'  is OP_CODES[mnemonic][version][OP_ARGS][1]:
                     for i in range(reg1):
                         self.register[i] = self.ram[self.index_register + i]
@@ -202,15 +220,25 @@ class guacamole:
             else:
                 self.index_register = addr
 
-        elif mnemonic is 'drw':
+        elif mnemonic is 'drw':           # TODO Wrap around doesn't work
+            if reg1_val >= GFX_WIDTH_PX:
+                print("ERROR: Draw instruction called with X origin >= GFX_WIDTH_PX\nWrap-around not yet supported.")
+            if reg2_val >= GFX_HEIGHT_PX:
+                print("ERROR: Draw instruction called with Y origin >= GFX_HEIGHT_PX\nWrap-around not yet supported.")
+
+            self.draw_flag = True
             height = int(hex_code[3],16)
-            origin = GFX_ADDRESS + reg1_val + (reg2_val * GFX_WIDTH)
+            origin = GFX_ADDRESS + int(reg1_val/8) + (reg2_val * GFX_WIDTH) #To lowest byte
+            mask = [0xFF >> (reg1_val%8)]
+            mask.insert(0, ~mask[0])
             self.register[0xF] = 0x00
-            for x in range(SPRITE_WIDTH):
-                for y in range(height):
-                    print(" " + str(reg1_val) + " " + str(reg2_val))
+
+            for y in range(height):
+                for x in range(2):
                     original = self.ram[origin + x + (y * GFX_WIDTH)]
-                    self.ram[origin + x + (y * GFX_WIDTH)] ^= self.ram[self.index_register + x + (y * GFX_WIDTH)]
+                    self.ram[origin + x + (y * GFX_WIDTH)] ^= self.ram[self.index_register + y]   # This should be I + y only? Was: self.ram[self.index_register + x + (y * GFX_WIDTH)] 
+                    self.ram[origin + x + (y * GFX_WIDTH)] |= mask[x]
+                    self.ram[origin + x + (y * GFX_WIDTH)] &= original
                     if ((self.ram[origin + x + (y * GFX_WIDTH)] ^ original) & original):
                         self.register[0xF] = 0xFF
 
@@ -220,7 +248,7 @@ class guacamole:
     def ins_sub(self, reg1_val, reg2_val, store_reg):
         self.register[store_reg] = reg1_val - reg2_val
         self.register[store_reg] += 0x00 if reg1_val > reg2_val else 0xFF
-        self.register[0xF] = 0xF if reg1_val > reg2_val else 0x0
+        self.register[0xF] = 0xFF if reg1_val > reg2_val else 0x00
 
     def stack_push(self, val):
         if STACK_ADDRESS:
