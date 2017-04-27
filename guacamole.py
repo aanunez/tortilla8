@@ -115,19 +115,19 @@ class guacamole:
         elif mnemonic is 'ret':
             self.program_counter = self.stack_pop()
 
-        elif mnemonic is 'sys': # same as jp addr
-            #self.stack_push(self.program_counter) # TODO Online docs say to push, but that doesn't make any sense to me.
-            self.program_counter = addr - 2 
-
-        elif mnemonic is 'call':
+        elif mnemonic is 'sys':
             print("Warning: RCA 1802 call to " + hex(addr) + " was ",end="")
             if self.ram[addr] is not None:
                 self.stack_push(self.program_counter)
                 self.program_counter = addr - 2
-                print("allowed as the call was within the rom."
+                print("allowed as the call was within the rom.")
             else:
                 print("disallowed as the call was to a null valued location.")
 
+        elif mnemonic is 'call':
+            self.stack_push(self.program_counter)
+            self.program_counter = addr + self.register[0] - 2
+            
         elif mnemonic is 'skp':
             if self.keypad[reg1_val & 0x0F]:
                 self.program_counter += 2
@@ -170,8 +170,10 @@ class guacamole:
             self.ins_sub(self, reg2_val, reg1_val, reg1)
 
         elif mnemonic is 'jp':
-            self.stack_push(self.program_counter)
-            self.program_counter = addr + self.register[0] - 2
+            if 'v0' in OP_CODES[mnemonic][version][OP_ARGS]:
+                self.program_counter = addr + self.register[0] - 2
+            else:
+                self.program_counter = addr - 2
 
         elif mnemonic is 'rnd':
             self.register[reg1] = random.randint(0, 255) & lower_byte
@@ -186,7 +188,7 @@ class guacamole:
                 if reg1_val + reg2_val > 0xFF:
                     self.register[reg1] &= 0xFF
 
-        elif mnemonic is 'ld':
+        elif mnemonic is 'ld':                                     # TODO this sucks
             if 'register' is OP_CODES[mnemonic][version][OP_ARGS][0]:
                 if   'byte' is OP_CODES[mnemonic][version][OP_ARGS][1]:
                     self.register[reg1] = lower_byte
@@ -195,7 +197,12 @@ class guacamole:
                 elif 'dt'   is OP_CODES[mnemonic][version][OP_ARGS][1]:
                     self.register[reg1] = self.delay_timer_register
                 elif 'k'    is OP_CODES[mnemonic][version][OP_ARGS][1]:
-                    self.register[reg1] = 0x00                        # TODO impliment wait key press
+                    original = ~int(''.join(['1' if x else '0' for x in self.keypad]),2)
+                    new = 0x0000
+                    while not (original & new):
+                        new = int(''.join(['1' if x else '0' for x in self.keypad]),2)
+                        continue
+                    self.register[reg1] = new.find('1')
                 elif '[i]'  is OP_CODES[mnemonic][version][OP_ARGS][1]:
                     for i in range(reg1):
                         self.register[i] = self.ram[self.index_register + i]
@@ -276,12 +283,6 @@ class guacamole:
             self.delay_timer_register -= 1
         if self.sound_timer_register != 0:
             self.sound_timer_register -= 1
-
-    def draw(self):
-        print("draw")
-
-    def check_key_press(self):
-        print("key")
 
     def dump_ram(self):
         for i,val in enumerate(self.ram):

@@ -71,7 +71,7 @@ OP_HEX=1
 OP_CODE_SIZE=2
 OP_CODES={'cls' :[[[],'00E0']],
           'ret' :[[[],'00EE']],
-          'sys' :[[['address'],'1xxx']],                #Jump with no offset
+          'sys' :[[['address'],'0xxx']],
           'call':[[['address'],'2xxx']],
           'skp' :[[['register'],'Ex9E']],
           'sknp':[[['register'],'ExA1']],
@@ -91,9 +91,9 @@ OP_CODES={'cls' :[[[],'00E0']],
                   [['register','register'],'8xy6']],    #TODO not in orig spec.
           'shl' :[[['register'],'8x0E'],                #TODO not in orig spec.
                   [['register','register'],'8xyE']],    #TODO not in orig spec.
-          'rnd' :[[['register','byte'],'cxyy']],
+          'rnd' :[[['register','byte'],'Cxyy']],
           'jp'  :[[['v0','address'],'Byyy'],
-                  [['address'],'1xxx']],                # jp == sys
+                  [['address'],'1xxx']],
           'ld'  :[[['register','byte'],'6xyy'],
 		          [['register','register'],'8xy0'],
 		          [['register','dt'],'Fx07'],
@@ -109,7 +109,8 @@ OP_CODES={'cls' :[[[],'00E0']],
 
 OP_REG={'00E0':['cls',0],
         '00EE':['ret',0],
-        '1...':['sys',0],
+        '0...':['sys',0],
+        '1...':['jp',1],
         '2...':['call',0],
 		'3...':['se',1],
 		'4...':['sne',1],
