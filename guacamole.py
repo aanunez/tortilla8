@@ -1,16 +1,16 @@
 #!/usr/bin/python3
 
+import sys
 import re       # Matching Op Code
 import os       # Rom Loading
 import time     # CPU Frequency
-import curses   # Display
 import random   # RND instruction
 import argparse # Command line
 from tortilla8_constants import *
 
 class guacamole:
 
-    def __init__(self, rom=None):
+    def __init__(self, rom=None, cpuhz=60, audiohz=60):
         self.ram = [None] * BYTES_OF_RAM
 
         self.register = [0]*16
@@ -23,17 +23,17 @@ class guacamole:
         self.keypad = [False] * 16
         self.draw_flag = False
 
-        # Stack emulation, only used if STACK_ADDRESS is not defined
+        # Stack emulation, always used
         self.stack = []
         self.stack_pointer = 0
 
-        # Timming variables for run
+        # Timming variables #TODO easy way to make dynamic?
+        self.cpu_wait   = 1/cpuhz
+        self.audio_wait = 1/audiohz
         self.audio_time = 0
         self.cpu_time   = 0
 
         random.seed()
-
-        self.screen = None
 
         # Load Font, clear screen
         self.ram[FONT_ADDRESS:FONT_ADDRESS+len(FONT)] = [i for i in FONT]
@@ -41,12 +41,12 @@ class guacamole:
 
         # Load Rom
         if rom is not None:
-            self.load_rom(self, rom)
+            self.load_rom(rom)
 
     def load_rom(self, file_path):
         file_size = os.path.getsize(file_path)
         if file_size > MAX_ROM_SIZE:
-            print("Warning: Rom file exceeds MAX_ROM_SIZE. Loading anyway.")
+            print("Warning: Rom file exceeds MAX_ROM_SIZE.")
 
         with open(file_path, "rb") as fh:
             self.ram[PROGRAM_BEGIN_ADDRESS:PROGRAM_BEGIN_ADDRESS + file_size] = [int.from_bytes(fh.read(1), 'big') for i in range(file_size)]
@@ -70,11 +70,11 @@ class guacamole:
         return [self.delay_timer_register == 0, self.sound_timer_register == 0]
 
     def run(self):
-        if CPU_WAIT_TIME <= (time.time() - self.cpu_time):
+        if self.cpu_wait <= (time.time() - self.cpu_time):
             self.cpu_time = time.time()
             self.cpu_tick()
 
-        if AUDIO_WAIT_TIME <= (time.time() - self.audio_time):
+        if self.audio_wait <= (time.time() - self.audio_time):
             self.audio_time = time.time()
             self.audio_tick()
 
@@ -86,17 +86,13 @@ class guacamole:
 
         for reg_pattern in OP_REG:
             if re.match(reg_pattern.lower(), instruction):   # TODO probably should remove the need for .lower()
-                print(hex(self.program_counter) + " " + instruction + " " + OP_REG[reg_pattern][0])
+                #print(hex(self.program_counter) + " " + instruction + " " + OP_REG[reg_pattern][0])
                 self.execute_op_code(OP_REG[reg_pattern][0],OP_REG[reg_pattern][1],instruction)
                 flag = True
                 break
 
         if not flag:
-            print("ERROR: Unknown instruction " + instruction + " at " + hex(self.program_counter))
-
-        #if self.screen:
-            #self.screen.addstr(0,0,"test")
-            #self.screen.refresh()
+            print("Fatal: Unknown instruction " + instruction + " at " + hex(self.program_counter))
 
         self.program_counter += 2
 
@@ -120,13 +116,10 @@ class guacamole:
             self.ram[GFX_ADDRESS:] = [0x00 for i in range(GFX_RESOLUTION)]
 
         elif mnemonic is 'ret':
-            if STACK_ADDRESS:
-                self.stack_pointer -= 1
-                if self.stack_pointer < 0:
-                    print("ERROR: Stack underflow")
-                self.program_counter =  self.ram[self.stack_pointer]
-            else:
-                self.program_counter =  self.stack.pop()
+            self.stack_pointer -= 1
+            if self.stack_pointer < 0:
+                print("Fatal: Stack underflow")
+            self.program_counter =  self.stack.pop()
 
         elif mnemonic is 'sys':
             print("Warning: RCA 1802 call to " + hex(addr) + " was ignored.")
@@ -134,13 +127,10 @@ class guacamole:
         elif mnemonic is 'call':
             if STACK_ADDRESS:
                 self.ram[stack_pointer] = self.program_counter
-                self.stack_pointer += 1
-                if self.stack_pointer > STACK_SIZE:
-                    print("ERROR: Stack overflow")
-            else:
-                self.stack.append(self.program_counter)
-                if len(self.stack) > STACK_SIZE:
-                    print("ERROR: Stack overflow")
+            self.stack_pointer += 1
+            self.stack.append(self.program_counter)
+            if self.stack_pointer > STACK_SIZE:
+                print("Warning: Stack overflow. Stack is now size " + self.stack_pointer)
             self.program_counter = addr - 2
 
         elif mnemonic is 'skp':
@@ -228,7 +218,7 @@ class guacamole:
                         self.register[i] = self.ram[self.index_register + i]
 
                 else:
-                    print("ERROR: Bad Load")
+                    print("Fatal: Loads with argument type '" + arg2 + "' are not supported.")
 
             elif 'register' is arg2:
                 if   'dt' is arg1: self.delay_timer_register = reg1_val
@@ -244,19 +234,19 @@ class guacamole:
                         self.ram[self.index_register + i] = self.register[i]
 
                 else:
-                    print("ERROR: Bad Load")
+                    print("Fatal: Loads with argument type '" + arg1 + "' are not supported.")
 
             elif 'i' is arg1 and 'address' is arg2:
                 self.index_register = addr
 
             else:
-                print("ERROR: Bad Load")
+                print("Fatal: Loads with argument types '" + arg1 + "' and '" + arg2 +  "' are not supported.")
 
         elif mnemonic is 'drw':           # TODO Wrap around doesn't work
             if reg1_val >= GFX_WIDTH_PX:
-                print("ERROR: Draw instruction called with X origin >= GFX_WIDTH_PX\nWrap-around not yet supported.")
+                print("Warning: Draw instruction called with X origin >= GFX_WIDTH_PX\nWrap-around not yet supported.")
             if reg2_val >= GFX_HEIGHT_PX:
-                print("ERROR: Draw instruction called with Y origin >= GFX_HEIGHT_PX\nWrap-around not yet supported.")
+                print("Warning: Draw instruction called with Y origin >= GFX_HEIGHT_PX\nWrap-around not yet supported.")
 
             self.draw_flag = True
             height = int(hex_code[3],16)
@@ -275,7 +265,7 @@ class guacamole:
                         self.register[0xF] = 0xFF
 
         else:
-            print("ERROR: Bad Instruction!")
+            print("Fatal: Unknown mnemonic " + mnemonic )
 
     def dump_ram(self):
         for i,val in enumerate(self.ram):
@@ -284,46 +274,26 @@ class guacamole:
             else:
                 print('0x' + hex(i)[2:].zfill(3) + "  " + '0x' + hex(val)[2:].zfill(2))
 
-    def init_display(self):
-        self.screen = curses.initscr()
-        curses.noecho()
-        curses.cbreak()
-        self.screen.clear()
-
-        win_console   = curses.newwin(curses.LINES - 1, int(curses.COLS/4), 0, 0)
-        win_registers = curses.newwin(int((curses.LINES - 1)/2), int((4*curses.COLS)/4), 0, int(curses.COLS/4))
-        win_stack     = curses.newwin(int((curses.LINES - 1)/2), int((4*curses.COLS)/4), int((curses.LINES - 1)/2), int(curses.COLS/4))
-
-        self.display_registers(win_registers)
-
-    def display_registers(self, window):
-        for i in range(NUMB_OF_REGS):
-            window.addstr(int(i/4), (i%4)*9, hex(i)[2] + ": 0x" + hex(self.register[i])[2:].zfill(2) + "  ")
-
-        window.refresh()
-
 def parse_args():
-    parser = argparse.ArgumentParser(description='Description of your program')
-    parser.add_argument('rom', help='ROM to load and play')
+    parser = argparse.ArgumentParser(description='Guacamole is a Chip-8 emulator ...')
+    parser.add_argument('rom', help='ROM to load and play.')
+    parser.add_argument("-f","--frequency", default=60,help='Frequency (in Hz) to target.')
     opts = parser.parse_args()
 
     if not os.path.isfile(opts.rom):
         raise OSError("File '" + opts.input + "' does not exist.")
 
+    if opts.frequency:
+        opts.frequency = int(opts.frequency)
+
     return opts
 
 def main(opts):
-    guac = guacamole()
-    guac.load_rom(opts.rom)
-    guac.init_display()
+    guac = guacamole(opts.rom, opts.frequency, opts.frequency)
     try:
-        time.sleep(50)
         while True:
             guac.run()
     except KeyboardInterrupt:
-        curses.nocbreak()
-        curses.echo()
-        curses.endwin()
         pass
 
 if __name__ == '__main__':
