@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 
-import re
-import os
-import sys #TODO REMOVE
-import time
-import random
-import argparse
+import re       # Matching Op Code
+import os       # Rom Loading
+import time     # CPU Frequency
+import curses   # Display
+import random   # RND instruction
+import argparse # Command line
 from tortilla8_constants import *
 
 class guacamole:
@@ -26,13 +26,19 @@ class guacamole:
         # Stack emulation, only used if STACK_ADDRESS is not defined
         self.stack = []
         self.stack_pointer = 0
-        
+
+        # Timming variables for run
+        self.audio_time = 0
+        self.cpu_time   = 0
+
         random.seed()
+
+        self.screen = None
 
         # Load Font, clear screen
         self.ram[FONT_ADDRESS:FONT_ADDRESS+len(FONT)] = [i for i in FONT]
         self.ram[GFX_ADDRESS:GFX_ADDRESS + GFX_RESOLUTION] = [0x00] * GFX_RESOLUTION
-  
+
         # Load Rom
         if rom is not None:
             self.load_rom(self, rom)
@@ -50,7 +56,7 @@ class guacamole:
 
     def input_keys(self, pressed_keys):
         self.keypad = pressed_keys
-        
+
     def output_screen(self):
         return self.ram[GFX_ADDRESS:GFX_ADDRESS+GFX_RESOLUTION]
 
@@ -63,13 +69,13 @@ class guacamole:
     def output_audio(self):
         return [self.delay_timer_register == 0, self.sound_timer_register == 0]
 
-    def run(self, audio_time=0, cpu_time=0):
-        if CPU_WAIT_TIME <= (time.time() - cpu_time):
-            cpu_time = time.time()
+    def run(self):
+        if CPU_WAIT_TIME <= (time.time() - self.cpu_time):
+            self.cpu_time = time.time()
             self.cpu_tick()
 
-        if AUDIO_WAIT_TIME <= (time.time() - audio_time):
-            audio_time = time.time()
+        if AUDIO_WAIT_TIME <= (time.time() - self.audio_time):
+            self.audio_time = time.time()
             self.audio_tick()
 
     def cpu_tick(self):
@@ -88,6 +94,10 @@ class guacamole:
         if not flag:
             print("ERROR: Unknown instruction " + instruction + " at " + hex(self.program_counter))
 
+        #if self.screen:
+            #self.screen.addstr(0,0,"test")
+            #self.screen.refresh()
+
         self.program_counter += 2
 
     def audio_tick(self):
@@ -98,7 +108,7 @@ class guacamole:
             self.sound_timer_register -= 1
 
     def execute_op_code(self, mnemonic, version, hex_code):
-        #alias common stuff
+        # alias common stuff
         reg1       = int(hex_code[1],16)
         reg1_val   = self.register[reg1]
         reg2       = int(hex_code[2],16)
@@ -132,7 +142,7 @@ class guacamole:
                 if len(self.stack) > STACK_SIZE:
                     print("ERROR: Stack overflow")
             self.program_counter = addr - 2
-            
+
         elif mnemonic is 'skp':
             if self.keypad[reg1_val & 0x0F]:
                 self.program_counter += 2
@@ -169,10 +179,14 @@ class guacamole:
             self.register[reg1] = reg1_val ^ reg2_val
 
         elif mnemonic is 'sub':
-            self.ins_sub(self, reg1_val, reg2_val, reg1)
+            self.register[reg1] = reg1_val - reg2_val
+            self.register[reg1] += 0x00 if reg1_val > reg2_val else 0xFF
+            self.register[0xF] = 0xFF if reg1_val > reg2_val else 0x00
 
         elif mnemonic is 'subn':
-            self.ins_sub(self, reg2_val, reg1_val, reg1)
+            self.register[reg1] = reg2_val - reg1_val
+            self.register[reg1] += 0x00 if reg2_val > reg1_val else 0xFF
+            self.register[0xF] = 0xFF if reg2_val > reg1_val else 0x00
 
         elif mnemonic is 'jp':
             if 'v0' in OP_CODES[mnemonic][version][OP_ARGS]:
@@ -254,7 +268,7 @@ class guacamole:
             for y in range(height):
                 for x in range(2):
                     original = self.ram[origin + x + (y * GFX_WIDTH)]
-                    self.ram[origin + x + (y * GFX_WIDTH)] ^= self.ram[self.index_register + y] 
+                    self.ram[origin + x + (y * GFX_WIDTH)] ^= self.ram[self.index_register + y]
                     self.ram[origin + x + (y * GFX_WIDTH)] |= mask[x]
                     self.ram[origin + x + (y * GFX_WIDTH)] &= original
                     if ((self.ram[origin + x + (y * GFX_WIDTH)] ^ original) & original):
@@ -263,17 +277,30 @@ class guacamole:
         else:
             print("ERROR: Bad Instruction!")
 
-    def ins_sub(self, reg1_val, reg2_val, store_reg):
-        self.register[store_reg] = reg1_val - reg2_val
-        self.register[store_reg] += 0x00 if reg1_val > reg2_val else 0xFF
-        self.register[0xF] = 0xFF if reg1_val > reg2_val else 0x00
-
     def dump_ram(self):
         for i,val in enumerate(self.ram):
             if val is None:
                 print('0x' + hex(i)[2:].zfill(3))
             else:
                 print('0x' + hex(i)[2:].zfill(3) + "  " + '0x' + hex(val)[2:].zfill(2))
+
+    def init_display(self):
+        self.screen = curses.initscr()
+        curses.noecho()
+        curses.cbreak()
+        self.screen.clear()
+
+        win_console   = curses.newwin(curses.LINES - 1, int(curses.COLS/4), 0, 0)
+        win_registers = curses.newwin(int((curses.LINES - 1)/2), int((4*curses.COLS)/4), 0, int(curses.COLS/4))
+        win_stack     = curses.newwin(int((curses.LINES - 1)/2), int((4*curses.COLS)/4), int((curses.LINES - 1)/2), int(curses.COLS/4))
+
+        self.display_registers(win_registers)
+
+    def display_registers(self, window):
+        for i in range(NUMB_OF_REGS):
+            window.addstr(int(i/4), (i%4)*9, hex(i)[2] + ": 0x" + hex(self.register[i])[2:].zfill(2) + "  ")
+
+        window.refresh()
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Description of your program')
@@ -288,9 +315,16 @@ def parse_args():
 def main(opts):
     guac = guacamole()
     guac.load_rom(opts.rom)
-    while(True):
-        guac.run()
-    #guac.dump_ram()
+    guac.init_display()
+    try:
+        time.sleep(50)
+        while True:
+            guac.run()
+    except KeyboardInterrupt:
+        curses.nocbreak()
+        curses.echo()
+        curses.endwin()
+        pass
 
 if __name__ == '__main__':
     main(parse_args())
