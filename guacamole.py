@@ -8,6 +8,14 @@ import random   # RND instruction
 import argparse # Command line
 from tortilla8_constants import *
 
+# TODO raise real warnings
+# TODO Wrap around doesn't work for drw instruction
+# TODO Remove .lower() for regex match?
+# TODO Shift L/R behavior needs a toggle for "old" and "new" behavior
+# TODO Load for Halt till keypress is mega broken
+# TODO Log a warning when running a unoffical instruction?
+# TODO add comments
+
 class guacamole:
 
     def __init__(self, rom=None, cpuhz=60, audiohz=60):
@@ -27,7 +35,7 @@ class guacamole:
         self.stack = []
         self.stack_pointer = 0
 
-        # Timming variables #TODO easy way to make dynamic?
+        # Timming variables
         self.cpu_wait   = 1/cpuhz
         self.audio_wait = 1/audiohz
         self.audio_time = 0
@@ -210,8 +218,9 @@ class guacamole:
                     new = 0x0000
                     while not (original & new):
                         new = int(''.join(['1' if x else '0' for x in self.keypad]),2)
-                        continue
-                    self.register[reg1] = new.find('1')
+                        #continue
+                        break
+                    self.register[reg1] = 1#new.find('1')          #TODO Hella Broken
 
                 elif '[i]' == arg2:
                     for i in range(reg1):
@@ -281,7 +290,7 @@ def parse_args():
     opts = parser.parse_args()
 
     if not os.path.isfile(opts.rom):
-        raise OSError("File '" + opts.input + "' does not exist.")
+        raise OSError("File '" + opts.rom + "' does not exist.")
 
     if opts.frequency:
         opts.frequency = int(opts.frequency)

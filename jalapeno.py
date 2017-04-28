@@ -8,7 +8,7 @@ from tortilla8_constants import *
 
 #TODO not correctly replacing EQU and = stuff
 #TODO do something with mode options
-#TODO correct file naming issues
+#TODO add comments
 
 class jalapeno:
     """
@@ -80,7 +80,7 @@ class jalapeno:
 
             self.collection.append(t)
 
-        for sym in self.symbols:                 #TODO Can this loop be better?
+        for sym in self.symbols:
             for tl in self.collection:
                 for i,arg in enumerate(tl.arguments):
                     if arg == sym:
@@ -114,10 +114,8 @@ def parse_args():
     if not os.path.isfile(opts.input):
         raise OSError("File '" + opts.input + "' does not exist.")
     if not opts.output:
-        if opts.input.endswith('.src'):
-            opts.output = opts.input[:-4]
-        else:
-            opts.output = opts.input
+        opts.output  = '.'.join(opts.input.split('.')[0:-1]) if opts.input.find('.') else opts.input
+        opts.output += '.jala'
 
     return opts
 
@@ -128,7 +126,7 @@ def main(opts):
     jala = jalapeno()
     with open(opts.input) as FH:
         jala.process(FH)
-    with open(opts.output + '.jala', 'w') as FH:
+    with open(opts.output, 'w') as FH:
         jala.print_processed_source(FH)
 
 if __name__ == '__main__':

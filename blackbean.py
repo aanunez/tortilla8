@@ -12,6 +12,7 @@ from tortilla8_constants import *
 #Opcode reminders: SHR, SHL, XOR, and SUBN/SM are NOT offically supported by original spec
 #                  SHR and SHL may or may not move Y (Shifted) into X or just shift X.
 
+#TODO raise real warnings
 #TODO don't allow modifying VF
 #TODO Use the "enfore" flag
 #TODO all these damn errors
@@ -72,8 +73,7 @@ class blackbean:
         for all other assembler instructions.
         """
         if not self.collection:
-            #TODO raise error
-            Print("ERROR: Nothing to print.")
+            Print("Warning: No file has been assembled. Nothing to print.")
             return
 
         for line in self.collection:
@@ -101,8 +101,7 @@ class blackbean:
         space lines removed. Useful for CHIP 8 interpreters.
         """
         if not self.collection:
-            #TODO rasie error
-            Print("ERROR: Nothing to print.")
+            Print("Warning: No file has been assembled. Nothing to print.")
             return
 
         for line in self.collection:
@@ -118,8 +117,7 @@ class blackbean:
         Writes the assembled file to a binary blob.
         """
         if not self.collection:
-            #TODO rasie error
-            Print("ERROR: Nothing to export.")
+            Print("Warning: No file has been assembled. Nothing to print.")
             return
 
         for line in self.collection:
@@ -163,8 +161,7 @@ class blackbean:
                 break
 
         if not tl.instruction_int:
-            #TODO raise error
-            print("ERROR: Unkown mnemonic-argument combination.")
+            print("Fatal: Unkown mnemonic-argument combination on line " + str(tl.line_numb) + "\n" + tl.original )
 
     def is_valid_instruction_arg(self, arg_type, arg_value, hex_template, sub_string):
         """
@@ -238,12 +235,10 @@ class blackbean:
 
             # Raise errors if parse failed or val too large
             if val == None:
-                #TODO raise error
-                print("ERROR: Incorrectly formated data declaration.")
+                print("Fatal: Incorrectly formated data declaration on line " + str(tl.line_numb))
                 break
             if val >= pow(256, tl.data_size):
-                #TODO raise error
-                print("ERROR: Data declaration overflow.")
+                print("Fatal: Data declaration overflow on line " + tl.line_numb)
                 break
 
             tl.dd_ints.append(val)
@@ -268,7 +263,7 @@ class blackbean:
 
         if self.address >= OVERFLOW_ADDRESS:
             #TODO raise error
-            print("ERROR: Memory overflow!")
+            print("Warning: Memory overflow as of line " + str(tl.line_numb))
 
 def parse_args():
     """
