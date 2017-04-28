@@ -8,8 +8,6 @@ from tortilla8_constants import *
 
 #TODO not correctly replacing EQU and = stuff
 #TODO do something with mode options
-#TODO clean up
-#TODO write main
 #TODO correct file naming issues
 
 class jalapeno:
