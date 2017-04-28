@@ -254,7 +254,7 @@ class guacamole:
             for y in range(height):
                 for x in range(2):
                     original = self.ram[origin + x + (y * GFX_WIDTH)]
-                    self.ram[origin + x + (y * GFX_WIDTH)] ^= self.ram[self.index_register + y]   # This should be I + y only? Was: self.ram[self.index_register + x + (y * GFX_WIDTH)] 
+                    self.ram[origin + x + (y * GFX_WIDTH)] ^= self.ram[self.index_register + y] 
                     self.ram[origin + x + (y * GFX_WIDTH)] |= mask[x]
                     self.ram[origin + x + (y * GFX_WIDTH)] &= original
                     if ((self.ram[origin + x + (y * GFX_WIDTH)] ^ original) & original):
