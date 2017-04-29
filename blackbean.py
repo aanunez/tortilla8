@@ -7,7 +7,9 @@ import argparse
 import contextlib
 
 from cilantro import cilantro
-from tortilla8_constants import *
+from mem_addr_register_constants import *
+from pre_proc_assembler_constants import *
+from opcode_constants import *
 
 #Opcode reminders: SHR, SHL, XOR, and SUBN/SM are NOT offically supported by original spec
 #                  SHR and SHL may or may not move Y (Shifted) into X or just shift X.

@@ -1,53 +1,6 @@
 #!/usr/bin/python3
 
-# General
-BEGIN_COMMENT=';'
-END_MEM_TAG=':'
-HEX_ESC='#'
-BIN_ESC='$' #TODO not used yet
-
-
-
-# Pre Processor
-ELSE_IF=('elif','elseif','elifdef','elseifdef')
-END_MARKS=('endif','else')+ELSE_IF
-EQU_MARKS=('equ','=')
-MODE_MARKS=('option','align')
-PRE_PROC=('ifdef','ifndef')+END_MARKS+EQU_MARKS+MODE_MARKS
-
-
-
-# Register stuff
-NUMB_OF_REGS=16
-ARG_SUB={0:'x',1:'y',2:'z'}
-REGISTERS=( 'v0','v1','v2','v3',
-            'v4','v5','v6','v7',
-            'v8','v9','va','vb',
-            'vc','vd','ve','vf')
-
-
-
-# Memory Addresses and Related
-MAX_ROM_SIZE=3232
-PROGRAM_BEGIN_ADDRESS=0x200
-OVERFLOW_ADDRESS=PROGRAM_BEGIN_ADDRESS+MAX_ROM_SIZE
-#PROGRAM_BEGIN_ADDRESS=0x600 #I dunno who uses this
-BYTES_OF_RAM=4096
-STACK_SIZE=12
-STACK_ADDRESS=None
-#STACK_ADDRESS=0xEA0 #Uncomment to emulate stack in ram
-GFX_HEIGHT_PX=32
-GFX_WIDTH_PX=64
-GFX_WIDTH=int(GFX_WIDTH_PX/8)
-GFX_RESOLUTION=int(GFX_WIDTH*GFX_HEIGHT_PX) #In bytes
-#GFX_RESOLUTION=int((64/8)*48) #Used by ETI 660
-#GFX_RESOLUTION=int((64/8)*64) #Used by ETI 660
-FONT_ADDRESS=0x050
-GFX_ADDRESS=0xF00
-
-
-
-# OP CODE related
+# OP CODES
 DATA_DECLARE={'db':1,'dw':2,'dd':4}
 OP_ARGS=0
 OP_HEX=1
@@ -90,6 +43,7 @@ OP_CODES={'cls' :[[[],'00E0']],
 		          [['[i]','register'],'Fy55']],
           'drw' :[[['register','register','nibble'],'Dxyz']]}
 
+# Index from Regex Hex Codes to mnemonic
 OP_REG={'00E0':['cls',0],
         '00EE':['ret',0],
         '0.[^E].':['sys',0],   # we don't traverse the dict in order, so make sure this doesn't match to cls or ret

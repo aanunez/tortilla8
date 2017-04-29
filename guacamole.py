@@ -6,7 +6,8 @@ import os       # Rom Loading
 import time     # CPU Frequency
 import random   # RND instruction
 import argparse # Command line
-from tortilla8_constants import *
+from mem_addr_register_constants import *
+from opcode_constants import *
 
 # TODO raise real warnings
 # TODO Wrap around doesn't work for drw instruction

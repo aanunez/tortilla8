@@ -5,52 +5,14 @@ import curses
 import argparse
 import collections
 from guacamole import guacamole
-from tortilla8_constants import *
+from display_constants import *
+from mem_addr_register_constants import *
 
 #TODO Step mode breaks borders? Why??
 #TODO get rid of as many of these magic numbers as possible
 #TODO grab max rom size warning
 #TODO grab warnings
 #TODO move constants
-
-BORDERS     = 2
-WIN_REG_H   = 8
-WIN_REG_W   = 9*4 + BORDERS
-WIN_STACK_W = 11  + BORDERS
-WIN_INSTR_W = 16  + BORDERS
-WIN_LOGO_W  = 7
-W_MIN       = 60
-H_MIN       = 15
-LOGO_MIN    = 35
-LEN_STR_REG = len("Regiters")
-LEN_STR_STA = len("Stack")
-
-LOGO=[
-'   ██  ',
-'███████',
-'█  ██  ',
-'       ',
-'██████ ',
-'█   ██ ',
-'██████ ',
-'       ',
-'██████ ',
-'    ██ ',
-'       ',
-'   ██  ',
-'███████',
-'█  ██  ',
-'       ',
-'████ ██',
-'       ',
-'███████',
-'       ',
-'███████',
-'       ',
-'████ █ ',
-'█  █ █ ',
-'██████ ',
-'███    ']
 
 class platter:
 
@@ -59,13 +21,13 @@ class platter:
         if (self.screen.getmaxyx()[0] < H_MIN) or (self.screen.getmaxyx()[1] < W_MIN):
             self.cleanup()
             raise IOError("Terminal window too small to use as display.\nResize to atleast " + str(W_MIN) + "x" + str(H_MIN))
-
+        L = curses.LINES
                              # newwin( Number of Lines, Number of Col, Y origin, X origin )
         self.w_reg     = curses.newwin(WIN_REG_H, WIN_REG_W , 0, int(curses.COLS - WIN_REG_W))
-        self.w_console = curses.newwin(curses.LINES, self.w_reg.getbegyx()[1], 0, 0)
-        self.w_instr   = curses.newwin(curses.LINES - self.w_reg.getmaxyx()[0], WIN_INSTR_W, WIN_REG_H, self.w_reg.getbegyx()[1])
-        self.w_stack   = curses.newwin(curses.LINES - self.w_reg.getmaxyx()[0], WIN_STACK_W, WIN_REG_H, self.w_instr.getbegyx()[1] + WIN_INSTR_W)
-        self.w_logo    = curses.newwin(curses.LINES - self.w_reg.getmaxyx()[0], WIN_LOGO_W , WIN_REG_H, self.w_instr.getbegyx()[1] + WIN_INSTR_W + WIN_STACK_W)
+        self.w_console = curses.newwin(L,  self.w_reg.getbegyx()[1], 0, 0)
+        self.w_instr   = curses.newwin(L - WIN_REG_H, WIN_INSTR_W, WIN_REG_H, self.w_reg.getbegyx()[1])
+        self.w_stack   = curses.newwin(L - WIN_REG_H, WIN_STACK_W, WIN_REG_H, self.w_instr.getbegyx()[1] + WIN_INSTR_W)
+        self.w_logo    = curses.newwin(L - WIN_REG_H, WIN_LOGO_W , WIN_REG_H, self.w_stack.getbegyx()[1] + WIN_STACK_W)
 
         self.instr_history = collections.deque(maxlen = self.w_instr.getmaxyx()[0] - BORDERS)
 
@@ -114,7 +76,9 @@ class platter:
         curses.doupdate()
 
     def update_history(self):
-        self.instr_history.append(hex3(self.emu.program_counter - 2) + " " + self.emu.hex_instruction + " " + self.emu.mnemonic)
+        self.instr_history.append(hex3(self.emu.program_counter - 2) + " " + \
+                                       self.emu.hex_instruction + " " + \
+                                       self.emu.mnemonic)
 
     def display_logo(self):
         if self.screen.getmaxyx()[0] < LOGO_MIN: return

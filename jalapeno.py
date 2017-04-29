@@ -4,7 +4,7 @@ import os
 import sys
 import argparse
 from cilantro import cilantro
-from tortilla8_constants import *
+from pre_proc_assembler_constants import *
 
 #TODO not correctly replacing EQU and = stuff
 #TODO do something with mode options

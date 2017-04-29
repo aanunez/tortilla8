@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from tortilla8_constants import *
+from pre_proc_assembler_constants import *
 
 #TODO raise real warnings
 
