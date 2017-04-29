@@ -13,6 +13,8 @@ from mem_addr_register_constants import *
 #TODO grab max rom size warning
 #TODO grab warnings
 #TODO move constants
+#TODO Support non 64x32 displays
+#TODO double the resolution if window is large enough
 
 class platter:
 
@@ -20,17 +22,26 @@ class platter:
         self.screen = curses.initscr()
         if (self.screen.getmaxyx()[0] < H_MIN) or (self.screen.getmaxyx()[1] < W_MIN):
             self.cleanup()
-            raise IOError("Terminal window too small to use as display.\nResize to atleast " + str(W_MIN) + "x" + str(H_MIN))
-        L = curses.LINES
-                             # newwin( Number of Lines, Number of Col, Y origin, X origin )
-        self.w_reg     = curses.newwin(WIN_REG_H, WIN_REG_W , 0, int(curses.COLS - WIN_REG_W))
-        self.w_console = curses.newwin(L,  self.w_reg.getbegyx()[1], 0, 0)
-        self.w_instr   = curses.newwin(L - WIN_REG_H, WIN_INSTR_W, WIN_REG_H, self.w_reg.getbegyx()[1])
-        self.w_stack   = curses.newwin(L - WIN_REG_H, WIN_STACK_W, WIN_REG_H, self.w_instr.getbegyx()[1] + WIN_INSTR_W)
-        self.w_logo    = curses.newwin(L - WIN_REG_H, WIN_LOGO_W , WIN_REG_H, self.w_stack.getbegyx()[1] + WIN_STACK_W)
+            raise IOError("Terminal window too small to use.\nResize to atleast " + str(W_MIN) + "x" + str(H_MIN))
+
+        L = curses.LINES      # newwin( Number of Lines, Number of Col, Y origin, X origin )
+        self.w_reg     = curses.newwin( WIN_REG_H, WIN_REG_W , 0, int(curses.COLS - WIN_REG_W) )
+        self.w_instr   = curses.newwin( L - WIN_REG_H, WIN_INSTR_W, WIN_REG_H, self.w_reg.getbegyx()[1] )
+        self.w_stack   = curses.newwin( L - WIN_REG_H, WIN_STACK_W, WIN_REG_H, self.w_instr.getbegyx()[1] + WIN_INSTR_W )
+        self.w_logo    = curses.newwin( L - WIN_REG_H, WIN_LOGO_W , WIN_REG_H, self.w_stack.getbegyx()[1] + WIN_STACK_W )
+        self.w_game    = None
+        self.w_console = None
+
+        if (self.screen.getmaxyx()[0] < DISPLAY_MIN_H) or (self.screen.getmaxyx()[1] < DISPLAY_MIN_W):
+            self.w_console = curses.newwin( L,  self.w_reg.getbegyx()[1], 0, 0 )
+            # TODO show info in console screen about min size
+        else:
+            print(int( ( L - WIN_REG_W - DISPLAY_W ) / 2 ))
+            self.w_game    = curses.newwin( DISPLAY_H, DISPLAY_W, 0, int( ( curses.COLS - WIN_REG_W - DISPLAY_W ) / 2 ) )
+            self.w_console = curses.newwin( L-DISPLAY_H, self.w_reg.getbegyx()[1], DISPLAY_H, 0 )
+            self.w_game.border()
 
         self.instr_history = collections.deque(maxlen = self.w_instr.getmaxyx()[0] - BORDERS)
-
         self.emu = guacamole(rom, hz, hz) #TODO grab max rom size warning
 
         curses.noecho()
@@ -39,13 +50,17 @@ class platter:
 
         self.screen.clear()
         self.w_reg.border()
+        self.w_reg.addstr( 1, REG_OFFSET, "Registers")
         self.w_stack.border()
+        self.w_stack.addstr( 1, STAK_OFFSET, "Stack")
         self.w_console.border()
         self.w_instr.border()
+        self.w_logo.nodelay(1)
 
+        self.display_logo()
         curses.doupdate()
 
-    def start(self, step=False):
+    def start(self, step_mode=False):      #TODO Step mode is borken :\ can't seem to get that S key
         previous_pc = 0
         try:
             while True:
@@ -54,7 +69,18 @@ class platter:
                     previous_pc = self.emu.program_counter
                     self.update_history()
                     self.update_screen()
-                    if step: self.w_logo.getch()
+                if step_mode:
+                    exit = False
+                    while True:
+                        try:
+                            while self.w_logo.getkey() != 'S':
+                                pass
+                            exit = True
+                        except KeyboardInterrupt:
+                            raise
+                        except: pass
+                        if exit: break
+
         except KeyboardInterrupt:
             self.cleanup()
             pass
@@ -72,47 +98,55 @@ class platter:
         self.display_stack()
         self.display_console()
         self.display_instructions()
-        self.display_logo()
+        self.display_game()
         curses.doupdate()
 
     def update_history(self):
-        self.instr_history.append(hex3(self.emu.program_counter - 2) + " " + \
-                                       self.emu.hex_instruction + " " + \
-                                       self.emu.mnemonic)
+        self.instr_history.appendleft(hex3(self.emu.program_counter - 2) + " " + \
+                                           self.emu.hex_instruction + " " + \
+                                           self.emu.mnemonic)
 
     def display_logo(self):
         if self.screen.getmaxyx()[0] < LOGO_MIN: return
-        for i in range(min(self.w_logo.getmaxyx()[0], len(LOGO))):
-            self.w_logo.addstr(i + int((self.w_logo.getmaxyx()[0] - len(LOGO))/2),0,LOGO[i])
+        logo_offset = int( ( self.w_logo.getmaxyx()[0] - len(LOGO) ) / 2 )
+        for i in range(len(LOGO)):
+            self.w_logo.addstr( i + logo_offset, 0, LOGO[i] )
         self.w_logo.noutrefresh()
 
+    def display_game(self):
+        #if not self.w_game or not self.emu.output_draw_flag(): return
+        if not self.w_game: return
+        for x in range(1,64+1):
+            for y in range(1,16+1):
+                self.w_game.addstr( y, x, "█" )
+        self.w_game.noutrefresh()
+        self.emu.ram[GFX_ADDRESS:GFX_ADDRESS+GFX_RESOLUTION]
+
     def display_console(self):
-        self.w_console.addstr(1,1,"HelloWorld!")
+        self.w_console.addstr( 1,  1, "HelloWorld!" )
         self.w_console.noutrefresh()
 
     def display_instructions(self):
-        for i,val in enumerate(reversed(self.instr_history)):
-            self.w_instr.addstr(1 + i, 2, val.ljust(15))
+        for i,val in enumerate(self.instr_history):
+            self.w_instr.addstr( 1 + i, 2, val.ljust(15))
         self.w_instr.noutrefresh()
 
     def display_registers(self):
-        self.w_reg.addstr( 1, int((self.w_reg.getmaxyx()[1]-LEN_STR_REG)/2), "Registers")
         for i in range(NUMB_OF_REGS):
-            self.w_reg.addstr(int(i/4) + 2, ((i % 4) * 9) + 1, " " + hex(i)[2] + ": " + hex2(self.emu.register[i]) + " ")
+            self.w_reg.addstr( int( i / 4 ) + 2, i % 4 * 9 + 2, hex(i)[2] + ": " + hex2(self.emu.register[i]) )
         self.w_reg.addstr(6, 1, " dt: " + hex2(self.emu.delay_timer_register) + \
                                "  st: " + hex2(self.emu.sound_timer_register) + \
                                 "  i: " + hex3(self.emu.index_register))
         self.w_reg.noutrefresh()
 
     def display_stack(self):
-        y_top_stack = max(3, self.w_stack.getmaxyx()[0] - 1 - self.emu.stack_pointer)
-        self.w_stack.addstr( 1, int((self.w_stack.getmaxyx()[1]-LEN_STR_STA)/2), "Stack")
-        if y_top_stack > 3:
-            self.w_stack.addstr( y_top_stack - 2, 1, " " * 10 )
-        self.w_stack.addstr( y_top_stack-1, 1, " " + str(self.emu.stack_pointer).zfill(2) + ": sp   ")
+        top = max(3, self.w_stack.getmaxyx()[0] - 1 - self.emu.stack_pointer)
+        if top > 3:
+            self.w_stack.addstr( top - 2, 1, " " * 10 )
+        self.w_stack.addstr( top - 1, 2, str(self.emu.stack_pointer).zfill(2) + ": sp   ")
         for i,val in enumerate(reversed(self.emu.stack)):
-            if i > self.w_stack.getmaxyx()[0]-5: break
-            self.w_stack.addstr(y_top_stack + i, 1, " " + str(self.emu.stack_pointer - i - 1).zfill(2) + ": " + hex2(val))
+            if i == self.w_stack.getmaxyx()[0] - 4: break
+            self.w_stack.addstr(top + i, 2, str(self.emu.stack_pointer - i - 1).zfill(2) + ": " + hex2(val))
         self.w_stack.noutrefresh()
 
 def hex2(integer):
@@ -142,3 +176,15 @@ def main(opts):
 
 if __name__ == '__main__':
     main(parse_args())
+
+
+
+
+
+
+
+
+
+
+
+
