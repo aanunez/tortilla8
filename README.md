@@ -2,32 +2,24 @@
 
 **Blackbean**
 
-Chip-8 assembler, currently working for any program that has already been through a pre-processor.
-
-To-do:
-
-* <del>General code cleanup
-* <del>call-able as script
-* <del>switch for behavior of shr,shl
-* switch to enable/disable xor,subn,shr,shl
-* error framework
-* raise warning when shr/shl called with 1 reg / 2 reg (which is worse?)
-* don't allow modifying VF
-* support $ notation
+Chip-8 assembler
 
 **Jalapeno**
 
-Chip-8 pre-processor that mostly works. Currently it is not replacing EQU directives correctly.
-
+Chip-8 pre-processor. Currently it is not replacing EQU directives correctly.
 
 **Cilantro**
 
 A lexer/tokenizer used by blackbean and jalapeno for individual lines. The initialiser does the tokenizing, the class is then used as a data container.
 
-**Guac**
+**Guacamole**
 
-Emulator that hasn't been written yet.
+A Chip-8 emulator
+
+**Platter**
+
+Text based GUI for Guacamole. No support for input currently.
 
 **Nachos**
 
-A gui to tie it all together
+A GTK+ gui to tie everything together. No work has been started on this.

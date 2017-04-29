@@ -52,7 +52,7 @@ LOGO=[
 '██████ ',
 '███    ']
 
-class plate:
+class platter:
 
     def __init__(self, rom, hz):
         self.screen = curses.initscr()
@@ -173,7 +173,7 @@ def parse_args():
     return opts
 
 def main(opts):
-    disp = plate(opts.rom, opts.frequency)
+    disp = platter(opts.rom, opts.frequency)
     disp.start(opts.step)
 
 if __name__ == '__main__':
