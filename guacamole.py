@@ -15,21 +15,26 @@ from tortilla8_constants import *
 # TODO Load for Halt till keypress is mega broken
 # TODO Log a warning when running a unoffical instruction?
 # TODO add comments
+# TODO remove use of Version
 
 class guacamole:
 
     def __init__(self, rom=None, cpuhz=60, audiohz=60):
+        # RAM
         self.ram = [None] * BYTES_OF_RAM
 
+        # Registers
         self.register = [0]*16
         self.index_register = 0
         self.delay_timer_register = 0
         self.sound_timer_register = 0
 
+        # PC/Misc
+        self.keypad    = [False] * 16
+        self.draw_flag =  False
         self.program_counter = PROGRAM_BEGIN_ADDRESS
-
-        self.keypad = [False] * 16
-        self.draw_flag = False
+        self.hex_instruction = None
+        self.mnemonic        = None
 
         # Stack emulation, always used
         self.stack = []
@@ -89,13 +94,13 @@ class guacamole:
     def cpu_tick(self):
         # Fetch instruction from ram
         flag = False
-        instruction =  hex(self.ram[self.program_counter + 0])[2:].zfill(2)
-        instruction += hex(self.ram[self.program_counter + 1])[2:].zfill(2)
+        self.hex_instruction =  hex(self.ram[self.program_counter + 0])[2:].zfill(2)
+        self.hex_instruction += hex(self.ram[self.program_counter + 1])[2:].zfill(2)
 
         for reg_pattern in OP_REG:
-            if re.match(reg_pattern.lower(), instruction):   # TODO probably should remove the need for .lower()
-                #print(hex(self.program_counter) + " " + instruction + " " + OP_REG[reg_pattern][0])
-                self.execute_op_code(OP_REG[reg_pattern][0],OP_REG[reg_pattern][1],instruction)
+            if re.match(reg_pattern.lower(), self.hex_instruction):   # TODO probably should remove the need for .lower()
+                self.mnemonic = OP_REG[reg_pattern][0]
+                self.execute_op_code(OP_REG[reg_pattern][1])
                 flag = True
                 break
 
@@ -111,28 +116,31 @@ class guacamole:
         if self.sound_timer_register != 0:
             self.sound_timer_register -= 1
 
-    def execute_op_code(self, mnemonic, version, hex_code):
+    def execute_op_code(self, version):            #TODO Version needs to not be used here
         # alias common stuff
-        reg1       = int(hex_code[1],16)
+        reg1       = int(self.hex_instruction[1],16)
         reg1_val   = self.register[reg1]
-        reg2       = int(hex_code[2],16)
+        reg2       = int(self.hex_instruction[2],16)
         reg2_val   = self.register[reg2]
-        lower_byte = int(hex_code[2:4], 16)
-        addr       = int(hex_code[1:4], 16)
+        lower_byte = int(self.hex_instruction[2:4], 16)
+        addr       = int(self.hex_instruction[1:4], 16)
+        args       = OP_CODES[self.mnemonic][version][OP_ARGS]
+        mn         = self.mnemonic
 
-        if mnemonic is 'cls':
+
+        if mn is 'cls':
             self.ram[GFX_ADDRESS:] = [0x00 for i in range(GFX_RESOLUTION)]
 
-        elif mnemonic is 'ret':
+        elif mn is 'ret':
             self.stack_pointer -= 1
             if self.stack_pointer < 0:
                 print("Fatal: Stack underflow")
             self.program_counter =  self.stack.pop()
 
-        elif mnemonic is 'sys':
+        elif mn is 'sys':
             print("Warning: RCA 1802 call to " + hex(addr) + " was ignored.")
 
-        elif mnemonic is 'call':
+        elif mn is 'call':
             if STACK_ADDRESS:
                 self.ram[stack_pointer] = self.program_counter
             self.stack_pointer += 1
@@ -141,73 +149,73 @@ class guacamole:
                 print("Warning: Stack overflow. Stack is now size " + self.stack_pointer)
             self.program_counter = addr - 2
 
-        elif mnemonic is 'skp':
+        elif mn is 'skp':
             if self.keypad[reg1_val & 0x0F]:
                 self.program_counter += 2
 
-        elif mnemonic is 'sknp':
+        elif mn is 'sknp':
             if not self.keypad[reg1_val & 0x0F]:
                 self.program_counter += 2
 
-        elif mnemonic is 'se':
-            comp = lower_byte if "byte" in OP_CODES[mnemonic][version][OP_ARGS] else reg2_val
+        elif mn is 'se':
+            comp = lower_byte if "byte" in args else reg2_val
             if reg1_val == comp:
                 self.program_counter += 2
 
-        elif mnemonic is 'sne':
-            comp = lower_byte if "byte" in OP_CODES[mnemonic][version][OP_ARGS] else reg2_val
+        elif mn is 'sne':
+            comp = lower_byte if "byte" in args else reg2_val
             if reg1_val != comp:
                 self.program_counter += 2
 
-        elif mnemonic is 'shl':                                         #TODO add option to respect "old" shift
+        elif mn is 'shl':                                         #TODO add option to respect "old" shift
             self.register[reg1] = (reg1_val << 1) & 0xFF
             self.register[0xF] = 0xFF if reg1_val >= 0x80 else 0x0
 
-        elif mnemonic is 'shr':                                         #TODO add option to respect "old" shift
+        elif mn is 'shr':                                         #TODO add option to respect "old" shift
             self.register[reg1] = reg1_val >> 1
             self.register[0xF] = 0xFF if (reg1_val % 2) == 1 else 0x0
 
-        elif mnemonic is 'or':
+        elif mn is 'or':
             self.register[reg1] = reg1_val | reg2_val
 
-        elif mnemonic is 'and':
+        elif mn is 'and':
             self.register[reg1] = reg1_val & reg2_val
 
-        elif mnemonic is 'xor':
+        elif mn is 'xor':
             self.register[reg1] = reg1_val ^ reg2_val
 
-        elif mnemonic is 'sub':
+        elif mn is 'sub':
             self.register[reg1] = reg1_val - reg2_val
             self.register[reg1] += 0x00 if reg1_val > reg2_val else 0xFF
             self.register[0xF] = 0xFF if reg1_val > reg2_val else 0x00
 
-        elif mnemonic is 'subn':
+        elif mn is 'subn':
             self.register[reg1] = reg2_val - reg1_val
             self.register[reg1] += 0x00 if reg2_val > reg1_val else 0xFF
             self.register[0xF] = 0xFF if reg2_val > reg1_val else 0x00
 
-        elif mnemonic is 'jp':
-            if 'v0' in OP_CODES[mnemonic][version][OP_ARGS]:
+        elif mn is 'jp':
+            if 'v0' in args:
                 self.program_counter = addr + self.register[0] - 2
             else:
                 self.program_counter = addr - 2
 
-        elif mnemonic is 'rnd':
+        elif mn is 'rnd':
             self.register[reg1] = random.randint(0, 255) & lower_byte
 
-        elif mnemonic is 'add':
-            if 'byte' in OP_CODES[mnemonic][version][OP_ARGS]:
+        elif mn is 'add':
+            if 'byte' in args:
                 self.register[reg1] += lower_byte
-            elif 'i' in OP_CODES[mnemonic][version][OP_ARGS]:
+            elif 'i' in args:
                 self.index_register += reg1_val
             else:
                 self.register[reg1] += reg2_val
                 if reg1_val + reg2_val > 0xFF:
                     self.register[reg1] &= 0xFF
 
-        elif mnemonic is 'ld':
-            arg1 = OP_CODES[mnemonic][version][OP_ARGS][0]
-            arg2 = OP_CODES[mnemonic][version][OP_ARGS][1]
+        elif mn is 'ld':
+            arg1 = args[0]
+            arg2 = args[1]
 
             if 'register' is arg1:
                 if   'byte'     is arg2: self.register[reg1] = lower_byte
@@ -251,14 +259,14 @@ class guacamole:
             else:
                 print("Fatal: Loads with argument types '" + arg1 + "' and '" + arg2 +  "' are not supported.")
 
-        elif mnemonic is 'drw':           # TODO Wrap around doesn't work
+        elif mn is 'drw':           # TODO Wrap around doesn't work
             if reg1_val >= GFX_WIDTH_PX:
                 print("Warning: Draw instruction called with X origin >= GFX_WIDTH_PX\nWrap-around not yet supported.")
             if reg2_val >= GFX_HEIGHT_PX:
                 print("Warning: Draw instruction called with Y origin >= GFX_HEIGHT_PX\nWrap-around not yet supported.")
 
             self.draw_flag = True
-            height = int(hex_code[3],16)
+            height = int(self.hex_instruction[3],16)
             origin = GFX_ADDRESS + int(reg1_val/8) + (reg2_val * GFX_WIDTH) #To lowest byte
             mask = [0xFF >> (reg1_val%8)]
             mask.insert(0, ~mask[0])
@@ -274,7 +282,7 @@ class guacamole:
                         self.register[0xF] = 0xFF
 
         else:
-            print("Fatal: Unknown mnemonic " + mnemonic )
+            print("Fatal: Unknown mnemonic " + self.mnemonic )
 
     def dump_ram(self):
         for i,val in enumerate(self.ram):
