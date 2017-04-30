@@ -16,7 +16,7 @@ class cilantro:
         Intializes by parsing the line and storing the line_number.
         The object is then used as a data container for Blackbean.
         """
-        self.is_empty = True         #Default
+        self.is_empty = True         #Default, is blank or comment only
         self.original = line         #whole, unedited, line
         self.comment  = ""           #comment on the line
         self.mem_tag  = ""           #tag/label for the line, no ":"
@@ -38,18 +38,18 @@ class cilantro:
         line = line.lstrip()
 
         # Remove Blanks
-        if line == '':
+        if line.isspace() or not line:
             return
 
         # Remove Comment only lines
-        if line.startswith(BEGIN_COMMENT):
+        if line.lstrip().startswith(BEGIN_COMMENT):
             self.comment = line.rstrip()
             return
 
         self.is_empty = False
 
         # Check for any comments
-        self.comment = line.split(BEGIN_COMMENT)[1:]
+        self.comment = ''.join(line.split(BEGIN_COMMENT)[1:])
         line = line.split(BEGIN_COMMENT)[0].rstrip()
 
         # Breakout into array

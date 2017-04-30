@@ -17,9 +17,7 @@ from opcode_constants import *
 #TODO raise real warnings
 #TODO don't allow modifying VF
 #TODO Use the "enfore" flag
-#TODO all these damn errors
 #TODO support for $ notation
-#TODO correct file naming issues
 
 class blackbean:
     """
@@ -276,6 +274,8 @@ def parse_args():
     parser.add_argument('-e','--enforce',help='force original Chip-8 specification and do not allow SHR, SHL, XOR, or SUBN instructions.',action='store_true')
     opts = parser.parse_args()
 
+    force_out = True
+
     if not opts.input:
         if select.select([sys.stdin,],[],[],0.0)[0]:
             opts.input = sys.stdin
@@ -287,12 +287,10 @@ def parse_args():
         raise OSError("File '" + opts.input + "' does not exist.")
 
     if not opts.output:
-        if opts.input.endswith('.src'):
-            opts.output = opts.input[:-4]
-        else:
-            opts.output = opts.input
+        opts.output  = '.'.join(opts.input.split('.')[0:-1]) if opts.input.find('.') else opts.input
+        force_out = False
 
-    return opts
+    return opts, force_out
 
 @contextlib.contextmanager
 def smart_open(filename = None, mode = 'r'):
@@ -309,7 +307,7 @@ def smart_open(filename = None, mode = 'r'):
         if fh is not sys.stdin:
             fh.close()
 
-def main(opts):
+def main(opts, force_out):
     """
     Handles blackbean being called as a script.
     """
@@ -322,15 +320,13 @@ def main(opts):
     if opts.strip:
         with open(opts.output + '.strip', 'w') as FH:
             bb.print_strip(FH)
-    if opts.input == opts.output:
-        with open(opts.output + '.bin', 'w') as FH:
-            bb.export_binary(FH)
-    else:
-        with open(opts.output, 'wb') as FH:
-            bb.export_binary(FH)
+    if not force_out:
+        opts.output += '.ch8'
+    with open(opts.output, 'wb') as FH:
+        bb.export_binary(FH)
 
 if __name__ == '__main__':
-    main(parse_args())
+    main(*parse_args())
 
 
 ############################################################

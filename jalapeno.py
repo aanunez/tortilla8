@@ -6,15 +6,15 @@ import argparse
 from cilantro import cilantro
 from pre_proc_assembler_constants import *
 
-#TODO not correctly replacing EQU and = stuff
-#TODO do something with mode options
-#TODO add comments
+
+#TODO Respect MODE_MARKS and add common directives to it.
+#TODO Remove excess whitespace when its around pre-proc directives
 
 class jalapeno:
     """
     Jalapeno is a pre-processor class that can take file handlers,
     process all common chip 8 pre processor directives and return
-    a flatten source file.
+    a flattend source file.
     """
 
     def __init__(self):
@@ -32,13 +32,16 @@ class jalapeno:
 
     def process(self, file_handler, definitions=None):
         """
-        TODO write some good stuff here
+        Flattens all if/else/elif etc and replaces EQU directives for a file.
+        Stores to the lexer class under cilantro.pp_line
+        Does not currently support any option or mode directives.
         """
         skipping_lines = False
         awaiting_end = False
         if definitions is None:
             definitions = []
 
+        # Flatten all IF/ELSE/ETC directives
         for i,line in enumerate(file_handler):
             t = cilantro(line, i)
 
@@ -74,39 +77,48 @@ class jalapeno:
             if t.pp_directive in MODE_MARKS:
                 continue #TODO Throw away for now
 
-            if t.pp_directive in ('equ','='):
+            if t.pp_directive in EQU_MARKS:
                 self.symbols[t.pp_args[0]] = t.pp_args[1]
                 continue
 
             self.collection.append(t)
 
+        # Replace Symbols ( EQU and '=' ) and set pp_line
         for sym in self.symbols:
             for tl in self.collection:
-                for i,arg in enumerate(tl.arguments):
+
+                iterator = tl.arguments if tl.arguments != [] else tl.data_declarations
+                for i,arg in enumerate(iterator):
                     if arg == sym:
-                        tl.arguments[i] = self.symbols[sym]
-                for i,arg in enumerate(tl.data_declarations):
-                    if arg == sym:
-                        tl.data_declarations[i] = self.symbols[sym]
-                tl.pp_line = tl.original.replace(sym, self.symbols[sym])
+                        if tl.arguments != []:
+                            tl.arguments[i] = self.symbols[sym]
+                        else:
+                            tl.data_declarations[i] = self.symbols[sym]
+                        tl.pp_line = tl.original.replace(sym, self.symbols[sym])
+                        if tl.pp_line.find(BEGIN_COMMENT) != -1:
+                            tl.pp_line = tl.pp_line.split(BEGIN_COMMENT)[0] + BEGIN_COMMENT + tl.comment
+
+                if not tl.pp_line:
+                    tl.pp_line = tl.original
 
     def print_processed_source(self, file_handler=None):
         """
         Print flattened source code to stdout or file handler.
         """
-        print(self.symbols)
         for tl in self.collection:
             if file_handler is None:
                 print(tl.pp_line, end='')
             else:
-                file_handler.write(tl.pp_line) #TODO Not writing out translations
+                file_handler.write(tl.pp_line)
 
 
 def parse_args():
     """
     Parse arguments to guacamole when called as a script.
     """
-    parser = argparse.ArgumentParser(description='Jalapeno will scan your CHIP-8 source code for pre-processing directives, apply them as needed, and produce a flatten source file that can be assembled with blackbean.')
+    parser = argparse.ArgumentParser(description='Jalapeno will scan your CHIP-8 source code for pre-processor directives, \
+                                                  apply them as needed, and produce a flattend source file that can be \
+                                                  assembled with blackbean.')
     parser.add_argument('input', help='File to assemble')
     parser.add_argument('-o','--output',help='file to store processed source to, by default INPUT.jala is used.')
     opts = parser.parse_args()
@@ -126,7 +138,7 @@ def main(opts):
     jala = jalapeno()
     with open(opts.input) as FH:
         jala.process(FH)
-    with open(opts.output, 'w') as FH:
+    with open(opts.output, 'w+') as FH:
         jala.print_processed_source(FH)
 
 if __name__ == '__main__':
