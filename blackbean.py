@@ -88,10 +88,7 @@ class blackbean:
                             line.original
             else:
                 form_line = (20*' ') + line.original
-            if file_handler:
-                file_handler.write(form_line)
-            else:
-                print(form_line, end='')
+
             if file_handler is None:
                 print(form_line, end='')
             else:

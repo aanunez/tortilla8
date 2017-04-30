@@ -58,17 +58,12 @@ class guacamole:
         self.cpu_time   = 0
 
         # Load Font, clear screen
-        self.ram[FONT_ADDRESS:FONT_ADDRESS+len(FONT)] = [i for i in FONT]
+        self.ram[FONT_ADDRESS:FONT_ADDRESS+len(FONT) ] = [i for i in FONT]
         self.ram[GFX_ADDRESS:GFX_ADDRESS + GFX_RESOLUTION] = [0x00] * GFX_RESOLUTION
 
         # Load Rom
         if rom is not None:
             self.load_rom(rom)
-
-        # Look ups for mnemonic arguments
-        self.arg_e={
-        'lower_byte': self.get_lower_byte,   'reg1': self.get_reg1,     'reg2': self.get_reg2,
-        'reg1_val'  : self.get_reg1_val, 'reg2_val': self.get_reg2_val, 'addr': self.get_address}
 
         # Instruction lookup table
         self.ins_tbl={
@@ -84,7 +79,7 @@ class guacamole:
             print("Warning: Rom file exceeds MAX_ROM_SIZE.")
 
         with open(file_path, "rb") as fh:
-            self.ram[PROGRAM_BEGIN_ADDRESS:PROGRAM_BEGIN_ADDRESS + file_size] = [int.from_bytes(fh.read(1), 'big') for i in range(file_size)]
+            self.ram[PROGRAM_BEGIN_ADDRESS:PROGRAM_BEGIN_ADDRESS + file_size] = [int.from_bytes(fh.read(1), 'big') for i in range(file_size) ]
 
     def reset(self):
         self.__init__()
@@ -126,7 +121,7 @@ class guacamole:
     # Instructions ( Private )
 
     def i_cls(self):
-        self.ram[GFX_ADDRESS:] = [0x00 for i in range(GFX_RESOLUTION)]
+        self.ram[GFX_ADDRESS:] = [0x00 for i in range(GFX_RESOLUTION) ]
 
     def i_ret(self):
         self.stack_pointer -= 1
@@ -135,7 +130,7 @@ class guacamole:
         self.program_counter = self.stack.pop()
 
     def i_sys(self):
-        print("Warning: RCA 1802 call to " + hex( self.arg_e['addr']()) + " was ignored.")
+        print("Warning: RCA 1802 call to " + hex( self.get_address()) + " was ignored.")
 
     def i_call(self):
         if STACK_ADDRESS:
@@ -144,82 +139,82 @@ class guacamole:
         self.stack.append(self.program_counter)
         if self.stack_pointer > STACK_SIZE:
             print("Warning: Stack overflow. Stack is now size " + self.stack_pointer)
-        self.program_counter =  self.arg_e['addr']() - 2
+        self.program_counter =  self.get_address() - 2
 
     def i_skp(self):
-        if self.keypad[ self.arg_e['reg1_val']() & 0x0F]:
+        if self.keypad[ self.get_reg1_val() & 0x0F]:
             self.program_counter += 2
 
     def i_sknp(self):
-        if not self.keypad[ self.arg_e['reg1_val']() & 0x0F]:
+        if not self.keypad[ self.get_reg1_val() & 0x0F]:
             self.program_counter += 2
 
     def i_se(self):
-        comp =  self.arg_e['lower_byte']() if "byte" in self.mnemonic_arg_types else  self.arg_e['reg2_val']()
-        if  self.arg_e['reg1_val']() == comp:
+        comp =  self.get_lower_byte() if "byte" in self.mnemonic_arg_types else  self.get_reg2_val()
+        if  self.get_reg1_val() == comp:
             self.program_counter += 2
 
     def i_sne(self):
-        comp =  self.arg_e['lower_byte']() if "byte" in self.mnemonic_arg_types else  self.arg_e['reg2_val']()
-        if  self.arg_e['reg1_val']() != comp:
+        comp =  self.get_lower_byte() if "byte" in self.mnemonic_arg_types else  self.get_reg2_val()
+        if  self.get_reg1_val() != comp:
             self.program_counter += 2
 
     def i_shl(self):                                         #TODO add option to respect "old" shift
-        self.register[ self.arg_e['reg1']()] = ( self.arg_e['reg1_val']() << 1) & 0xFF
-        self.register[0xF] = 0xFF if  self.arg_e['reg1_val']() >= 0x80 else 0x0
+        self.register[ self.get_reg1() ] = ( self.get_reg1_val() << 1) & 0xFF
+        self.register[0xF] = 0xFF if  self.get_reg1_val() >= 0x80 else 0x0
 
     def i_shr(self):                                         #TODO add option to respect "old" shift
-        self.register[ self.arg_e['reg1']()] =  self.arg_e['reg1_val']() >> 1
-        self.register[0xF] = 0xFF if ( self.arg_e['reg1_val']() % 2) == 1 else 0x0
+        self.register[ self.get_reg1() ] =  self.get_reg1_val() >> 1
+        self.register[0xF] = 0xFF if ( self.get_reg1_val() % 2) == 1 else 0x0
 
     def i_or(self):
-        self.register[ self.arg_e['reg1']()] =  self.arg_e['reg1_val']() |  self.arg_e['reg2_val']()
+        self.register[ self.get_reg1() ] =  self.get_reg1_val() | self.get_reg2_val()
 
     def i_and(self):
-        self.register[ self.arg_e['reg1']()] =  self.arg_e['reg1_val']() &  self.arg_e['reg2_val']()
+        self.register[ self.get_reg1() ] =  self.get_reg1_val() & self.get_reg2_val()
 
     def i_xor(self):
-        self.register[ self.arg_e['reg1']()] =  self.arg_e['reg1_val']() ^  self.arg_e['reg2_val']()
+        self.register[ self.get_reg1() ] =  self.get_reg1_val() ^ self.get_reg2_val()
 
     def i_sub(self):
-        self.register[ self.arg_e['reg1']()] =  self.arg_e['reg1_val']() -  self.arg_e['reg2_val']()
-        self.register[ self.arg_e['reg1']()] += 0x00 if  self.arg_e['reg1_val']() >  self.arg_e['reg2_val']() else 0xFF
-        self.register[0xF] = 0xFF if  self.arg_e['reg1_val']() >  self.arg_e['reg2_val']() else 0x00
+        self.register[ self.get_reg1() ] =  self.get_reg1_val() - self.get_reg2_val()
+        self.register[ self.get_reg1() ] += 0x00 if  self.get_reg1_val() >  self.get_reg2_val() else 0xFF
+        self.register[0xF] = 0xFF if  self.get_reg1_val() >  self.get_reg2_val() else 0x00
 
     def i_subn(self):
-        self.register[ self.arg_e['reg1']()] =  self.arg_e['reg2_val']() -  self.arg_e['reg1_val']()
-        self.register[ self.arg_e['reg1']()] += 0x00 if  self.arg_e['reg2_val']() >  self.arg_e['reg1_val']() else 0xFF
-        self.register[0xF] = 0xFF if  self.arg_e['reg2_val']() >  self.arg_e['reg1_val']() else 0x00
+        self.register[ self.get_reg1() ] =  self.get_reg2_val() - self.get_reg1_val()
+        self.register[ self.get_reg1() ] += 0x00 if  self.get_reg2_val() >  self.get_reg1_val() else 0xFF
+        self.register[0xF] = 0xFF if  self.get_reg2_val() >  self.get_reg1_val() else 0x00
 
     def i_jp(self):
         if 'v0' in self.mnemonic_arg_types:
-            self.program_counter =  self.arg_e['addr']() + self.register[0] - 2
+            self.program_counter =  self.get_address() + self.register[0] - 2
         else:
-            self.program_counter =  self.arg_e['addr']() - 2
+            self.program_counter =  self.get_address() - 2
 
     def i_rnd(self):
-        self.register[ self.arg_e['reg1']()] = random.randint(0, 255) &  self.arg_e['lower_byte']()
+        self.register[ self.get_reg1() ] = random.randint(0, 255) &  self.get_lower_byte()
 
     def i_add(self):
         if 'byte' in self.mnemonic_arg_types:
-            self.register[ self.arg_e['reg1']()] +=  self.arg_e['lower_byte']()
+            self.register[ self.get_reg1() ] +=  self.get_lower_byte()
 
         elif 'i' in self.mnemonic_arg_types:
-            self.index_register +=  self.arg_e['reg1_val']()
+            self.index_register +=  self.get_reg1_val()
 
         else:
-            self.register[ self.arg_e['reg1']()] +=  self.arg_e['reg2_val']()
-            if  self.arg_e['reg1_val']() +  self.arg_e['reg2_val']() > 0xFF:
-                self.register[ self.arg_e['reg1']()] &= 0xFF
+            self.register[ self.get_reg1() ] +=  self.get_reg2_val()
+            if  self.get_reg1_val() +  self.get_reg2_val() > 0xFF:
+                self.register[ self.get_reg1() ] &= 0xFF
 
     def i_ld(self):
         arg1 = self.mnemonic_arg_types[0]
         arg2 = self.mnemonic_arg_types[1]
 
         if 'register' is arg1:
-            if   'byte'     is arg2: self.register[ self.arg_e['reg1']()] = self.arg_e['lower_byte']()
-            elif 'register' is arg2: self.register[ self.arg_e['reg1']()] = self.arg_e['reg2_val']()
-            elif 'dt'       is arg2: self.register[ self.arg_e['reg1']()] = self.delay_timer_register
+            if   'byte'     is arg2: self.register[ self.get_reg1() ] = self.get_lower_byte()
+            elif 'register' is arg2: self.register[ self.get_reg1() ] = self.get_reg2_val()
+            elif 'dt'       is arg2: self.register[ self.get_reg1() ] = self.delay_timer_register
             elif 'k'        is arg2:
                 original = ~int(''.join(['1' if x else '0' for x in self.keypad]),2)
                 new = 0x0000
@@ -227,57 +222,61 @@ class guacamole:
                     new = int(''.join(['1' if x else '0' for x in self.keypad]),2)
                     #continue
                     break
-                self.register[ self.arg_e['reg1']()] = 1#new.find('1')          #TODO Hella Broken
+                self.register[ self.get_reg1() ] = 1#new.find('1')          #TODO Hella Broken
 
             elif '[i]' == arg2:
-                for i in range( self.arg_e['reg1']()):
+                for i in range( self.get_reg1()):
                     self.register[i] = self.ram[self.index_register + i]
 
             else:
                 print("Fatal: Loads with argument type '" + arg2 + "' are not supported.")
 
         elif 'register' is arg2:
-            if   'dt' is arg1: self.delay_timer_register =  self.arg_e['reg1_val']()
-            elif 'st' is arg1: self.sound_timer_register =  self.arg_e['reg1_val']()
-            elif 'f'  is arg1: self.index_register = FONT_ADDRESS + ( 5 * self.arg_e['reg1_val']() )
+            if   'dt' is arg1: self.delay_timer_register =  self.get_reg1_val()
+            elif 'st' is arg1: self.sound_timer_register =  self.get_reg1_val()
+            elif 'f'  is arg1: self.index_register = FONT_ADDRESS + ( 5 * self.get_reg1_val() )
             elif 'b'  is arg1:
-                temp = str( self.arg_e['reg1_val']()).zfill(3)
+                temp = str( self.get_reg1_val()).zfill(3)
                 for i in range(3):
                     self.ram[self.index_register + i] = int(temp[i])
 
             elif '[i]' == arg1:
-                for i in range( self.arg_e['reg1']()):
+                for i in range( self.get_reg1()):
                     self.ram[self.index_register + i] = self.register[i]
 
             else:
                 print("Fatal: Loads with argument type '" + arg1 + "' are not supported.")
 
         elif 'i' is arg1 and 'address' is arg2:
-            self.index_register =  self.arg_e['addr']()
+            self.index_register =  self.get_address()
 
         else:
             print("Fatal: Loads with argument types '" + arg1 + "' and '" + arg2 +  "' are not supported.")
 
     def i_drw(self):           # TODO Wrap around doesn't work
-        if  self.arg_e['reg1_val']() >= GFX_WIDTH_PX:
+        if  self.get_reg1_val() >= GFX_WIDTH_PX:
             print("Warning: Draw instruction called with X origin >= GFX_WIDTH_PX\nWrap-around not yet supported.")
-        if  self.arg_e['reg2_val']() >= GFX_HEIGHT_PX:
+        if  self.get_reg2_val() >= GFX_HEIGHT_PX:
             print("Warning: Draw instruction called with Y origin >= GFX_HEIGHT_PX\nWrap-around not yet supported.")
+        sprite = [0,0]
+        mask   = [0,0]
 
         self.draw_flag = True
         height = int(self.hex_instruction[3],16)
-        origin = GFX_ADDRESS + int( self.arg_e['reg1_val']() / 8 ) + ( self.arg_e['reg2_val']() * GFX_WIDTH) #To lowest byte
-        mask = [0xFF >> ( self.arg_e['reg1_val']() % 8)]
-        mask.insert(0, ~mask[0])
+        origin = GFX_ADDRESS + int( self.get_reg1_val() / 8 ) + ( self.get_reg2_val() * GFX_WIDTH) #To lowest byte
+        mask[1] = 0xFF >> ( self.get_reg1_val() % 8)
+        mask[0] = ~mask[0]
         self.register[0xF] = 0x00
 
         for y in range(height):
+            sprite[0]   =  self.ram[ self.index_register + y ] >> ( self.get_reg1_val() % 8)
+            sprite[1]   = (self.ram[ self.index_register + y ] << ( self.get_reg1_val() % 8) ) & 0xFF
             for x in range(2):
-                original = self.ram[origin + x + (y * GFX_WIDTH)]
-                self.ram[origin + x + (y * GFX_WIDTH)] ^= self.ram[self.index_register + y]  # TODO pretty sure we need to bit shift here
-                self.ram[origin + x + (y * GFX_WIDTH)] |= mask[x]
-                self.ram[origin + x + (y * GFX_WIDTH)] &= original
-                if ((self.ram[origin + x + (y * GFX_WIDTH)] ^ original) & original):
+                original = self.ram[ origin + x + (y * GFX_WIDTH) ]
+                self.ram[ origin + x + (y * GFX_WIDTH) ] ^= sprite[x]
+                self.ram[ origin + x + (y * GFX_WIDTH) ] |= mask[x]
+                self.ram[ origin + x + (y * GFX_WIDTH) ] &= original
+                if ((self.ram[origin + x + (y * GFX_WIDTH) ] ^ original) & original):
                     self.register[0xF] = 0xFF
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -293,10 +292,10 @@ class guacamole:
         return int(self.hex_instruction[2],16)
 
     def get_reg1_val(self):
-        return self.register[int(self.hex_instruction[1],16)]
+        return self.register[int(self.hex_instruction[1],16) ]
 
     def get_reg2_val(self):
-        return self.register[int(self.hex_instruction[2],16)]
+        return self.register[int(self.hex_instruction[2],16) ]
 
     def get_lower_byte(self):
         return int(self.hex_instruction[2:4], 16)

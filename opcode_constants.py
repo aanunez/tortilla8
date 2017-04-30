@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 # OP CODES
-DATA_DECLARE={'db':1,'dw':2,'dd':4}
 OP_ARGS=0
 OP_HEX=1
 OP_CODE_SIZE=2

@@ -9,6 +9,7 @@ BIN_ESC='$' #TODO not used yet
 
 
 # Pre Processor
+DATA_DECLARE={'db':1,'dw':2,'dd':4}
 ELSE_IF=('elif','elseif','elifdef','elseifdef')
 END_MARKS=('endif','else')+ELSE_IF
 EQU_MARKS=('equ','=')

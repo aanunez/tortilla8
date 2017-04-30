@@ -22,6 +22,9 @@ DISPLAY_W=64 + BORDERS
 LEN_STR_REG = len("Regiters")
 LEN_STR_STA = len("Stack")
 
+ASCII_X=120
+ASCII_S=115
+
 LOGO_MIN    = 34
 LOGO=[
 '   ██  ',

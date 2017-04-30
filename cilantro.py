@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 from pre_proc_assembler_constants import *
+from opcode_constants import *
 
 #TODO raise real warnings
 
