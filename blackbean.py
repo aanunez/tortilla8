@@ -220,6 +220,7 @@ class blackbean:
             return
 
         for arg in tl.data_declarations:
+            val = None
 
             # Try to parse the values
             if arg[0] is HEX_ESC:

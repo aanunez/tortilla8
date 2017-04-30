@@ -87,6 +87,9 @@ class jalapeno:
         for sym in self.symbols:
             for tl in self.collection:
 
+                if not tl.pp_line:
+                    tl.pp_line = tl.original
+
                 iterator = tl.arguments if tl.arguments != [] else tl.data_declarations
                 for i,arg in enumerate(iterator):
                     if arg == sym:
@@ -94,12 +97,9 @@ class jalapeno:
                             tl.arguments[i] = self.symbols[sym]
                         else:
                             tl.data_declarations[i] = self.symbols[sym]
-                        tl.pp_line = tl.original.replace(sym, self.symbols[sym])
+                        tl.pp_line = tl.pp_line.replace(sym, self.symbols[sym])
                         if tl.pp_line.find(BEGIN_COMMENT) != -1:
                             tl.pp_line = tl.pp_line.split(BEGIN_COMMENT)[0] + BEGIN_COMMENT + tl.comment
-
-                if not tl.pp_line:
-                    tl.pp_line = tl.original
 
     def print_processed_source(self, file_handler=None):
         """

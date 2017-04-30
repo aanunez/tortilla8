@@ -40,39 +40,43 @@ class platter:
         self.console_history.appendleft(message)
         for i,val in enumerate(self.console_history):
             self.w_console.addstr( 1 + i, 2, val )
-        #self.w_console.noutrefresh()
-        self.w_console.refresh()
+        self.w_console.noutrefresh()
 
     def start(self, step_mode=False):      #TODO Step mode is borken :\ can't seem to get that S key
         previous_pc = 0
         last_exec = time.time()
         watch_dog = self.emu.cpu_wait + .01 #TODO probs shouldn't do this
+        halt     = False
         try:
             while True:
-                #TODO Check for key presses         self.w_console.nodelay(1)
-                self.emu.run()
+                key = self.w_console.getch()
+
+                if key == ASCII_X:
+                    break
+
+                if not halt:
+                    self.emu.run()
 
                 # Update Display if we executed
                 if self.emu.program_counter != previous_pc:
                     previous_pc = self.emu.program_counter
                     self.update_history()
-                    self.update_screen()
                     last_exec = time.time()
                 # Detect Spinning
-                elif step_mode or (not step_mode and (time.time() - last_exec > watch_dog)):
+                elif not halt and (step_mode or (not step_mode and (time.time() - last_exec > watch_dog))):
                     self.instr_history.appendleft(hex3(self.emu.program_counter) + " spin jp")
-                    self.update_screen()
                     self.console_print("Spin detected. Press 'X' to exit.")
-                    self.w_console.nodelay(0)
-                    while self.w_console.getch() != ASCII_X: continue
-                    break
+                    halt  = True
 
                 # Pause for Step Mode
                 if step_mode:
-                    exit = False
-                    self.w_console.nodelay(0)
-                    while self.w_console.getch() != ASCII_S: continue   #TODO the way this works needs to change yo.
+                    halt = True
+                    if key == ASCII_S:
+                        halt = False
 
+                self.update_screen()
+
+            self.update_screen()
         except KeyboardInterrupt:
             return
         except:
@@ -116,7 +120,7 @@ class platter:
                 upper_chunk = int( bin( self.emu.ram[ GFX_ADDRESS + ( (y * 2 + 0) * GFX_WIDTH) + x ] )[2:] )
                 lower_chunk = int( bin( self.emu.ram[ GFX_ADDRESS + ( (y * 2 + 1) * GFX_WIDTH) + x ] )[2:].replace('1','2') )
                 total_chunk  = str(upper_chunk + lower_chunk).zfill(8).replace('3', "█" ).replace('2', "▄" )\
-                                                                      .replace('1', "▀" ).replace('0', "." )
+                                                                      .replace('1', "▀" ).replace('0', " " )
                 self.w_game.addstr( 1 + y, 1 + x * 8, total_chunk )
         self.w_game.noutrefresh()
 
@@ -180,6 +184,7 @@ class platter:
         self.w_stack.addstr( 1, STAK_OFFSET, "Stack")
         self.w_console.border()
         self.w_instr.border()
+        self.w_console.nodelay(1)
 
         self.display_logo()
         curses.doupdate()
