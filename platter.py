@@ -3,6 +3,7 @@
 import os
 import time
 import curses
+import textwrap
 import argparse
 import collections
 from guacamole import guacamole
@@ -27,26 +28,31 @@ class platter:
         self.w_console = None
         self.w_dummy   = None
 
+        self.rom = rom
         self.dynamic_window_gen()
-        self.instr_history   = collections.deque(maxlen = self.w_instr.getmaxyx()[0] - BORDERS)
-        self.console_history = collections.deque(maxlen = self.w_console.getmaxyx()[0] - BORDERS)
+        self.init_logs()
+
+        if self.w_game is None:
+            self.console_print("Window must be atleast "+ str(DISPLAY_MIN_W) + "x" + str(DISPLAY_MIN_H) +" to display the game screen.")
+
         self.emu = guacamole(rom, hz, hz) #TODO grab max rom size warning
+        self.init_emu_status()
 
         curses.noecho()
         curses.cbreak()
         curses.curs_set(0)
 
-    def console_print(self, message):
-        self.console_history.appendleft(message)
-        for i,val in enumerate(self.console_history):
-            self.w_console.addstr( 1 + i, 2, val )
-        self.w_console.noutrefresh()
+    def init_emu_status(self):
+        self.previous_pc = 0
+        self.last_exec   = time.time()
+        self.watch_dog   = self.emu.cpu_wait + .01 #TODO probs shouldn't do this
+        self.halt        = False
 
-    def start(self, step_mode=False):      #TODO Step mode is borken :\ can't seem to get that S key
-        previous_pc = 0
-        last_exec = time.time()
-        watch_dog = self.emu.cpu_wait + .01 #TODO probs shouldn't do this
-        halt     = False
+    def init_logs(self):
+        self.instr_history   = collections.deque(maxlen = self.w_instr.getmaxyx()[0] - BORDERS)
+        self.console_history = collections.deque(maxlen = self.w_console.getmaxyx()[0] - BORDERS)
+
+    def start(self, step_mode=False):
         try:
             while True:
                 key = self.w_console.getch()
@@ -54,25 +60,32 @@ class platter:
                 if key == ASCII_X:
                     break
 
-                if not halt:
+                if key == ASCII_R:
+                    self.emu.reset(self.rom, 2, 2)
+                    self.init_emu_status()
+                    self.init_logs()
+                    self.clear_all_windows()
+                    continue
+
+                if not self.halt:
                     self.emu.run()
 
                 # Update Display if we executed
-                if self.emu.program_counter != previous_pc:
-                    previous_pc = self.emu.program_counter
+                if self.emu.program_counter != self.previous_pc:
+                    self.previous_pc = self.emu.program_counter
                     self.update_history()
-                    last_exec = time.time()
+                    self.last_exec = time.time()
                 # Detect Spinning
-                elif not halt and (step_mode or (not step_mode and (time.time() - last_exec > watch_dog))):
+                elif not self.halt and (step_mode or (not step_mode and (time.time() - self.last_exec > self.watch_dog))):
                     self.instr_history.appendleft(hex3(self.emu.program_counter) + " spin jp")
                     self.console_print("Spin detected. Press 'X' to exit.")
-                    halt  = True
+                    self.halt  = True
 
                 # Pause for Step Mode
                 if step_mode:
-                    halt = True
+                    self.halt = True
                     if key == ASCII_S:
-                        halt = False
+                        self.halt = False
 
                 self.update_screen()
 
@@ -92,18 +105,40 @@ class platter:
     def update_screen(self):
         self.display_registers()
         self.display_stack()
-        self.display_console()
         self.display_instructions()
         self.display_game()
         curses.doupdate()
 
     def update_history(self):
-        self.instr_history.appendleft(hex3(self.emu.program_counter - 2) + " " + \
+        self.instr_history.appendleft(hex3(self.emu.calling_pc) + " " + \
                                            self.emu.hex_instruction + " " + \
                                            self.emu.mnemonic)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Display functions for windows
+
+    def console_print(self, message):
+        message_list = textwrap.wrap(message, self.w_console.getmaxyx()[1]- (BORDERS * 2) )
+        for i in reversed(message_list):
+            self.console_history.appendleft(i)
+        for i,val in enumerate(self.console_history):
+            self.w_console.addstr( 1 + i, 2, val )
+        self.w_console.noutrefresh()
+
+    def clear_all_windows(self):
+        self.screen.clear()
+        self.w_stack.clear()
+        self.w_console.clear()
+        self.w_instr.clear()
+        self.w_reg.border()
+        self.w_reg.addstr( 1, REG_OFFSET, "Registers")
+        self.w_stack.border()
+        self.w_stack.addstr( 1, STAK_OFFSET, "Stack")
+        self.w_console.border()
+        self.w_instr.border()
+        self.w_console.nodelay(1)
+        self.display_logo()
+        curses.doupdate()
 
     def display_logo(self):
         if self.screen.getmaxyx()[0] < LOGO_MIN: return
@@ -123,10 +158,6 @@ class platter:
                                                                       .replace('1', "▀" ).replace('0', " " )
                 self.w_game.addstr( 1 + y, 1 + x * 8, total_chunk )
         self.w_game.noutrefresh()
-
-    def display_console(self):
-        #self.w_console.addstr( 1,  1, "HelloWorld!" )
-        self.w_console.noutrefresh()
 
     def display_instructions(self):
         for i,val in enumerate(self.instr_history):
@@ -170,24 +201,13 @@ class platter:
 
         if (self.screen.getmaxyx()[0] < DISPLAY_MIN_H) or (self.screen.getmaxyx()[1] < DISPLAY_MIN_W):
             self.w_console = curses.newwin( L,  self.w_reg.getbegyx()[1], 0, 0 )
-            # TODO show info in console screen about min size
         else:
             self.w_game    = curses.newwin( DISPLAY_H, DISPLAY_W, 0, int( ( C - WIN_REG_W - DISPLAY_W ) / 2 ) )
             self.w_console = curses.newwin( L-DISPLAY_H, self.w_reg.getbegyx()[1], DISPLAY_H, 0 )
             self.w_game.border()
             self.w_game.noutrefresh()
 
-        self.screen.clear()
-        self.w_reg.border()
-        self.w_reg.addstr( 1, REG_OFFSET, "Registers")
-        self.w_stack.border()
-        self.w_stack.addstr( 1, STAK_OFFSET, "Stack")
-        self.w_console.border()
-        self.w_instr.border()
-        self.w_console.nodelay(1)
-
-        self.display_logo()
-        curses.doupdate()
+        self.clear_all_windows()
 
 def hex2(integer):
     return "0x" + hex(integer)[2:].zfill(2)
@@ -196,10 +216,10 @@ def hex3(integer):
     return "0x" + hex(integer)[2:].zfill(3)
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Plate is a text based front end for the Chip-8 emulator guacamole ...')
+    parser = argparse.ArgumentParser(description='Platter is a text based front end for the Chip-8 emulator guacamole ...')
     parser.add_argument('rom', help='ROM to load and play.')
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("-f","--frequency", default=60,help='Frequency (in Hz) to target, minimum 1 hz.')
+    group.add_argument("-f","--frequency", default=5,help='Frequency (in Hz) to target, minimum 1 hz.')
     group.add_argument('-s','--step', help='Start the emulator is "step" mode.',action='store_true')
     opts = parser.parse_args()
 
@@ -223,15 +243,4 @@ def main(opts):
 
 if __name__ == '__main__':
     main(parse_args())
-
-
-
-
-
-
-
-
-
-
-
 

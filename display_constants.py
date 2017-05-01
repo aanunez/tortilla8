@@ -24,6 +24,7 @@ LEN_STR_STA = len("Stack")
 
 ASCII_X=120
 ASCII_S=115
+ASCII_R=114
 
 LOGO_MIN    = 34
 LOGO=[

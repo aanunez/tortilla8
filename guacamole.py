@@ -41,6 +41,7 @@ class guacamole:
         self.mnemonic_arg_types = None
 
         self.program_counter = PROGRAM_BEGIN_ADDRESS
+        self.calling_pc      = 0
 
         # I/O
         self.keypad      = [False] * 16
@@ -88,11 +89,11 @@ class guacamole:
         with open(file_path, "rb") as fh:
             self.ram[PROGRAM_BEGIN_ADDRESS:PROGRAM_BEGIN_ADDRESS + file_size] = [int.from_bytes(fh.read(1), 'big') for i in range(file_size)]
 
-    def reset(self):
+    def reset(self, rom=None, cpuhz=60, audiohz=60):
         '''
         reset
         '''
-        self.__init__()
+        self.__init__(rom, cpuhz, audiohz)
 
     def run(self):
         '''
@@ -121,6 +122,7 @@ class guacamole:
         # Match the instruction via a regex index
         for reg_pattern in OP_REG:
             if re.match(reg_pattern.lower(), self.hex_instruction):
+                self.calling_pc = self.program_counter
                 self.mnemonic = OP_REG[reg_pattern][0]
                 self.mnemonic_arg_types = OP_CODES[self.mnemonic][OP_REG[reg_pattern][1]][OP_ARGS]
                 self.ins_tbl[self.mnemonic]()
