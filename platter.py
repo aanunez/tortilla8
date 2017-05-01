@@ -10,7 +10,6 @@ from guacamole import guacamole
 from display_constants import *
 from mem_addr_register_constants import *
 
-#TODO get rid of as many of these magic numbers as possible
 #TODO grab max rom size warning
 #TODO grab warnings
 #TODO Support non 64x32 displays
@@ -57,16 +56,20 @@ class platter:
             while True:
                 key = self.w_console.getch()
 
+                # Exit check
                 if key == ASCII_X:
                     break
 
+                # Reset check
                 if key == ASCII_R:
-                    self.emu.reset(self.rom, 2, 2)
+                    self.emu.reset(self.rom, 2)
                     self.init_emu_status()
                     self.init_logs()
                     self.clear_all_windows()
+                    step_mode = False
                     continue
 
+                # Try to tick the cpu
                 if not self.halt:
                     self.emu.run()
 
@@ -75,17 +78,15 @@ class platter:
                     self.previous_pc = self.emu.program_counter
                     self.update_history()
                     self.last_exec = time.time()
+
                 # Detect Spinning
                 elif not self.halt and (step_mode or (not step_mode and (time.time() - self.last_exec > self.watch_dog))):
                     self.instr_history.appendleft(hex3(self.emu.program_counter) + " spin jp")
                     self.console_print("Spin detected. Press 'X' to exit.")
                     self.halt  = True
 
-                # Pause for Step Mode
-                if step_mode:
-                    self.halt = True
-                    if key == ASCII_S:
-                        self.halt = False
+                # Toggle halt for Step Mode
+                self.halt = False if (step_mode and key == ASCII_S) else True
 
                 self.update_screen()
 

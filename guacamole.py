@@ -9,7 +9,6 @@ import argparse # Command line
 from mem_addr_register_constants import *
 from opcode_constants import *
 
-# TODO merge audo and cpu timing.
 # TODO raise real warnings
 # TODO Drawing function still has bugs.
 # TODO Shift L/R behavior needs a toggle for "old" and "new" behavior
@@ -92,7 +91,7 @@ class guacamole:
         '''
         reset
         '''
-        self.__init__(rom, cpuhz, audiohz)
+        self.__init__(rom, cpuhz)
 
     def run(self):
         '''
@@ -270,12 +269,7 @@ class guacamole:
         else:
             print("Fatal: Loads with argument types '" + arg1 + "' and '" + arg2 +  "' are not supported.")
 
-    def i_drw(self):           # TODO Haven't tested wrapping
-        #if  self.get_reg1_val() >= GFX_WIDTH_PX:
-        #    print("Warning: Draw instruction called with X origin >= GFX_WIDTH_PX\nWrap-around not yet supported.")
-        #if  self.get_reg2_val() >= GFX_HEIGHT_PX:
-        #    print("Warning: Draw instruction called with Y origin >= GFX_HEIGHT_PX\nWrap-around not yet supported.")
-
+    def i_drw(self):
         self.draw_flag = True
         height = int(self.hex_instruction[3],16)
         x_origin_byte = int( self.get_reg1_val() / 8 ) % GFX_WIDTH
@@ -299,7 +293,7 @@ class guacamole:
 
                 self.ram[ working_byte ] = int(''.join(b),2)
 
-                if (( self.ram[ working_byte ] ^ original) & original):
+                if ( ( self.ram[ working_byte ] ^ original ) & original ):
                     self.register[0xF] = 0xFF
 
 
@@ -348,14 +342,14 @@ class guacamole:
             if val is None:
                 print('0x' + hex(i)[2:].zfill(3))
             else:
-                print('0x' + hex(i)[2:].zfill(3) + "  " + '0x' + hex(val)[2:].zfill(2))
+                print('0x' + hex(i)[2:].zfill(3) + '  ' + '0x' + hex(val)[2:].zfill(2))
 
     def dump_gfx(self):
         for i,b in enumerate(self.ram[ GFX_ADDRESS : GFX_ADDRESS + GFX_RESOLUTION ]):
             if i%8 == 0:
-                print("")
-            print( bin(b)[2:].zfill(8).replace('1','X').replace('0','.'), end="")
-        print("")
+                print('')
+            print( bin(b)[2:].zfill(8).replace('1','X').replace('0','.'), end='')
+        print('')
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Guacamole is a Chip-8 emulator ...')
