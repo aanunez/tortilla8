@@ -46,7 +46,7 @@ class guacamole:
         # I/O
         self.keypad      = [False] * 16
         self.prev_keypad = 0
-        self.draw_flag   =  False
+        self.draw_flag   = False
         self.waiting_for_key = False
 
         # Stack
@@ -112,7 +112,11 @@ class guacamole:
         cpu_tick
         '''
         # Handle the ld k,reg instruction
-        self.handle_load_key()
+        if self.waiting_for_key:
+            self.handle_load_key()
+            return
+        else:
+            self.prev_keypad = self.decode_keypad()
 
         # Fetch instruction from ram
         found = False
@@ -332,17 +336,17 @@ class guacamole:
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Helpers for special Op Codes
 
+    def decode_keypad(self, keypad):
+        return int(''.join(['1' if x else '0' for x in self.keypad]))
+
     def handle_load_key(self):
-        if self.waiting_for_key:
-            k = int(''.join(['1' if x else '0' for x in self.keypad]))
-            nk = ( (k ^ self.prev_keypad) & k ).find('1')
-            if nk != -1: # Was a new key pressed?
-                self.register[ self.get_reg1() ] = nk
-                self.program_counter += 2
-            else:
-                return
+        k = self.decode_keypad()
+        nk = ( (k ^ self.prev_keypad) & k ).find('1')
+        if nk != -1: # Was a new key pressed?
+            self.register[ self.get_reg1() ] = nk
+            self.program_counter += 2
         else:
-            self.prev_keypad = int(''.join(['1' if x else '0' for x in self.keypad]))
+            return
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Debug
