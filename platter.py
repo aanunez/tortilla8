@@ -35,7 +35,7 @@ class platter:
         if self.w_game is None:
             self.console_print("Window must be atleast "+ str(DISPLAY_MIN_W) + "x" + str(DISPLAY_MIN_H) +" to display the game screen.")
 
-        self.emu = guacamole(rom, hz, hz) #TODO grab max rom size warning
+        self.emu = guacamole(rom, hz) #TODO grab max rom size warning
         self.init_emu_status()
 
         curses.noecho()

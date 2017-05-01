@@ -9,15 +9,16 @@ import argparse # Command line
 from mem_addr_register_constants import *
 from opcode_constants import *
 
+# TODO merge audo and cpu timing.
 # TODO raise real warnings
-# TODO Wrap around doesn't work for drw instruction (Needs testing)
+# TODO Drawing function still has bugs.
 # TODO Shift L/R behavior needs a toggle for "old" and "new" behavior
 # TODO Log a warning when running a unoffical instruction?
 # TODO add comments
 
 class guacamole:
 
-    def __init__(self, rom=None, cpuhz=60, audiohz=60):
+    def __init__(self, rom=None, cpuhz=60):
         '''
         Init
         '''
@@ -58,8 +59,6 @@ class guacamole:
 
         # Timming variables
         self.cpu_wait   = 1/cpuhz
-        self.audio_wait = 1/audiohz
-        self.audio_time = 0
         self.cpu_time   = 0
 
         # Load Font, clear screen
@@ -89,7 +88,7 @@ class guacamole:
         with open(file_path, "rb") as fh:
             self.ram[PROGRAM_BEGIN_ADDRESS:PROGRAM_BEGIN_ADDRESS + file_size] = [int.from_bytes(fh.read(1), 'big') for i in range(file_size)]
 
-    def reset(self, rom=None, cpuhz=60, audiohz=60):
+    def reset(self, rom=None, cpuhz=60):
         '''
         reset
         '''
@@ -102,10 +101,6 @@ class guacamole:
         if self.cpu_wait <= (time.time() - self.cpu_time):
             self.cpu_time = time.time()
             self.cpu_tick()
-
-        if self.audio_wait <= (time.time() - self.audio_time):
-            self.audio_time = time.time()
-            self.audio_tick()
 
     def cpu_tick(self):
         '''
@@ -137,15 +132,12 @@ class guacamole:
         if not found:
             print("Fatal: Unknown instruction " + instruction + " at " + hex(self.program_counter))
 
-        self.program_counter += 2
-
-    def audio_tick(self):
-        '''
-        audio_tick
-        '''
         # Decrement sound registers
         self.delay_timer_register -= 1 if self.delay_timer_register != 0 else 0
         self.sound_timer_register -= 1 if self.sound_timer_register != 0 else 0
+
+        # Increment the PC
+        self.program_counter += 2
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Instructions ( Private )
@@ -336,7 +328,7 @@ class guacamole:
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Helpers for special Op Codes
 
-    def decode_keypad(self, keypad):
+    def decode_keypad(self):
         return int(''.join(['1' if x else '0' for x in self.keypad]))
 
     def handle_load_key(self):
@@ -380,7 +372,7 @@ def parse_args():
     return opts
 
 def main(opts):
-    guac = guacamole(opts.rom, opts.frequency, opts.frequency)
+    guac = guacamole(opts.rom, opts.frequency)
     for i in range(1000):
         guac.cpu_tick()
     guac.dump_gfx()
