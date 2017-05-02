@@ -6,7 +6,7 @@ import curses
 import textwrap
 import argparse
 import collections
-from guacamole import guacamole
+from guacamole import guacamole, Emulation_Error
 from display_constants import *
 from mem_addr_register_constants import *
 
@@ -34,7 +34,8 @@ class platter:
         if self.w_game is None:
             self.console_print("Window must be atleast "+ str(DISPLAY_MIN_W) + "x" + str(DISPLAY_MIN_H) +" to display the game screen.")
 
-        self.emu = guacamole(rom, hz) #TODO grab max rom size warning
+        self.emu = guacamole(rom, hz)
+        self.check_emu_log()
         self.init_emu_status()
 
         curses.noecho()
@@ -62,12 +63,15 @@ class platter:
 
                 # Reset check
                 if key == ASCII_R:
-                    self.emu.reset(self.rom, 2)
+                    self.emu.reset( self.rom, int(1/self.emu.cpu_wait) )
                     self.init_emu_status()
                     self.init_logs()
                     self.clear_all_windows()
-                    step_mode = False
                     continue
+
+                # Step if requested
+                if key == ASCII_S:
+                    self.halt = False
 
                 # Try to tick the cpu
                 if not self.halt:
@@ -85,9 +89,11 @@ class platter:
                     self.console_print("Spin detected. Press 'X' to exit.")
                     self.halt  = True
 
-                # Toggle halt for Step Mode
-                self.halt = False if (step_mode and key == ASCII_S) else True
+                # Toggle for Step Mode
+                if step_mode:
+                    self.halt = True
 
+                self.check_emu_log()
                 self.update_screen()
 
             self.update_screen()
@@ -97,6 +103,14 @@ class platter:
             raise
         finally:
             self.cleanup()
+
+    def check_emu_log(self):
+        # Print all logged errors in the emu
+        for err in reversed(self.emu.error_log):
+            self.console_print( str(err[0]) + ": " + err[1] )
+
+        # Manually reset
+        self.emu.error_log = []
 
     def cleanup(self):
         curses.nocbreak()
@@ -120,8 +134,8 @@ class platter:
 
     def console_print(self, message):
         message_list = textwrap.wrap(message, self.w_console.getmaxyx()[1]- (BORDERS * 2) )
-        for i in reversed(message_list):
-            self.console_history.appendleft(i)
+        for msg in reversed(message_list):
+            self.console_history.appendleft( msg.ljust(self.w_console.getmaxyx()[1] - (BORDERS * 2)) )
         for i,val in enumerate(self.console_history):
             self.w_console.addstr( 1 + i, 2, val )
         self.w_console.noutrefresh()
@@ -234,7 +248,7 @@ def parse_args():
             raise ValueError("Please use step mode for sub 1 hz operation.")
 
     if opts.step:
-        opts.frequency = 2 ** 63 - 1
+        opts.frequency = 1000000 # 1 Ghz
 
     return opts
 

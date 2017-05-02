@@ -1,19 +1,27 @@
 #!/usr/bin/python3
 
-import sys
 import re       # Matching Op Code
 import os       # Rom Loading
 import time     # CPU Frequency
 import random   # RND instruction
 import argparse # Command line
+from enum import Enum
 from mem_addr_register_constants import *
 from opcode_constants import *
 
-# TODO raise real warnings
+# TODO Load logs fatal warnings right now, should all instructions check the structure of input args?
 # TODO Drawing function still has bugs.
 # TODO Shift L/R behavior needs a toggle for "old" and "new" behavior
 # TODO Log a warning when running a unoffical instruction?
 # TODO add comments
+
+class Emulation_Error(Enum):
+    _Information = 1
+    _Warning     = 2
+    _Fatal       = 3
+
+    def __str__(self):
+        return self.name[1:]
 
 class guacamole:
 
@@ -56,13 +64,20 @@ class guacamole:
         # # # # # # # # # # # # # # # # # # # # # # # #
         # Private
 
+        # Warning control
+        self.log_to_screen = False
+        self.error_log = []
+
         # Timming variables
         self.cpu_wait   = 1/cpuhz
         self.cpu_time   = 0
 
         # Load Font, clear screen
-        self.ram[FONT_ADDRESS:FONT_ADDRESS+len(FONT) ] = [i for i in FONT]
+        self.ram[FONT_ADDRESS:FONT_ADDRESS + len(FONT)] = [i for i in FONT]
         self.ram[GFX_ADDRESS:GFX_ADDRESS + GFX_RESOLUTION] = [0x00] * GFX_RESOLUTION
+
+        # Notification
+        self.emu_log("Initializing emulator at " + str(cpuhz) + " hz" ,Emulation_Error._Information)
 
         # Load Rom
         if rom is not None:
@@ -82,10 +97,11 @@ class guacamole:
         '''
         file_size = os.path.getsize(file_path)
         if file_size > MAX_ROM_SIZE:
-            print("Warning: Rom file exceeds MAX_ROM_SIZE.")
+            self.emu_log("Rom file exceeds maximum rom size of " + str(MAX_ROM_SIZE) + " bytes" , Emulation_Error._Warning)
 
         with open(file_path, "rb") as fh:
             self.ram[PROGRAM_BEGIN_ADDRESS:PROGRAM_BEGIN_ADDRESS + file_size] = [int.from_bytes(fh.read(1), 'big') for i in range(file_size)]
+            self.emu_log("Rom file loaded" , Emulation_Error._Information)
 
     def reset(self, rom=None, cpuhz=60):
         '''
@@ -112,10 +128,13 @@ class guacamole:
         else:
             self.prev_keypad = self.decode_keypad()
 
+        # Reset error log
+        self.error = []
+
         # Fetch instruction from ram
         found = False
-        self.hex_instruction =  hex(self.ram[self.program_counter + 0])[2:].zfill(2)
-        self.hex_instruction += hex(self.ram[self.program_counter + 1])[2:].zfill(2)
+        self.hex_instruction =  hex( self.ram[self.program_counter + 0] )[2:].zfill(2)
+        self.hex_instruction += hex( self.ram[self.program_counter + 1] )[2:].zfill(2)
 
         # Match the instruction via a regex index
         for reg_pattern in OP_REG:
@@ -129,7 +148,7 @@ class guacamole:
 
         # Error out, to add new instruction update OP_REG and OP_CODES and self.i_
         if not found:
-            print("Fatal: Unknown instruction " + instruction + " at " + hex(self.program_counter))
+            self.emu_log("Fatal: Unknown instruction " + instruction + " at " + hex(self.program_counter), Emulation_Error._Fatal)
 
         # Decrement sound registers
         self.delay_timer_register -= 1 if self.delay_timer_register != 0 else 0
@@ -138,21 +157,31 @@ class guacamole:
         # Increment the PC
         self.program_counter += 2
 
+    def emu_log(self, message, error_type):
+        '''
+        emu_log
+        '''
+        if self.log_to_screen:
+            print(str(error_type) + ": " + message)
+        else:
+            self.error_log.append( (error_type, message) )
+
+
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Instructions ( Private )
 
     def i_cls(self):
-        self.ram[GFX_ADDRESS:] = [0x00 for i in range(GFX_RESOLUTION) ]
+        self.ram[GFX_ADDRESS:GFX_ADDRESS + GFX_RESOLUTION] = [0x00] * GFX_RESOLUTION
         self.draw_flag = True
 
     def i_ret(self):
         self.stack_pointer -= 1
         if self.stack_pointer < 0:
-            print("Fatal: Stack underflow")
+            self.emu_log("Stack underflow", )
         self.program_counter = self.stack.pop()
 
     def i_sys(self):
-        print("Warning: RCA 1802 call to " + hex( self.get_address()) + " was ignored.")
+        self.emu_log("RCA 1802 call to " + hex( self.get_address()) + " was ignored.", Emulation_Error._Warning)
 
     def i_call(self):
         if STACK_ADDRESS:
@@ -160,7 +189,7 @@ class guacamole:
         self.stack_pointer += 1
         self.stack.append(self.program_counter)
         if self.stack_pointer > STACK_SIZE:
-            print("Warning: Stack overflow. Stack is now size " + self.stack_pointer)
+            self.emu_log("Warning: Stack overflow. Stack is now size " + self.stack_pointer, Emulation_Error._Warning)
         self.program_counter =  self.get_address() - 2
 
     def i_skp(self):
@@ -224,7 +253,7 @@ class guacamole:
         elif 'i' in self.mnemonic_arg_types:
             self.index_register += self.get_reg1_val()
 
-        else:
+        else: # Reg + Reg
             self.register[ self.get_reg1() ] += self.get_reg2_val()
             if  self.get_reg1_val() + self.get_reg2_val() > 0xFF:
                 self.register[ self.get_reg1() ] &= 0xFF
@@ -245,7 +274,7 @@ class guacamole:
                     self.register[i] = self.ram[self.index_register + i]
 
             else:
-                print("Fatal: Loads with argument type '" + arg2 + "' are not supported.")
+                self.emu_log("Loads with argument type '" + arg2 + "' are not supported.", Emulation_Error._Fatal)
 
         elif 'register' is arg2:
             if   'dt' is arg1: self.delay_timer_register =  self.get_reg1_val()
@@ -261,13 +290,13 @@ class guacamole:
                     self.ram[self.index_register + i] = self.register[i]
 
             else:
-                print("Fatal: Loads with argument type '" + arg1 + "' are not supported.")
+                self.emu_log("Loads with argument type '" + arg1 + "' are not supported.", Emulation_Error._Fatal)
 
         elif 'i' is arg1 and 'address' is arg2:
             self.index_register =  self.get_address()
 
         else:
-            print("Fatal: Loads with argument types '" + arg1 + "' and '" + arg2 +  "' are not supported.")
+            self.emu_log("Loads with argument types '" + arg1 + "' and '" + arg2 +  "' are not supported.", Emulation_Error._Fatal)
 
     def i_drw(self):
         self.draw_flag = True
@@ -295,8 +324,6 @@ class guacamole:
 
                 if ( ( self.ram[ working_byte ] ^ original ) & original ):
                     self.register[0xF] = 0xFF
-
-
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Hex Extraction ( Private )
@@ -331,8 +358,6 @@ class guacamole:
         if nk != -1: # Was a new key pressed?
             self.register[ self.get_reg1() ] = nk
             self.program_counter += 2
-        else:
-            return
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Debug
@@ -367,10 +392,6 @@ def parse_args():
 
 def main(opts):
     guac = guacamole(opts.rom, opts.frequency)
-    for i in range(1000):
-        guac.cpu_tick()
-    guac.dump_gfx()
-    return
     try:
         while True:
             guac.run()
