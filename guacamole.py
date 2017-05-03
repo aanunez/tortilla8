@@ -310,19 +310,31 @@ class guacamole:
 
         self.register[0xF] = 0x00
         for y in range(height):
-            sprite =  list(bin(self.ram[ self.index_register + y ])[2:].zfill(8))
+            sprite =  bin(self.ram[ self.index_register + y ])[2:].zfill(8)
             for x in range(2):
+                if shift_amount == 0 and x == 1:
+                    continue
+
                 x_offset = x if x_origin_byte+x != GFX_WIDTH else 1-GFX_WIDTH
-                working_byte = origin + ( (y * GFX_WIDTH) % GFX_RESOLUTION) + x_offset
+                working_byte = origin + ( (y * GFX_WIDTH) % GFX_RESOLUTION ) + x_offset # TODO Vertical wrapping is broken
 
                 original = self.ram[ working_byte ]
-                b = list(bin(original)[2:].zfill(8))
+                b = bin(original)[2:].zfill(8)
                 if x == 0:
-                    b[shift_amount:] = sprite[shift_amount:]
+                    untouched_chunk = b[:shift_amount]
+                    original_chunk  = b[shift_amount:]
+                    sprite_chunk    = sprite[:8-shift_amount]
                 else:
-                    b[:shift_amount] = sprite[:shift_amount]
+                    untouched_chunk = b[shift_amount:]
+                    original_chunk  = b[:shift_amount]
+                    sprite_chunk    = sprite[8-shift_amount:]
 
-                self.ram[ working_byte ] = int(''.join(b),2)
+                xor_chunk = bin(int(original_chunk,2) ^ int(sprite_chunk,2))[2:].zfill(len(original_chunk))
+
+                if x == 0:
+                    self.ram[ working_byte ] = int(untouched_chunk + xor_chunk,2)
+                else:
+                    self.ram[ working_byte ] = int(xor_chunk + untouched_chunk,2)
 
                 if ( ( self.ram[ working_byte ] ^ original ) & original ):
                     self.register[0xF] = 0xFF
