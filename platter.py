@@ -15,25 +15,7 @@ from mem_addr_register_constants import *
 #TODO double the resolution if window is large enough
 #TODO add Keypad display
 #TODO add statistics display / menu (X,S,R change freq? Toggle stepmode?)
-
-#TODO Come up with a better way to do this.
-KEY_CONFIG={
-'0' :0x0,
-'1' :0x1,
-'2' :0x2,
-'3' :0x3,
-'4' :0x4,
-'5' :0x5,
-'6' :0x6,
-'7' :0x7,
-'8' :0x8,
-'9' :0x9,
-'//':0xA,
-'*' :0xB,
-'-' :0xC,
-'+' :0xD,
-';' :0xE,
-'.' :0xF}
+#TODO Allow editing controls? Fix E
 
 class platter:
 
@@ -50,6 +32,12 @@ class platter:
         self.rom = rom
         self.dynamic_window_gen()
         self.init_logs()
+
+        self.controls={
+        '0' :0x0,'1' :0x1,'2' :0x2,'3' :0x3,
+        '4' :0x4,'5' :0x5,'6' :0x6,'7' :0x7,
+        '8' :0x8,'9' :0x9,'//':0xA,'*' :0xB,
+        '-' :0xC,'+' :0xD,';' :0xE,'.' :0xF}
 
         if self.w_game is None:
             self.console_print("Window must be atleast "+ str(DISPLAY_MIN_W) + "x" + str(DISPLAY_MIN_H) +" to display the game screen")
@@ -75,14 +63,16 @@ class platter:
     def start(self, step_mode=False):
         try:
             while True:
+                # Try to get a keypress
                 try:
                     key = self.w_console.getkey()
                 except:
                     key = -1
                     pass
 
-                if key in KEY_CONFIG:
-                    self.emu.keypad[KEY_CONFIG[key]] = True
+                # Update Key for emu
+                if key in self.controls:
+                    self.emu.keypad[self.controls[key]] = True
 
                 # Exit check
                 if key == KEY_EXIT:
@@ -107,7 +97,7 @@ class platter:
                 # Update Display if we executed
                 if self.emu.program_counter != self.previous_pc:
                     self.previous_pc = self.emu.program_counter
-                    self.update_history()
+                    self.update_instr_history()
                     self.last_exec = time.time()
 
                 # Detect Spinning
@@ -154,7 +144,7 @@ class platter:
         self.display_game()
         curses.doupdate()
 
-    def update_history(self):
+    def update_instr_history(self):
         self.instr_history.appendleft(hex3(self.emu.calling_pc) + " " + \
                                            self.emu.hex_instruction + " " + \
                                            self.emu.mnemonic)
