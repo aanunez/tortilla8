@@ -15,27 +15,31 @@ A lexer/tokenizer used by blackbean and jalapeno for individual lines of Chip8 a
 
 * Jalapeno
 Pre-Processor used to flatten files before running them through blackbean. Currently strips "mode" and "option" directives without respecting them.
-  > \# Invoke Jalapeno, generates a ".jala" file
-
-  > ./jalapeno.py roms/vertical_stripes.asm
+```bash
+\# Invoke Jalapeno, generates a ".jala" file
+./jalapeno.py roms/vertical_stripes.asm
+```
 
 * Blackbean
 An assembler that can generate Chip8 roms, stripped Chip8 assembly, or a listing file (asm with memory addresses).
-  > \# Invoke blackbean, generate a listing and strip file along with the ".ch8" binary.
-
-  > ./blackbean.py roms/vertical_stripes.jala -l -s
+```bash
+\# Invoke blackbean, generate a listing and strip file along with the ".ch8" binary.
+./blackbean.py roms/vertical_stripes.jala -l -s
+```
 
 * Guacamole
 Emulator for the Chip8 language/system. The emulator has no display, for that you should use platter or nacho. All successfully executed instructions are printed to the screen with the current value of the program counter and their mnemonic representation. All informational, warning, and fatal errors are also directed to stdout.
-  > \# Invoke guacamole, running at 10hz
-
-  > ./guacamole.py roms/vertical_stripes.ch8 -f 10
+```bash
+\# Invoke guacamole, running at 10hz
+./guacamole.py roms/vertical_stripes.ch8 -f 10
+```
 
 * Platter
 Text based GUI for Guacamole. Display information, warnings, and fatal errors reported by Guacamole along with all registers, the stack, and recently executed instructions. Detects when the emulator enters a "spin" state and gives the option of reseting.
-  > \# Start platter at 10hz, X to exit, R to reset, S to step in step mode (-s flag)
-
-  > ./platter.py roms/vertical_stripes.ch8 -f 10
+```bash
+\# Start platter at 10hz, X to exit, R to reset, S to step in step mode (-s flag)
+./platter.py roms/vertical_stripes.ch8 -f 10
+```
 
 * Nachos
 A GTK+ gui. No work has been started on this as of yet.
