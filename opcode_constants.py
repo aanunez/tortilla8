@@ -20,13 +20,13 @@ OP_CODES={
         [['i','register'],'Fx1E']],
 'or'  :[[['register','register'],'8xy1']],
 'and' :[[['register','register'],'8xy2']],
-'xor' :[[['register','register'],'8xy3']],      #TODO not in orig spec.
+'xor' :[[['register','register'],'8xy3']],#TODO not in orig spec.
 'sub' :[[['register','register'],'8xy5']],
-'subn':[[['register','register'],'8xy7']],      #TODO not in orig spec.
-'shr' :[[['register'],'8x06'],                  #TODO not in orig spec.
-        [['register','register'],'8xy6']],      #TODO not in orig spec.
-'shl' :[[['register'],'8x0E'],                  #TODO not in orig spec.
-        [['register','register'],'8xyE']],      #TODO not in orig spec.
+'subn':[[['register','register'],'8xy7']],#TODO not in orig spec.
+'shr' :[[['register'],'8x06'],            #TODO not in orig spec.
+        [['register','register'],'8xy6']],#TODO not in orig spec.
+'shl' :[[['register'],'8x0E'],            #TODO not in orig spec.
+        [['register','register'],'8xyE']],#TODO not in orig spec.
 'rnd' :[[['register','byte'],'Cxyy']],
 'jp'  :[[['v0','address'],'Byyy'],
         [['address'],'1xxx']],

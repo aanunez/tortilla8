@@ -148,7 +148,10 @@ class guacamole:
 
         # Error out, to add new instruction update OP_REG and OP_CODES and self.i_
         if not found:
-            self.emu_log("Fatal: Unknown instruction " + instruction + " at " + hex(self.program_counter), Emulation_Error._Fatal)
+            self.emu_log("Fatal: Unknown instruction " + self.hex_instruction + " at " + hex(self.program_counter), Emulation_Error._Fatal)
+
+        if self.log_to_screen:
+            print( hex(self.program_counter) + " " + self.hex_instruction + " " + self.mnemonic )
 
         # Decrement sound registers
         self.delay_timer_register -= 1 if self.delay_timer_register != 0 else 0
@@ -406,6 +409,7 @@ def parse_args():
 
 def main(opts):
     guac = guacamole(opts.rom, opts.frequency)
+    guac.log_to_screen = True
     try:
         while True:
             guac.run()
