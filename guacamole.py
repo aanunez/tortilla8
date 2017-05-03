@@ -163,6 +163,8 @@ class guacamole:
         '''
         if self.log_to_screen:
             print(str(error_type) + ": " + message)
+            if error_type is Emulation_Error._Fatal:
+                print("Fatal error has occured, please reset.")
         else:
             self.error_log.append( (error_type, message) )
 
