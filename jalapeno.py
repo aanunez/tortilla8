@@ -40,7 +40,7 @@ class jalapeno:
         if definitions is None:
             definitions = []
 
-        # Flatten all IF/ELSE/ETC directives
+        # Flatten all IF/ELSE/ETC directives  - Pass One
         for i,line in enumerate(file_handler):
             t = cilantro(line, i)
 
@@ -82,7 +82,7 @@ class jalapeno:
 
             self.collection.append(t)
 
-        # Replace Symbols ( EQU and '=' ) and set pp_line
+        # Replace Symbols ( EQU and '=' ) and set pp_line  - Pass Two
         for sym in self.symbols:
             for tl in self.collection:
 

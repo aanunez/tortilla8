@@ -15,7 +15,8 @@ from mem_addr_register_constants import *
 #TODO double the resolution if window is large enough
 #TODO add Keypad display
 #TODO add statistics display / menu (X,S,R change freq? Toggle stepmode?)
-#TODO Allow editing controls? Fix E. only 1 key press at a time works right now.
+#TODO Allow editing controls?
+#TODO Fix various control errors: Fix E. only 1 key press at a time works right now.
 
 class platter:
 
@@ -67,12 +68,11 @@ class platter:
                 try:
                     key = self.w_console.getkey()
                 except:
-                    key = -1
+                    key = ''
                     pass
 
                 # Update Keypad press
                 if key in self.controls:
-                    self.emu.keypad = KEYPAD_RESET
                     self.emu.keypad[self.controls[key]] = True
 
                 # Exit check
@@ -97,6 +97,7 @@ class platter:
 
                 # Update Display if we executed
                 if self.emu.program_counter != self.previous_pc:
+                    self.emu.keypad = KEYPAD_RESET
                     self.previous_pc = self.emu.program_counter
                     self.update_instr_history()
                     self.last_exec = time.time()
