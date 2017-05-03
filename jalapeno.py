@@ -6,7 +6,6 @@ import argparse
 from cilantro import cilantro
 from pre_proc_assembler_constants import *
 
-
 #TODO Respect MODE_MARKS and add common directives to it.
 #TODO Remove excess whitespace when its around pre-proc directives
 

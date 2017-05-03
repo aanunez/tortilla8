@@ -6,14 +6,34 @@ import curses
 import textwrap
 import argparse
 import collections
+from enum import Enum
 from guacamole import guacamole, Emulation_Error
 from display_constants import *
 from mem_addr_register_constants import *
 
-#TODO grab max rom size warning
-#TODO grab warnings
 #TODO Support non 64x32 displays
 #TODO double the resolution if window is large enough
+#TODO add Keypad display
+#TODO add statistics display / menu (X,S,R change freq? Toggle stepmode?)
+
+#TODO Come up with a better way to do this.
+KEY_CONFIG={
+'0' :0x0,
+'1' :0x1,
+'2' :0x2,
+'3' :0x3,
+'4' :0x4,
+'5' :0x5,
+'6' :0x6,
+'7' :0x7,
+'8' :0x8,
+'9' :0x9,
+'//':0xA,
+'*' :0xB,
+'-' :0xC,
+'+' :0xD,
+';' :0xE,
+'.' :0xF}
 
 class platter:
 
@@ -32,7 +52,7 @@ class platter:
         self.init_logs()
 
         if self.w_game is None:
-            self.console_print("Window must be atleast "+ str(DISPLAY_MIN_W) + "x" + str(DISPLAY_MIN_H) +" to display the game screen.")
+            self.console_print("Window must be atleast "+ str(DISPLAY_MIN_W) + "x" + str(DISPLAY_MIN_H) +" to display the game screen")
 
         self.emu = guacamole(rom, hz)
         self.check_emu_log()
@@ -55,14 +75,21 @@ class platter:
     def start(self, step_mode=False):
         try:
             while True:
-                key = self.w_console.getch()
+                try:
+                    key = self.w_console.getkey()
+                except:
+                    key = -1
+                    pass
+
+                if key in KEY_CONFIG:
+                    self.emu.keypad[KEY_CONFIG[key]] = True
 
                 # Exit check
-                if key == ASCII_X:
+                if key == KEY_EXIT:
                     break
 
                 # Reset check
-                if key == ASCII_R:
+                if key == KEY_RESET:
                     self.emu.reset( self.rom, int(1/self.emu.cpu_wait) )
                     self.init_emu_status()
                     self.init_logs()
@@ -70,7 +97,7 @@ class platter:
                     continue
 
                 # Step if requested
-                if key == ASCII_S:
+                if key == KEY_STEP:
                     self.halt = False
 
                 # Try to tick the cpu
@@ -86,7 +113,7 @@ class platter:
                 # Detect Spinning
                 elif not self.halt and (step_mode or (not step_mode and (time.time() - self.last_exec > self.watch_dog))):
                     self.instr_history.appendleft(hex3(self.emu.program_counter) + " spin jp")
-                    self.console_print("Spin detected. Press 'X' to exit.")
+                    self.console_print("Spin detected. Press 'X' to exit")
                     self.halt  = True
 
                 # Toggle for Step Mode
@@ -108,6 +135,9 @@ class platter:
         # Print all logged errors in the emu
         for err in reversed(self.emu.error_log):
             self.console_print( str(err[0]) + ": " + err[1] )
+            if err[0] is Emulation_Error._Fatal:
+                self.halt = True
+                self.console_print( "Fatal error has occured. Press 'R' to reset" )
 
         # Manually reset
         self.emu.error_log = []
@@ -133,11 +163,11 @@ class platter:
     # Display functions for windows
 
     def console_print(self, message):
-        message_list = textwrap.wrap(message, self.w_console.getmaxyx()[1]- (BORDERS * 2) )
+        message_list = textwrap.wrap("-" + message, self.w_console.getmaxyx()[1]- (BORDERS + 1) )
         for msg in reversed(message_list):
-            self.console_history.appendleft( msg.ljust(self.w_console.getmaxyx()[1] - (BORDERS * 2)) )
+            self.console_history.appendleft( msg.ljust(self.w_console.getmaxyx()[1] - (BORDERS + 1) ) )
         for i,val in enumerate(self.console_history):
-            self.w_console.addstr( 1 + i, 2, val )
+            self.w_console.addstr( 1 + i, 1, val )
         self.w_console.noutrefresh()
 
     def clear_all_windows(self):
@@ -239,13 +269,13 @@ def parse_args():
     opts = parser.parse_args()
 
     if not os.path.isfile(opts.rom):
-        raise OSError("File '" + opts.rom + "' does not exist.")
+        raise OSError("File '" + opts.rom + "' does not exist")
 
     if opts.frequency:
         try: opts.frequency = int(opts.frequency)
-        except: raise ValueError("Non-numeric frequency provided.")
+        except: raise ValueError("Non-numeric frequency provided")
         if opts.frequency < 1:
-            raise ValueError("Please use step mode for sub 1 hz operation.")
+            raise ValueError("Please use step mode for sub 1 hz operation")
 
     if opts.step:
         opts.frequency = 1000000 # 1 Ghz

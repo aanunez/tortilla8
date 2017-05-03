@@ -3,8 +3,6 @@
 from pre_proc_assembler_constants import *
 from opcode_constants import *
 
-#TODO raise real warnings
-
 class cilantro:
     '''
     Lexer/tokenizer for Chip 8 instructions. Used by Blackbean (assembler)
@@ -64,8 +62,7 @@ class cilantro:
 
         # If there are additional tags raise error
         if END_MEM_TAG in ''.join(line_array):
-            print("Fatal: Multiple Memory Tags found.")
-            return
+            raise RuntimeError("Multiple Memory Tags found on line " + str(self.line_numb))
 
         # Check for any pre-processor commands
         for i,word in enumerate(line_array):
@@ -80,8 +77,7 @@ class cilantro:
             self.data_size = DATA_DECLARE[line_array[0]]
             line_array.pop(0)
             if not line_array:
-                print("Fatal: Expected data declaration.")
-                return
+                raise RuntimeError("Expected data declaration on line " + str(self.line_numb))
             self.data_declarations = ''.join(line_array).split(',')
             return
 
@@ -95,5 +91,4 @@ class cilantro:
             return
 
         # Trash
-        print("Fatal: Cannot parse.")
-        return
+        raise RuntimeError("Cannot parse line " + str(self.line_numb))

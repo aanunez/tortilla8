@@ -3,6 +3,7 @@
 import os
 import sys
 import select
+import warning
 import argparse
 import contextlib
 
@@ -14,7 +15,6 @@ from opcode_constants import *
 #Opcode reminders: SHR, SHL, XOR, and SUBN/SM are NOT offically supported by original spec
 #                  SHR and SHL may or may not move Y (Shifted) into X or just shift X.
 
-#TODO raise real warnings
 #TODO don't allow modifying VF
 #TODO Use the "enfore" flag
 #TODO support for $ notation
@@ -73,7 +73,7 @@ class blackbean:
         for all other assembler instructions.
         """
         if not self.collection:
-            Print("Warning: No file has been assembled. Nothing to print.")
+            warnings.warn("No file has been assembled. Nothing to print.")
             return
 
         for line in self.collection:
@@ -98,7 +98,7 @@ class blackbean:
         space lines removed. Useful for CHIP 8 interpreters.
         """
         if not self.collection:
-            Print("Warning: No file has been assembled. Nothing to print.")
+            warnings.warn("No file has been assembled. Nothing to print.")
             return
 
         for line in self.collection:
@@ -114,7 +114,7 @@ class blackbean:
         Writes the assembled file to a binary blob.
         """
         if not self.collection:
-            Print("Warning: No file has been assembled. Nothing to print.")
+            warnings.warn("No file has been assembled. Nothing to print.")
             return
 
         for line in self.collection:
@@ -158,7 +158,7 @@ class blackbean:
                 break
 
         if not tl.instruction_int:
-            print("Fatal: Unkown mnemonic-argument combination on line " + str(tl.line_numb) + "\n" + tl.original )
+            raise RuntimeError("Unkown mnemonic-argument combination on line " + str(tl.line_numb) + "\n" + tl.original )
 
     def is_valid_instruction_arg(self, arg_type, arg_value, hex_template, sub_string):
         """
@@ -233,11 +233,9 @@ class blackbean:
 
             # Raise errors if parse failed or val too large
             if val == None:
-                print("Fatal: Incorrectly formated data declaration on line " + str(tl.line_numb))
-                break
+                raise RuntimeError("Incorrectly formated data declaration on line " + str(tl.line_numb))
             if val >= pow(256, tl.data_size):
-                print("Fatal: Data declaration overflow on line " + tl.line_numb)
-                break
+                raise RuntimeError("Data declaration overflow on line " + str(tl.line_numb))
 
             tl.dd_ints.append(val)
 
@@ -260,8 +258,7 @@ class blackbean:
             self.address += (len(tl.data_declarations) * tl.data_size)
 
         if self.address >= OVERFLOW_ADDRESS:
-            #TODO raise error
-            print("Warning: Memory overflow as of line " + str(tl.line_numb))
+            warnings.warn("Memory overflow as of line " + str(tl.line_numb))
 
 def parse_args():
     """
