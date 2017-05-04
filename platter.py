@@ -2,7 +2,6 @@
 
 import os
 import time
-import curses
 import textwrap
 import argparse
 import collections
@@ -10,6 +9,12 @@ from enum import Enum
 from guacamole import guacamole, Emulation_Error
 from display_constants import *
 from mem_addr_register_constants import *
+
+try:
+    import curses
+except ImportError:
+    os.environ['PATH'] = os.path.abspath('win32') + ';' + os.environ['PATH'] # TODO this 'import' doesn't seem to work
+    import unicurses as curses
 
 #TODO Support non 64x32 displays
 #TODO double the resolution if window is large enough
@@ -223,12 +228,13 @@ class platter:
     # Dynamic Window Generator
 
     def dynamic_window_gen(self):
-        if (self.screen.getmaxyx()[0] < H_MIN) or (self.screen.getmaxyx()[1] < W_MIN):
+        C = self.screen.getmaxyx()[1]
+        L = self.screen.getmaxyx()[0]
+
+        if (L < H_MIN) or (C < W_MIN):
             self.cleanup()
             raise IOError("Terminal window too small to use.\nResize to atleast " + str(W_MIN) + "x" + str(H_MIN)) # TODO display resize message?
 
-        C = curses.COLS
-        L = curses.LINES      # newwin( Number of Lines, Number of Col, Y origin, X origin )
         self.w_reg     = curses.newwin( WIN_REG_H, WIN_REG_W , 0, int( C - WIN_REG_W ) )
         self.w_instr   = curses.newwin( L - WIN_REG_H, WIN_INSTR_W, WIN_REG_H, self.w_reg.getbegyx()[1] )
         self.w_stack   = curses.newwin( L - WIN_REG_H, WIN_STACK_W, WIN_REG_H, self.w_instr.getbegyx()[1] + WIN_INSTR_W )
@@ -236,7 +242,7 @@ class platter:
         self.w_game    = None
         self.w_console = None
 
-        if (self.screen.getmaxyx()[0] < DISPLAY_MIN_H) or (self.screen.getmaxyx()[1] < DISPLAY_MIN_W):
+        if (L < DISPLAY_MIN_H) or (C < DISPLAY_MIN_W):
             self.w_console = curses.newwin( L,  self.w_reg.getbegyx()[1], 0, 0 )
         else:
             self.w_game    = curses.newwin( DISPLAY_H, DISPLAY_W, 0, int( ( C - WIN_REG_W - DISPLAY_W ) / 2 ) )
