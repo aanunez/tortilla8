@@ -33,7 +33,6 @@ class platter:
         self.w_logo    = None
         self.w_game    = None
         self.w_console = None
-        self.w_dummy   = None
 
         self.rom = rom
         self.dynamic_window_gen()

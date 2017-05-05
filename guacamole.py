@@ -216,12 +216,13 @@ class guacamole:
             self.program_counter += 2
 
     def i_shl(self):                                         #TODO add option to respect "old" shift
+        self.register[0xF] = 0xFF if self.get_reg1_val() >= 0x80 else 0x0
         self.register[ self.get_reg1() ] = ( self.get_reg1_val() << 1) & 0xFF
-        self.register[0xF] = 0xFF if  self.get_reg1_val() >= 0x80 else 0x0
 
     def i_shr(self):                                         #TODO add option to respect "old" shift
-        self.register[ self.get_reg1() ] = self.get_reg1_val() >> 1
         self.register[0xF] = 0xFF if ( self.get_reg1_val() % 2) == 1 else 0x0
+        self.register[ self.get_reg1() ] = self.get_reg1_val() >> 1
+
 
     def i_or(self):
         self.register[ self.get_reg1() ] = self.get_reg1_val() | self.get_reg2_val()
@@ -233,14 +234,14 @@ class guacamole:
         self.register[ self.get_reg1() ] = self.get_reg1_val() ^ self.get_reg2_val()
 
     def i_sub(self):
-        self.register[ self.get_reg1() ] = self.get_reg1_val() - self.get_reg2_val()
-        self.register[ self.get_reg1() ] += 0x00 if  self.get_reg1_val() > self.get_reg2_val() else 0xFF
         self.register[0xF] = 0xFF if  self.get_reg1_val() >  self.get_reg2_val() else 0x00
+        self.register[ self.get_reg1() ] = self.get_reg1_val() - self.get_reg2_val()
+        self.register[ self.get_reg1() ] &= 0xFF
 
     def i_subn(self):
-        self.register[ self.get_reg1() ] = self.get_reg2_val() - self.get_reg1_val()
-        self.register[ self.get_reg1() ] += 0x00 if  self.get_reg2_val() > self.get_reg1_val() else 0xFF
         self.register[0xF] = 0xFF if self.get_reg2_val() >  self.get_reg1_val() else 0x00
+        self.register[ self.get_reg1() ] = self.get_reg2_val() - self.get_reg1_val()
+        self.register[ self.get_reg1() ] &= 0xFF
 
     def i_jp(self):
         if 'v0' in self.mnemonic_arg_types:
@@ -254,12 +255,15 @@ class guacamole:
     def i_add(self):
         if 'byte' in self.mnemonic_arg_types:
             self.register[ self.get_reg1() ] += self.get_lower_byte()
+            self.register[ self.get_reg1() ] &= 0xFF
 
         elif 'i' in self.mnemonic_arg_types:
             self.index_register += self.get_reg1_val()
+            self.index_register &= 0xFFF
 
         else: # Reg + Reg
             self.register[ self.get_reg1() ] += self.get_reg2_val()
+            self.register[ self.get_reg1() ] &= 0xFF
             if  self.get_reg1_val() + self.get_reg2_val() > 0xFF:
                 self.register[ self.get_reg1() ] &= 0xFF
 
@@ -319,25 +323,24 @@ class guacamole:
                     continue
 
                 x_offset = x if x_origin_byte+x != GFX_WIDTH else 1-GFX_WIDTH
-                working_byte = origin + ( (y * GFX_WIDTH) % GFX_RESOLUTION ) + x_offset # TODO Vertical wrapping is broken
+
+                working_byte = origin + ( (y * GFX_WIDTH) % GFX_RESOLUTION ) + x_offset
+
+                #working_byte = origin + ( (y * GFX_WIDTH) % GFX_RESOLUTION ) + x_offset # TODO Vertical wrapping is broken
 
                 original = self.ram[ working_byte ]
-                b = bin(original)[2:].zfill(8)
+                b_list = bin(original)[2:].zfill(8)
                 if x == 0:
-                    untouched_chunk = b[:shift_amount]
-                    original_chunk  = b[shift_amount:]
+                    untouched_chunk = b_list[:shift_amount]
+                    original_chunk  = b_list[shift_amount:]
                     sprite_chunk    = sprite[:8-shift_amount]
-                else:
-                    untouched_chunk = b[shift_amount:]
-                    original_chunk  = b[:shift_amount]
+                if x == 1:
+                    untouched_chunk = b_list[shift_amount:]
+                    original_chunk  = b_list[:shift_amount]
                     sprite_chunk    = sprite[8-shift_amount:]
 
                 xor_chunk = bin(int(original_chunk,2) ^ int(sprite_chunk,2))[2:].zfill(len(original_chunk))
-
-                if x == 0:
-                    self.ram[ working_byte ] = int(untouched_chunk + xor_chunk,2)
-                else:
-                    self.ram[ working_byte ] = int(xor_chunk + untouched_chunk,2)
+                self.ram[ working_byte ] = int(untouched_chunk + xor_chunk,2) if x == 0 else int(xor_chunk + untouched_chunk,2)
 
                 if ( ( self.ram[ working_byte ] ^ original ) & original ):
                     self.register[0xF] = 0xFF
