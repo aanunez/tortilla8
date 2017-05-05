@@ -322,11 +322,8 @@ class guacamole:
                 if shift_amount == 0 and x == 1:
                     continue
 
-                x_offset = x if x_origin_byte+x != GFX_WIDTH else 1-GFX_WIDTH
-
-                working_byte = origin + ( (y * GFX_WIDTH) % GFX_RESOLUTION ) + x_offset
-
-                #working_byte = origin + ( (y * GFX_WIDTH) % GFX_RESOLUTION ) + x_offset # TODO Vertical wrapping is broken
+                x_offset = x if x_origin_byte + x != GFX_WIDTH else 1-GFX_WIDTH
+                working_byte = GFX_ADDRESS + ((origin + (y * GFX_WIDTH) + x_offset) % GFX_RESOLUTION)
 
                 original = self.ram[ working_byte ]
                 b_list = bin(original)[2:].zfill(8)
@@ -394,6 +391,13 @@ class guacamole:
             if i%8 == 0:
                 print('')
             print( bin(b)[2:].zfill(8).replace('1','X').replace('0','.'), end='')
+        print('')
+
+    def dump_reg(self):
+        for i,val in enumerate(self.register):
+            if (i % 4) == 0:
+                print('')
+            print(hex(i) + " 0x" + hex(val)[2:].zfill(2) + "    ", end='')
         print('')
 
 def parse_args():
