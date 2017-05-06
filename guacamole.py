@@ -10,7 +10,6 @@ from mem_addr_register_constants import *
 from opcode_constants import *
 
 # TODO Load logs fatal warnings right now, should all instructions check the structure of input args?
-# TODO Drawing function still has bugs.
 # TODO Shift L/R behavior needs a toggle for "old" and "new" behavior
 # TODO Log a warning when running a unoffical instruction?
 # TODO add comments
@@ -25,7 +24,7 @@ class Emulation_Error(Enum):
 
 class guacamole:
 
-    def __init__(self, rom=None, cpuhz=60):
+    def __init__(self, rom=None, cpuhz=60, audiohz=60, delayhz=60):
         '''
         Init
         '''
@@ -71,6 +70,10 @@ class guacamole:
         # Timming variables
         self.cpu_wait   = 1/cpuhz
         self.cpu_time   = 0
+        self.audio_wait = 1/audiohz
+        self.audio_time = 0
+        self.delay_wait = 1/delayhz
+        self.delay_time = 0
 
         # Load Font, clear screen
         self.ram[FONT_ADDRESS:FONT_ADDRESS + len(FONT)] = [i for i in FONT]
@@ -117,6 +120,14 @@ class guacamole:
             self.cpu_time = time.time()
             self.cpu_tick()
 
+        if self.audio_wait <= (time.time() - self.audio_time):
+            self.audio_time = time.time()
+            self.sound_timer_register -= 1 if self.sound_timer_register != 0 else 0
+
+        if self.delay_wait <= (time.time() - self.delay_time):
+            self.delay_time = time.time()
+            self.delay_timer_register -= 1 if self.delay_timer_register != 0 else 0
+
     def cpu_tick(self):
         '''
         cpu_tick
@@ -153,10 +164,6 @@ class guacamole:
         if self.log_to_screen:
             print( hex(self.program_counter) + " " + self.hex_instruction + " " + self.mnemonic )
 
-        # Decrement sound registers
-        self.delay_timer_register -= 1 if self.delay_timer_register != 0 else 0
-        self.sound_timer_register -= 1 if self.sound_timer_register != 0 else 0
-
         # Increment the PC
         self.program_counter += 2
 
@@ -170,7 +177,6 @@ class guacamole:
                 print("Fatal error has occured, please reset.")
         else:
             self.error_log.append( (error_type, message) )
-
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Instructions ( Private )
@@ -312,7 +318,6 @@ class guacamole:
         height = int(self.hex_instruction[3],16)
         x_origin_byte = int( self.get_reg1_val() / 8 ) % GFX_WIDTH
         y_origin_byte = (self.get_reg2_val() % GFX_HEIGHT_PX) * GFX_WIDTH
-        origin = GFX_ADDRESS + x_origin_byte + y_origin_byte #To lowest byte
         shift_amount = self.get_reg1_val() % GFX_WIDTH_PX % 8
 
         self.register[0xF] = 0x00
@@ -323,7 +328,7 @@ class guacamole:
                     continue
 
                 x_offset = x if x_origin_byte + x != GFX_WIDTH else 1-GFX_WIDTH
-                working_byte = GFX_ADDRESS + ((origin + (y * GFX_WIDTH) + x_offset) % GFX_RESOLUTION)
+                working_byte = GFX_ADDRESS + (( x_origin_byte + y_origin_byte + (y * GFX_WIDTH) + x_offset ) % GFX_RESOLUTION)
 
                 original = self.ram[ working_byte ]
                 b_list = bin(original)[2:].zfill(8)
@@ -403,7 +408,9 @@ class guacamole:
 def parse_args():
     parser = argparse.ArgumentParser(description='Guacamole is a Chip-8 emulator ...')
     parser.add_argument('rom', help='ROM to load and play.')
-    parser.add_argument("-f","--frequency", default=60,help='Frequency (in Hz) to target.')
+    parser.add_argument("-f","--frequency", default=60,help='Frequency (in Hz) to target for CPU.')
+    parser.add_argument("-st","--soundtimer", default=60,help='Frequency (in Hz) to target for the audio timmer.')
+    parser.add_argument("-dt","--delaytimer", default=60,help='Frequency (in Hz) to target for the delay timmer.')
     opts = parser.parse_args()
 
     if not os.path.isfile(opts.rom):
@@ -415,7 +422,7 @@ def parse_args():
     return opts
 
 def main(opts):
-    guac = guacamole(opts.rom, opts.frequency)
+    guac = guacamole(opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer)
     guac.log_to_screen = True
     try:
         while True:

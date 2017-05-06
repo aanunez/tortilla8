@@ -20,12 +20,13 @@ except ImportError:
 #TODO double the resolution if window is large enough
 #TODO add Keypad display
 #TODO add statistics display / menu (X,S,R change freq? Toggle stepmode?)
-#TODO Allow editing controls?
+#TODO Allow editing controls
 #TODO Fix various control errors: Fix E. only 1 key press at a time works right now.
 
 class platter:
 
-    def __init__(self, rom, hz):
+    def __init__(self, rom, cpuhz, audiohz, delayhz, drawfix):
+
         self.screen = curses.initscr()
         self.w_reg     = None
         self.w_instr   = None
@@ -33,6 +34,9 @@ class platter:
         self.w_logo    = None
         self.w_game    = None
         self.w_console = None
+
+        self.draw_fix = drawfix
+        self.prev_board=[0x00]*GFX_RESOLUTION
 
         self.rom = rom
         self.dynamic_window_gen()
@@ -47,7 +51,7 @@ class platter:
         if self.w_game is None:
             self.console_print("Window must be atleast "+ str(DISPLAY_MIN_W) + "x" + str(DISPLAY_MIN_H) +" to display the game screen")
 
-        self.emu = guacamole(rom, hz)
+        self.emu = guacamole(rom, cpuhz, audiohz, delayhz)
         self.check_emu_log()
         self.init_emu_status()
 
@@ -66,6 +70,7 @@ class platter:
         self.console_history = collections.deque(maxlen = self.w_console.getmaxyx()[0] - BORDERS)
 
     def start(self, step_mode=False):
+        audio_playing = False
         try:
             while True:
                 # Try to get a keypress
@@ -115,6 +120,16 @@ class platter:
                 # Toggle for Step Mode
                 if step_mode:
                     self.halt = True
+
+                # Start/stop Audio
+                if not audio_playing and (self.emu.sound_timer_register != 0):
+                    audio_playing = True
+                    self.console_print('Starting Audio')
+                    #Start audio
+                elif audio_playing and (self.emu.sound_timer_register == 0):
+                    audio_playing = False
+                    self.console_print('Stopping Audio')
+                    #Stop audio
 
                 self.check_emu_log()
                 self.update_screen()
@@ -191,6 +206,21 @@ class platter:
     def display_game(self):
         if not self.w_game or not self.emu.draw_flag: return
         self.emu.draw_flag = False
+
+        if self.draw_fix:
+            prev_str = ""
+            curr_str = ""
+            for val in self.prev_board:
+                prev_str += bin(val)[2:].zfill(8)
+            for val in self.emu.ram[GFX_ADDRESS:GFX_ADDRESS+GFX_RESOLUTION]:
+                curr_str += bin(val)[2:].zfill(8)
+            int_prev = int(prev_str,2)
+            int_curr = int(curr_str,2)
+            self.prev_board = self.emu.ram[GFX_ADDRESS:GFX_ADDRESS+GFX_RESOLUTION]
+            if ( ( int_prev ^ int_curr ) & int_prev ) == ( int_prev ^ int_curr ):
+                #Only 1s were changed to zeros, skip the draw to prevent flicker
+                return
+
         for y in range( int(GFX_HEIGHT_PX / 2) ):
             for x in range(GFX_WIDTH):
                 upper_chunk = int( bin( self.emu.ram[ GFX_ADDRESS + ( (y * 2 + 0) * GFX_WIDTH) + x ] )[2:] )
@@ -261,8 +291,9 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Platter is a text based front end for the Chip-8 emulator guacamole ...')
     parser.add_argument('rom', help='ROM to load and play.')
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("-f","--frequency", default=5,help='Frequency (in Hz) to target, minimum 1 hz.')
+    group.add_argument("-f","--frequency", default=5,help='CPU frequency (in Hz) to target, minimum 1 hz.')
     group.add_argument('-s','--step', help='Start the emulator is "step" mode.',action='store_true')
+    parser.add_argument('-d','--drawfix', help='Enable anti-flicker, stops platter from drawing to screen when sprites are only removed.',action='store_true')
     opts = parser.parse_args()
 
     if not os.path.isfile(opts.rom):
@@ -280,7 +311,7 @@ def parse_args():
     return opts
 
 def main(opts):
-    disp = platter(opts.rom, opts.frequency)
+    disp = platter(opts.rom, opts.frequency, 60, 60, opts.drawfix)
     disp.start(opts.step)
 
 if __name__ == '__main__':
