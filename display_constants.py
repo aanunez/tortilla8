@@ -29,7 +29,6 @@ LEN_STR_STA = len("Stack")
 KEY_STEP  = 's'
 KEY_EXIT  = 'x'
 KEY_RESET = 'r'
-KEYPAD_RESET = [False] * 16
 
 KEYPAD_DRAW=[
 '┌────────────────┐',

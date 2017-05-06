@@ -9,7 +9,7 @@ from enum import Enum
 from mem_addr_register_constants import *
 from opcode_constants import *
 
-# TODO Load logs fatal warnings right now, should all instructions check the structure of input args?
+# TODO 'Load' logs fatal warnings right now, should all instructions check the structure of input args?
 # TODO Shift L/R behavior needs a toggle for "old" and "new" behavior
 # TODO Log a warning when running a unoffical instruction?
 # TODO add comments
@@ -376,7 +376,7 @@ class guacamole:
 
     def handle_load_key(self):
         k = self.decode_keypad()
-        nk = ( (k ^ self.prev_keypad) & k ).find('1')
+        nk = bin( (k ^ self.prev_keypad) & k )[2:].zfill(8).find('1')
         if nk != -1: # Was a new key pressed?
             self.register[ self.get_reg1() ] = nk
             self.program_counter += 2
@@ -404,6 +404,13 @@ class guacamole:
                 print('')
             print(hex(i) + " 0x" + hex(val)[2:].zfill(2) + "    ", end='')
         print('')
+
+    def dump_keypad(self):
+        r_val = ''
+        for i,val in enumerate(self.keypad):
+            if val:
+                r_val += hex(i) + " "
+        return r_val
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Guacamole is a Chip-8 emulator ...')

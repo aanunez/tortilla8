@@ -1,6 +1,12 @@
 #!/usr/bin/python3
 
 import os
+
+try: import curses
+except ImportError:
+    os.environ['PATH'] = os.path.abspath('win32') + ';' + os.environ['PATH'] # TODO this 'import' doesn't seem to work
+    import unicurses as curses
+
 import time
 import textwrap
 import argparse
@@ -10,18 +16,15 @@ from guacamole import guacamole, Emulation_Error
 from display_constants import *
 from mem_addr_register_constants import *
 
-try:
-    import curses
-except ImportError:
-    os.environ['PATH'] = os.path.abspath('win32') + ';' + os.environ['PATH'] # TODO this 'import' doesn't seem to work
-    import unicurses as curses
+#TODO Need a simple audio library
+
+#TODO Allow editing controls
+#TODO Improve input. Also, E isn't mapped
 
 #TODO Support non 64x32 displays
 #TODO double the resolution if window is large enough
 #TODO add Keypad display
 #TODO add statistics display / menu (X,S,R change freq? Toggle stepmode?)
-#TODO Allow editing controls
-#TODO Fix various control errors: Fix E. only 1 key press at a time works right now.
 
 class platter:
 
@@ -70,7 +73,11 @@ class platter:
         self.console_history = collections.deque(maxlen = self.w_console.getmaxyx()[0] - BORDERS)
 
     def start(self, step_mode=False):
+        key_press_time = 0
         audio_playing = False
+        audio_file = os.path.join('sound',"play.wav")
+        if step_mode:
+            self.console_print("Emulator started in step mode. Press '" + KEY_STEP.upper() + "' to process one instruction.")
         try:
             while True:
                 # Try to get a keypress
@@ -81,6 +88,9 @@ class platter:
                     pass
 
                 # Update Keypad press
+                if time.time() - key_press_time > 0.5: #TODO Better input
+                    self.emu.keypad = [False] * 16
+                    key_press_time = time.time()
                 if key in self.controls:
                     self.emu.keypad[self.controls[key]] = True
 
@@ -104,9 +114,12 @@ class platter:
                 if not self.halt:
                     self.emu.run()
 
+                # Display what keys are being pressed
+                #if [i for i, x in enumerate(self.emu.dump_keypad()) if x]:
+                #    self.console_print(self.emu.dump_keypad())
+
                 # Update Display if we executed
                 if self.emu.program_counter != self.previous_pc:
-                    self.emu.keypad = KEYPAD_RESET
                     self.previous_pc = self.emu.program_counter
                     self.update_instr_history()
                     self.last_exec = time.time()
@@ -114,7 +127,7 @@ class platter:
                 # Detect Spinning
                 elif not self.halt and (step_mode or (not step_mode and (time.time() - self.last_exec > self.watch_dog))):
                     self.instr_history.appendleft(hex3(self.emu.program_counter) + " spin jp")
-                    self.console_print("Spin detected. Press 'X' to exit")
+                    self.console_print("Spin detected. Press '" + KEY_EXIT.upper() + "' to exit")
                     self.halt  = True
 
                 # Toggle for Step Mode
@@ -122,14 +135,10 @@ class platter:
                     self.halt = True
 
                 # Start/stop Audio
-                if not audio_playing and (self.emu.sound_timer_register != 0):
-                    audio_playing = True
-                    self.console_print('Starting Audio')
-                    #Start audio
-                elif audio_playing and (self.emu.sound_timer_register == 0):
-                    audio_playing = False
-                    self.console_print('Stopping Audio')
-                    #Stop audio
+                audio_playing = False if self.emu.sound_timer_register == 0 else True
+                if audio_playing:
+                    pass
+                    #self.console_print('Audio!') TODO
 
                 self.check_emu_log()
                 self.update_screen()
@@ -148,7 +157,7 @@ class platter:
             self.console_print( str(err[0]) + ": " + err[1] )
             if err[0] is Emulation_Error._Fatal:
                 self.halt = True
-                self.console_print( "Fatal error has occured. Press 'R' to reset" )
+                self.console_print( "Fatal error has occured. Press '" + KEY_RESET.upper() + "' to reset" )
 
         # Manually reset
         self.emu.error_log = []
