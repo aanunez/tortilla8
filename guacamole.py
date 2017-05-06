@@ -11,7 +11,7 @@ from opcode_constants import *
 
 # TODO 'Load' logs fatal warnings right now, should all instructions check the structure of input args?
 # TODO Shift L/R behavior needs a toggle for "old" and "new" behavior
-# TODO Log a warning when running a unoffical instruction?
+# TODO Log a warning when running a unoffical instruction? (enforce flag?)
 # TODO add comments
 
 class Emulation_Error(Enum):

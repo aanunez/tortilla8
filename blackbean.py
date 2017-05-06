@@ -65,7 +65,7 @@ class blackbean:
 
     def print_listing(self, file_handler=None):
         """
-        Prints a the orignal file with two additonal column, the first
+        Prints a the orignal file with two additonal columns, the first
         being the memory address of the first byte of the line and the
         second being the calculated hex value for the mnemonic on the
         line. Data declarations do not have their calculated hex
