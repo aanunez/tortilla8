@@ -1,14 +1,17 @@
 # tortilla8
-**What is Chip8**
+What is Chip8
+-------------
 
 [Chip8](https://en.wikipedia.org/wiki/CHIP-8) is a language published in 1978 via the RCA COSMAC VIP Instruction Manual that was bosted as making programming easier for hobbiests on the system. Chip8 is popular to emulate due to its simplicity and the now extensive amount of documentation.
 
-**Major Issues**
+Major Issues
+------------
 
 * Key presses are not always correctly respected in Platter.
 * Vertical wrapping on the screen doesn't work yet (no pong).
 
-**Modules**
+Modules
+-------
 
 * Cilantro
 A lexer/tokenizer used by blackbean and jalapeno for individual lines of Chip8 assembly. The initialiser does the tokenizing, the class is then used as a data container. Cilanto canot be invoked from the terminal.
@@ -44,7 +47,8 @@ Text based GUI for Guacamole. Display information, warnings, and fatal errors re
 * Nachos
 A GTK+ gui. No work has been started on this as of yet.
 
-**Running on Windows**
+Running on Windows
+-------------
 
 Platter relies on python's curses, which is built on top of ncurses. The Windows exuivalent is [PDCurses](https://pdcurses.sourceforge.io/), with the popular python library being [UniCurses](https://pdcurses.sourceforge.io/). Instructions on installing follow, but support is not yet included as the syntax differs slightly for UniCurses.
 ```
@@ -55,7 +59,8 @@ pip install https://sourceforge.net/projects/pyunicurses/files/latest/download?s
 ```
 You will also need the dlls for both PDCurses and SDL; both are included in the win32 directory. Alternativly, [PDCurses](https://pdcurses.sourceforge.io/) distributes both source, pre-built dlls, and cofig files. Similarly, [SDL](https://www.libsdl.org/download-1.2.php) pre-built dlls, source, and configs can be easily found. SDL 1.2 is the recomended version for UniCurses 1.2, the latests avaialbe version as of writing, and was used for testing.
 
-**License**
+License
+-------
 
 All source code is licensed under GPLv3, including the asm for the Chip8 roms. Win32 DLLs include their licenses.
 

@@ -344,7 +344,7 @@ class guacamole:
                 xor_chunk = bin(int(original_chunk,2) ^ int(sprite_chunk,2))[2:].zfill(len(original_chunk))
                 self.ram[ working_byte ] = int(untouched_chunk + xor_chunk,2) if x == 0 else int(xor_chunk + untouched_chunk,2)
 
-                if ( ( self.ram[ working_byte ] ^ original ) & original ):
+                if bin( ( self.ram[ working_byte ] ^ original ) & original ).find('1') != -1:
                     self.register[0xF] = 0xFF
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
