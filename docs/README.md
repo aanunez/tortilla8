@@ -10,8 +10,13 @@ Included
 Additional Online Sources
 -------------------------
 [Mastering Chip-8 by Matthew Mikolay](http://mattmik.com/files/chip8/mastering/chip8.html)
+
 [How to write an emulator by Laurence Muller](http://www.multigesture.net/articles/how-to-write-an-emulator-chip-8-interpreter/)
+
 [Reddit user Dannyg86 asking about bugs in their emulator](https://www.reddit.com/r/EmuDev/comments/5so1bo/chip8_emu_questions/)
+
 [Chip8.com Archive](https://web.archive.org/web/20161002171937/http://chip8.com/)
+
 [Chip8.com's rom collection](https://web.archive.org/web/20161020052454/http://chip8.com/downloads/Chip-8%20Pack.zip)
+
 [Wiki Article](https://en.wikipedia.org/wiki/CHIP-8)
