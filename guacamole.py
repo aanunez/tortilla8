@@ -1,18 +1,16 @@
 #!/usr/bin/python3
 
-import re       # Matching Op Code
 import os       # Rom Loading
 import time     # CPU Frequency
 import random   # RND instruction
 import argparse # Command line
 from enum import Enum
 from mem_addr_register_constants import *
-from opcode_constants import *
+from disassembler import disassembler
 
 # TODO 'Load' logs fatal warnings right now, should all instructions check the structure of input args?
 # TODO Shift L/R behavior needs a toggle for "old" and "new" behavior
 # TODO Log a warning when running a unoffical instruction? (enforce flag?)
-# TODO add comments
 
 class Emulation_Error(Enum):
     _Information = 1
@@ -23,10 +21,18 @@ class Emulation_Error(Enum):
         return self.name[1:]
 
 class guacamole:
+    """
+    Guacamole is an emulator class that will happily emulate a Chip-8 ROM
+    at a select frequency with various other options available.
+    """
 
     def __init__(self, rom=None, cpuhz=200, audiohz=60, delayhz=60, init_ram=False):
         '''
-        Init
+        Init the RAM, registers, instruction information, IO, load the ROM etc. ROM
+        is a path to a chip-8 rom, *hz is the frequency to target for for the cpu,
+        audio register, or delay register. Init_Ram signals that the RAM should be
+        initialized to zero. Not initializing the RAM is a great way to find
+        incorrect RAM accesses.
         '''
         random.seed()
 
@@ -42,11 +48,10 @@ class guacamole:
         self.delay_timer_register = 0x00
         self.sound_timer_register = 0x00
 
-        # Current Op Code
-        self.hex_instruction = None
-        self.mnemonic        = None
-        self.mnemonic_arg_types = None
+        # Current dissassembled instruction / OP Code
+        self.dis_ins = None
 
+        # Program Counter
         self.program_counter = PROGRAM_BEGIN_ADDRESS
         self.calling_pc      = 0
 
@@ -97,7 +102,7 @@ class guacamole:
 
     def load_rom(self, file_path):
         '''
-        load_rom
+        Loads a Chip-8 ROM from a file into the RAM.
         '''
         file_size = os.path.getsize(file_path)
         if file_size > MAX_ROM_SIZE:
@@ -109,7 +114,8 @@ class guacamole:
 
     def reset(self, rom=None, cpuhz=None, audiohz=None, delayhz=None, init_ram=None):
         '''
-        reset
+        Resets the emulator to run another game. By default all frequencies
+        and the init_ram flag are preserved.
         '''
         if cpuhz is None: cpuhz = int(1/self.cpu_wait)
         if audiohz is None: audiohz = int(1/self.audio_wait)
@@ -119,7 +125,9 @@ class guacamole:
 
     def run(self):
         '''
-        run
+        Attempt to run the next instruction. This should be called as a part
+        of the main loop, it insures that the CPU and timers execute at the
+        target frequency.
         '''
         if self.cpu_wait <= (time.time() - self.cpu_time):
             self.cpu_time = time.time()
@@ -135,7 +143,7 @@ class guacamole:
 
     def cpu_tick(self):
         '''
-        cpu_tick
+        Ticks the CPU forward a cycle without regard for the target frequency.
         '''
         # Handle the ld k,reg instruction
         if self.waiting_for_key:
@@ -147,39 +155,34 @@ class guacamole:
         # Reset error log
         self.error = []
 
-        # Fetch instruction from ram
-        found = False
+        # Dissassemble next instruction
+        self.dis_ins = None
         try:
-            self.hex_instruction =  hex( self.ram[self.program_counter + 0] )[2:].zfill(2)
-            self.hex_instruction += hex( self.ram[self.program_counter + 1] )[2:].zfill(2)
+            self.dis_ins = disassembler(self.ram[self.program_counter:self.program_counter+2])
         except TypeError:
             self.emu_log("No instruction found at " + hex(self.program_counter), Emulation_Error._Fatal)
             return
 
-        # Match the instruction via a regex index
-        for reg_pattern in OP_REG:
-            if re.match(reg_pattern.lower(), self.hex_instruction):
-                self.calling_pc = self.program_counter
-                self.mnemonic = OP_REG[reg_pattern][0]
-                self.mnemonic_arg_types = OP_CODES[self.mnemonic][OP_REG[reg_pattern][1]][OP_ARGS]
-                self.ins_tbl[self.mnemonic]()
-                found = True
-                break
+        # Execute instruction
+        if self.dis_ins:
+            self.ins_tbl[self.dis_ins.mnemonic]()
 
-        # Error out, to add new instruction update OP_REG and OP_CODES and self.i_
-        if not found:
-            self.emu_log("Unknown instruction " + self.hex_instruction + " at " + hex(self.program_counter), Emulation_Error._Fatal)
+        # Error out. NOTE: to add new instruction update OP_REG and OP_CODES and self.
+        else:
+            self.emu_log("Unknown instruction " + self.dis_ins.hex_instruction + " at " + hex(self.program_counter), Emulation_Error._Fatal)
 
         # Print what was processed to screen
         if self.log_to_screen:
-            print( hex(self.program_counter) + " " + self.hex_instruction + " " + self.mnemonic )
+            print( hex(self.program_counter) + " " + self.dis_ins.hex_instruction + " " + self.dis_ins.mnemonic )
 
         # Increment the PC
+        self.calling_pc = self.program_counter
         self.program_counter += 2
 
     def emu_log(self, message, error_type):
         '''
-        emu_log
+        Logs an Emulation_Error that can be latter addressed by the instantiator
+        or prints it to screen if called from command line.
         '''
         if self.log_to_screen:
             print(str(error_type) + ": " + message)
@@ -189,7 +192,8 @@ class guacamole:
             self.error_log.append( (error_type, message) )
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    # Instructions ( Private )
+    # Instructions ( Private ) - All 20 mnemonics, 35 total instructions
+    # Add-3 SE-2 SNE-2 LD-11 JP-2 (mnemonics w/ extra instructions)
 
     def i_cls(self):
         self.ram[GFX_ADDRESS:GFX_ADDRESS + GFX_RESOLUTION] = [0x00] * GFX_RESOLUTION
@@ -198,7 +202,7 @@ class guacamole:
     def i_ret(self):
         self.stack_pointer -= 1
         if self.stack_pointer < 0:
-            self.emu_log("Stack underflow", )
+            self.emu_log("Stack underflow", Emulation_Error._Fatal)
         self.program_counter = self.stack.pop()
 
     def i_sys(self):
@@ -211,29 +215,29 @@ class guacamole:
         self.stack.append(self.program_counter)
         if self.stack_pointer > STACK_SIZE:
             self.emu_log("Warning: Stack overflow. Stack is now size " + self.stack_pointer, Emulation_Error._Warning)
-        self.program_counter =  self.get_address() - 2
+        self.program_counter = self.get_address() - 2
 
     def i_skp(self):
-        if self.keypad[ self.get_reg1_val() & 0x0F]:
+        if self.keypad[ self.get_reg1_val() & 0x0F ]:
             self.program_counter += 2
 
     def i_sknp(self):
-        if not self.keypad[ self.get_reg1_val() & 0x0F]:
+        if not self.keypad[ self.get_reg1_val() & 0x0F ]:
             self.program_counter += 2
 
     def i_se(self):
-        comp =  self.get_lower_byte() if "byte" in self.mnemonic_arg_types else self.get_reg2_val()
+        comp =  self.get_lower_byte() if "byte" in self.dis_ins.mnemonic_arg_types else self.get_reg2_val()
         if  self.get_reg1_val() == comp:
             self.program_counter += 2
 
     def i_sne(self):
-        comp =  self.get_lower_byte() if "byte" in self.mnemonic_arg_types else self.get_reg2_val()
+        comp =  self.get_lower_byte() if "byte" in self.dis_ins.mnemonic_arg_types else self.get_reg2_val()
         if  self.get_reg1_val() != comp:
             self.program_counter += 2
 
     def i_shl(self):                                         #TODO add option to respect "old" shift
         self.register[0xF] = 0xFF if self.get_reg1_val() >= 0x80 else 0x0
-        self.register[ self.get_reg1() ] = ( self.get_reg1_val() << 1) & 0xFF
+        self.register[ self.get_reg1() ] = ( self.get_reg1_val() << 1 ) & 0xFF
 
     def i_shr(self):                                         #TODO add option to respect "old" shift
         self.register[0xF] = 0xFF if ( self.get_reg1_val() % 2) == 1 else 0x0
@@ -250,18 +254,18 @@ class guacamole:
         self.register[ self.get_reg1() ] = self.get_reg1_val() ^ self.get_reg2_val()
 
     def i_sub(self):
-        self.register[0xF] = 0xFF if  self.get_reg1_val() >  self.get_reg2_val() else 0x00
+        self.register[0xF] = 0xFF if self.get_reg1_val() > self.get_reg2_val() else 0x00
         self.register[ self.get_reg1() ] = self.get_reg1_val() - self.get_reg2_val()
         self.register[ self.get_reg1() ] &= 0xFF
 
     def i_subn(self):
-        self.register[0xF] = 0xFF if self.get_reg2_val() >  self.get_reg1_val() else 0x00
+        self.register[0xF] = 0xFF if self.get_reg2_val() > self.get_reg1_val() else 0x00
         self.register[ self.get_reg1() ] = self.get_reg2_val() - self.get_reg1_val()
         self.register[ self.get_reg1() ] &= 0xFF
 
     def i_jp(self):
         init_pc = self.program_counter
-        if 'v0' in self.mnemonic_arg_types:
+        if 'v0' in self.dis_ins.mnemonic_arg_types:
             self.program_counter = self.get_address() + self.register[0] - 2
         else:
             self.program_counter = self.get_address() - 2
@@ -273,11 +277,11 @@ class guacamole:
         self.register[ self.get_reg1() ] = random.randint(0, 255) & self.get_lower_byte()
 
     def i_add(self):
-        if 'byte' in self.mnemonic_arg_types:
+        if 'byte' in self.dis_ins.mnemonic_arg_types:
             self.register[ self.get_reg1() ] += self.get_lower_byte()
             self.register[ self.get_reg1() ] &= 0xFF
 
-        elif 'i' in self.mnemonic_arg_types:
+        elif 'i' in self.dis_ins.mnemonic_arg_types:
             self.index_register += self.get_reg1_val()
             self.index_register &= 0xFFF
 
@@ -288,8 +292,8 @@ class guacamole:
                 self.register[ self.get_reg1() ] &= 0xFF
 
     def i_ld(self):
-        arg1 = self.mnemonic_arg_types[0]
-        arg2 = self.mnemonic_arg_types[1]
+        arg1 = self.dis_ins.mnemonic_arg_types[0]
+        arg2 = self.dis_ins.mnemonic_arg_types[1]
 
         if 'register' is arg1:
             if   'byte'     is arg2: self.register[ self.get_reg1() ] = self.get_lower_byte()
@@ -329,7 +333,7 @@ class guacamole:
 
     def i_drw(self):
         self.draw_flag = True
-        height = int(self.hex_instruction[3],16)
+        height = int(self.dis_ins.hex_instruction[3],16)
         x_origin_byte = int( self.get_reg1_val() / 8 ) % GFX_WIDTH
         y_origin_byte = (self.get_reg2_val() % GFX_HEIGHT_PX) * GFX_WIDTH
         shift_amount = self.get_reg1_val() % GFX_WIDTH_PX % 8
@@ -365,25 +369,25 @@ class guacamole:
     # Hex Extraction ( Private )
 
     def get_address(self):
-        return int(self.hex_instruction[1:4], 16)
+        return int(self.dis_ins.hex_instruction[1:4], 16)
 
     def get_reg1(self):
-        return int(self.hex_instruction[1],16)
+        return int(self.dis_ins.hex_instruction[1],16)
 
     def get_reg2(self):
-        return int(self.hex_instruction[2],16)
+        return int(self.dis_ins.hex_instruction[2],16)
 
     def get_reg1_val(self):
-        return self.register[int(self.hex_instruction[1],16) ]
+        return self.register[int(self.dis_ins.hex_instruction[1],16) ]
 
     def get_reg2_val(self):
-        return self.register[int(self.hex_instruction[2],16) ]
+        return self.register[int(self.dis_ins.hex_instruction[2],16) ]
 
     def get_lower_byte(self):
-        return int(self.hex_instruction[2:4], 16)
+        return int(self.dis_ins.hex_instruction[2:4], 16)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    # Helpers for special Op Codes
+    # Helpers for Load Key ( Private )
 
     def decode_keypad(self):
         return int(''.join(['1' if x else '0' for x in self.keypad]))
@@ -445,9 +449,12 @@ class guacamole:
             assert val <= 0xFF, "Ram Address " + hex(i) + "is greater than 0xFF" + self.dump_pc()
 
     def dump_pc(self):
-        return "\nPC: " + hex(self.program_counter) + " INS: " + self.hex_instruction
+        return "\nPC: " + hex(self.program_counter) + " INS: " + self.dis_ins.hex_instruction
 
 def parse_args():
+    """
+    Parse arguments to guacamole when called as a script.
+    """
     parser = argparse.ArgumentParser(description='Guacamole is a Chip-8 emulator ...')
     parser.add_argument('rom', help='ROM to load and play.')
     parser.add_argument("-f","--frequency", default=5,help='Frequency (in Hz) to target for CPU.')
@@ -465,6 +472,9 @@ def parse_args():
     return opts
 
 def main(opts):
+    """
+    Handles guacamole being called as a script.
+    """
     guac = guacamole(opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer, opts.initram)
     guac.log_to_screen = True
     try:

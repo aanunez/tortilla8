@@ -30,10 +30,10 @@ class platter:
 
     def __init__(self, rom, cpuhz, audiohz, delayhz, init_ram, drawfix):
 
+        # Init Curses
         self.screen = curses.initscr()
-        self.w_logo    = None
-        self.w_game    = None
 
+        # Used for graphics "smoothing" w/ -d flag
         self.draw_fix = drawfix
         self.prev_board=[0x00]*GFX_RESOLUTION
 
@@ -41,25 +41,29 @@ class platter:
         self.dynamic_window_gen()
         self.init_logs()
 
+        # Define control mapping
         self.controls={
         '0' :0x0,'1' :0x1,'2' :0x2,'3' :0x3,
         '4' :0x4,'5' :0x5,'6' :0x6,'7' :0x7,
         '8' :0x8,'9' :0x9,'//':0xA,'*' :0xB,
         '-' :0xC,'+' :0xD,';' :0xE,'.' :0xF}
 
+        # Print FYI for game window
         if self.w_game is None:
             self.console_print("Window must be atleast "+ str(DISPLAY_MIN_W) + "x" + str(DISPLAY_MIN_H) +" to display the game screen")
 
+        # Init the emulator
         self.emu = guacamole(rom, cpuhz, audiohz, delayhz, init_ram)
         self.check_emu_log()
         self.init_emu_status()
 
+        # Curses settings
         curses.noecho()
         curses.cbreak()
         curses.curs_set(0)
 
     def init_emu_status(self):
-        self.previous_pc = 0
+        self.previous_pc = PROGRAM_BEGIN_ADDRESS
         self.halt        = False
 
     def init_logs(self):
@@ -179,8 +183,8 @@ class platter:
 
     def update_instr_history(self):
         self.instr_history.appendleft(hex3(self.emu.calling_pc) + " " + \
-                                           self.emu.hex_instruction + " " + \
-                                           self.emu.mnemonic)
+                                           self.emu.dis_ins.hex_instruction + " " + \
+                                           self.emu.dis_ins.mnemonic)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Display functions for windows
