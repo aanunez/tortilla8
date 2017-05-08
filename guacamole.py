@@ -24,7 +24,7 @@ class Emulation_Error(Enum):
 
 class guacamole:
 
-    def __init__(self, rom=None, cpuhz=60, audiohz=60, delayhz=60):
+    def __init__(self, rom=None, cpuhz=200, audiohz=60, delayhz=60, init_ram=False):
         '''
         Init
         '''
@@ -34,7 +34,7 @@ class guacamole:
         # Public
 
         # RAM
-        self.ram = [None] * BYTES_OF_RAM
+        self.ram = [0x00] * BYTES_OF_RAM if init_ram else [None] * BYTES_OF_RAM
 
         # Registers
         self.register = [0x00] * NUMB_OF_REGS
@@ -55,6 +55,7 @@ class guacamole:
         self.prev_keypad = 0
         self.draw_flag   = False
         self.waiting_for_key = False
+        self.spinning = False
 
         # Stack
         self.stack = []
@@ -106,11 +107,15 @@ class guacamole:
             self.ram[PROGRAM_BEGIN_ADDRESS:PROGRAM_BEGIN_ADDRESS + file_size] = [int.from_bytes(fh.read(1), 'big') for i in range(file_size)]
             self.emu_log("Rom file loaded" , Emulation_Error._Information)
 
-    def reset(self, rom=None, cpuhz=60):
+    def reset(self, rom=None, cpuhz=None, audiohz=None, delayhz=None, init_ram=None):
         '''
         reset
         '''
-        self.__init__(rom, cpuhz)
+        if cpuhz is None: cpuhz = int(1/self.cpu_wait)
+        if audiohz is None: audiohz = int(1/self.audio_wait)
+        if delayhz is None: delayhz = int(1/self.delay_wait)
+        if init_ram is None: init_ram = True if self.ram[0] == 0 else False
+        self.__init__(rom, cpuhz, audiohz, delayhz, init_ram)
 
     def run(self):
         '''
@@ -144,8 +149,12 @@ class guacamole:
 
         # Fetch instruction from ram
         found = False
-        self.hex_instruction =  hex( self.ram[self.program_counter + 0] )[2:].zfill(2)
-        self.hex_instruction += hex( self.ram[self.program_counter + 1] )[2:].zfill(2)
+        try:
+            self.hex_instruction =  hex( self.ram[self.program_counter + 0] )[2:].zfill(2)
+            self.hex_instruction += hex( self.ram[self.program_counter + 1] )[2:].zfill(2)
+        except TypeError:
+            self.emu_log("No instruction found at " + hex(self.program_counter), Emulation_Error._Fatal)
+            return
 
         # Match the instruction via a regex index
         for reg_pattern in OP_REG:
@@ -159,8 +168,9 @@ class guacamole:
 
         # Error out, to add new instruction update OP_REG and OP_CODES and self.i_
         if not found:
-            self.emu_log("Fatal: Unknown instruction " + self.hex_instruction + " at " + hex(self.program_counter), Emulation_Error._Fatal)
+            self.emu_log("Unknown instruction " + self.hex_instruction + " at " + hex(self.program_counter), Emulation_Error._Fatal)
 
+        # Print what was processed to screen
         if self.log_to_screen:
             print( hex(self.program_counter) + " " + self.hex_instruction + " " + self.mnemonic )
 
@@ -250,10 +260,14 @@ class guacamole:
         self.register[ self.get_reg1() ] &= 0xFF
 
     def i_jp(self):
+        init_pc = self.program_counter
         if 'v0' in self.mnemonic_arg_types:
             self.program_counter = self.get_address() + self.register[0] - 2
         else:
             self.program_counter = self.get_address() - 2
+
+        if init_pc == self.program_counter + 2:
+            self.spinning = True
 
     def i_rnd(self):
         self.register[ self.get_reg1() ] = random.randint(0, 255) & self.get_lower_byte()
@@ -285,7 +299,7 @@ class guacamole:
                 self.waiting_for_key = True
                 self.program_counter -= 2
             elif '[i]' == arg2:
-                for i in range( self.get_reg1()):
+                for i in range( self.get_reg1() ):
                     self.register[i] = self.ram[self.index_register + i]
 
             else:
@@ -376,10 +390,11 @@ class guacamole:
 
     def handle_load_key(self):
         k = self.decode_keypad()
-        nk = bin( (k ^ self.prev_keypad) & k )[2:].zfill(8).find('1')
+        nk = bin( (k ^ self.prev_keypad) & k )[2:].zfill(16).find('1')
         if nk != -1: # Was a new key pressed?
             self.register[ self.get_reg1() ] = nk
             self.program_counter += 2
+            self.waiting_for_key = False
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Debug
@@ -412,12 +427,33 @@ class guacamole:
                 r_val += hex(i) + " "
         return r_val
 
+    def enforce_rules(self):
+        assert(self.index_register is not None)
+        assert(self.index_register <= 0xFFF)
+        assert(self.index_register >= 0x000)
+        assert(self.delay_timer_register <= 0xFF)
+        assert(self.delay_timer_register >= 0x00)
+        assert(self.sound_timer_register <= 0xFF)
+        assert(self.sound_timer_register >= 0x00)
+        for i,val in enumerate(self.register):
+            assert val is not None, "Register " + hex(i) + " has value 'None'" + self.dump_pc()
+            assert val >= 0x00, "Register " + hex(i) + "is less than 0x00" + self.dump_pc()
+            assert val <= 0xFF, "Register " + hex(i) + "is greater than 0xFF" + self.dump_pc()
+        for i,val in enumerate(self.ram):
+            if val is None: continue
+            assert val >= 0x00, "Ram Address " + hex(i) + "is less than 0x00" + self.dump_pc()
+            assert val <= 0xFF, "Ram Address " + hex(i) + "is greater than 0xFF" + self.dump_pc()
+
+    def dump_pc(self):
+        return "\nPC: " + hex(self.program_counter) + " INS: " + self.hex_instruction
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Guacamole is a Chip-8 emulator ...')
     parser.add_argument('rom', help='ROM to load and play.')
-    parser.add_argument("-f","--frequency", default=60,help='Frequency (in Hz) to target for CPU.')
+    parser.add_argument("-f","--frequency", default=5,help='Frequency (in Hz) to target for CPU.')
     parser.add_argument("-st","--soundtimer", default=60,help='Frequency (in Hz) to target for the audio timmer.')
     parser.add_argument("-dt","--delaytimer", default=60,help='Frequency (in Hz) to target for the delay timmer.')
+    parser.add_argument('-i','--initram', help='Initialize RAM to all zero values.', action='store_true')
     opts = parser.parse_args()
 
     if not os.path.isfile(opts.rom):
@@ -429,7 +465,7 @@ def parse_args():
     return opts
 
 def main(opts):
-    guac = guacamole(opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer)
+    guac = guacamole(opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer, opts.initram)
     guac.log_to_screen = True
     try:
         while True:

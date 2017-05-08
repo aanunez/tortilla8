@@ -28,15 +28,11 @@ from mem_addr_register_constants import *
 
 class platter:
 
-    def __init__(self, rom, cpuhz, audiohz, delayhz, drawfix):
+    def __init__(self, rom, cpuhz, audiohz, delayhz, init_ram, drawfix):
 
         self.screen = curses.initscr()
-        self.w_reg     = None
-        self.w_instr   = None
-        self.w_stack   = None
         self.w_logo    = None
         self.w_game    = None
-        self.w_console = None
 
         self.draw_fix = drawfix
         self.prev_board=[0x00]*GFX_RESOLUTION
@@ -54,7 +50,7 @@ class platter:
         if self.w_game is None:
             self.console_print("Window must be atleast "+ str(DISPLAY_MIN_W) + "x" + str(DISPLAY_MIN_H) +" to display the game screen")
 
-        self.emu = guacamole(rom, cpuhz, audiohz, delayhz)
+        self.emu = guacamole(rom, cpuhz, audiohz, delayhz, init_ram)
         self.check_emu_log()
         self.init_emu_status()
 
@@ -64,8 +60,6 @@ class platter:
 
     def init_emu_status(self):
         self.previous_pc = 0
-        self.last_exec   = time.time()
-        self.watch_dog   = self.emu.cpu_wait + .01 #TODO probs shouldn't do this
         self.halt        = False
 
     def init_logs(self):
@@ -75,9 +69,12 @@ class platter:
     def start(self, step_mode=False):
         key_press_time = 0
         audio_playing = False
-        audio_file = os.path.join('sound',"play.wav")
+        key_msg_displayed = False
+
+        #audio_file = os.path.join('sound',"play.wav")
         if step_mode:
             self.console_print("Emulator started in step mode. Press '" + KEY_STEP.upper() + "' to process one instruction.")
+
         try:
             while True:
                 # Try to get a keypress
@@ -100,7 +97,7 @@ class platter:
 
                 # Reset check
                 if key == KEY_RESET:
-                    self.emu.reset( self.rom, int(1/self.emu.cpu_wait) )
+                    self.emu.reset( self.rom )
                     self.init_emu_status()
                     self.init_logs()
                     self.clear_all_windows()
@@ -122,10 +119,16 @@ class platter:
                 if self.emu.program_counter != self.previous_pc:
                     self.previous_pc = self.emu.program_counter
                     self.update_instr_history()
-                    self.last_exec = time.time()
+                    key_msg_displayed = False
+
+                # Watch for spin for key
+                elif self.emu.waiting_for_key and not key_msg_displayed:
+                    self.instr_history.appendleft(hex3(self.emu.program_counter) + " key  ld")
+                    self.console_print("Program is trying to load a key press.")
+                    key_msg_displayed = True
 
                 # Detect Spinning
-                elif not self.halt and (step_mode or (not step_mode and (time.time() - self.last_exec > self.watch_dog))):
+                elif not self.halt and self.emu.spinning:
                     self.instr_history.appendleft(hex3(self.emu.program_counter) + " spin jp")
                     self.console_print("Spin detected. Press '" + KEY_EXIT.upper() + "' to exit")
                     self.halt  = True
@@ -227,7 +230,7 @@ class platter:
             int_curr = int(curr_str,2)
             self.prev_board = self.emu.ram[GFX_ADDRESS:GFX_ADDRESS+GFX_RESOLUTION]
             if ( ( int_prev ^ int_curr ) & int_prev ) == ( int_prev ^ int_curr ):
-                #Only 1s were changed to zeros, skip the draw to prevent flicker
+                #Only 1s were changed to 0s, skip the draw to prevent SOME flicker
                 return
 
         for y in range( int(GFX_HEIGHT_PX / 2) ):
@@ -297,12 +300,13 @@ def hex3(integer):
     return "0x" + hex(integer)[2:].zfill(3)
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Platter is a text based front end for the Chip-8 emulator guacamole ...')
+    parser = argparse.ArgumentParser(description='Platter is a text based front end for the Chip-8 emulator guacamole. ')
     parser.add_argument('rom', help='ROM to load and play.')
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("-f","--frequency", default=5,help='CPU frequency (in Hz) to target, minimum 1 hz.')
+    group.add_argument('-f','--frequency', default=10,help='CPU frequency (in Hz) to target, minimum 1 hz.')
     group.add_argument('-s','--step', help='Start the emulator is "step" mode.',action='store_true')
-    parser.add_argument('-d','--drawfix', help='Enable anti-flicker, stops platter from drawing to screen when sprites are only removed.',action='store_true')
+    parser.add_argument('-d','--drawfix', help='Enable anti-flicker, stops platter from drawing to screen when sprites are only removed.', action='store_true')
+    parser.add_argument('-i','--initram', help='Initialize RAM to all zero values.', action='store_true')
     opts = parser.parse_args()
 
     if not os.path.isfile(opts.rom):
@@ -320,7 +324,7 @@ def parse_args():
     return opts
 
 def main(opts):
-    disp = platter(opts.rom, opts.frequency, 60, 60, opts.drawfix)
+    disp = platter(opts.rom, opts.frequency, 60, 60, opts.initram, opts.drawfix)
     disp.start(opts.step)
 
 if __name__ == '__main__':
