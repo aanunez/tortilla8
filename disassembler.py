@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import re
-from opcode_constants import *
+from constants.opcodes import OP_REG, OP_ARGS, OP_CODES
 
 class disassembler:
 

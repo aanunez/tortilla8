@@ -1,12 +1,16 @@
 #!/usr/bin/python3
 
+# Used only when called as script
+import argparse # Command line
+
+# Used by guacamole
 import os       # Rom Loading
 import time     # CPU Frequency
 import random   # RND instruction
-import argparse # Command line
 from enum import Enum
-from mem_addr_register_constants import *
 from disassembler import disassembler
+from constants.reg_rom_stack import BYTES_OF_RAM, PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS, MAX_ROM_SIZE, STACK_ADDRESS, STACK_SIZE
+from constants.graphics import GFX_FONT, GFX_FONT_ADDRESS, GFX_RESOLUTION, GFX_ADDRESS, GFX_WIDTH, GFX_HEIGHT_PX, GFX_WIDTH_PX
 
 # TODO 'Load' logs fatal warnings right now, should all instructions check the structure of input args?
 # TODO Shift L/R behavior needs a toggle for "old" and "new" behavior
@@ -82,7 +86,7 @@ class guacamole:
         self.delay_time = 0
 
         # Load Font, clear screen
-        self.ram[FONT_ADDRESS:FONT_ADDRESS + len(FONT)] = [i for i in FONT]
+        self.ram[GFX_FONT_ADDRESS:GFX_FONT_ADDRESS + len(GFX_FONT)] = [i for i in GFX_FONT]
         self.ram[GFX_ADDRESS:GFX_ADDRESS + GFX_RESOLUTION] = [0x00] * GFX_RESOLUTION
 
         # Notification
@@ -312,7 +316,7 @@ class guacamole:
         elif 'register' is arg2:
             if   'dt' is arg1: self.delay_timer_register =  self.get_reg1_val()
             elif 'st' is arg1: self.sound_timer_register =  self.get_reg1_val()
-            elif 'f'  is arg1: self.index_register = FONT_ADDRESS + ( 5 * self.get_reg1_val() )
+            elif 'f'  is arg1: self.index_register = GFX_FONT_ADDRESS + ( 5 * self.get_reg1_val() )
             elif 'b'  is arg1:
                 bcd = str( self.get_reg1_val() ).zfill(3)
                 for i in range(3):

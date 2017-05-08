@@ -12,9 +12,10 @@ import textwrap
 import argparse
 import collections
 from enum import Enum
+from constants.curses import *
 from guacamole import guacamole, Emulation_Error
-from display_constants import *
-from mem_addr_register_constants import *
+from constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS
+from constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_WIDTH
 
 #TODO Need a simple audio library
 

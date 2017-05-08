@@ -1,10 +1,13 @@
 #!/usr/bin/python3
 
+# Used only when called as script
 import os
-import sys
 import argparse
+
+# Used by jalapeno
 from cilantro import cilantro
-from pre_proc_assembler_constants import *
+from constants.symbols import BEGIN_COMMENT
+from constants.preprocessor import MODE_MARKS, EQU_MARKS, ELSE_IF, END_MARKS
 
 #TODO Respect MODE_MARKS and add common directives to it.
 #TODO Remove excess whitespace when its around pre-proc directives
@@ -134,15 +137,13 @@ def main(opts):
     """
     Handles guacamole being called as a script.
     """
-    jala = jalapeno()
+    pp = jalapeno()
     with open(opts.input) as FH:
-        jala.process(FH)
+        pp.process(FH)
     with open(opts.output, 'w+') as FH:
-        jala.print_processed_source(FH)
+        pp.print_processed_source(FH)
 
 if __name__ == '__main__':
-    """
-    """
     main(parse_args())
 
 

@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
-from pre_proc_assembler_constants import *
-from opcode_constants import *
+from constants.preprocessor import END_MEM_TAG, PRE_PROC, DATA_DECLARE
+from constants.symbols import BEGIN_COMMENT
+from constants.opcodes import OP_CODES
 
 class cilantro:
     '''

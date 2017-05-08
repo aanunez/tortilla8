@@ -1,10 +1,6 @@
 #!/usr/bin/python3
 
-# General
-BEGIN_COMMENT=';'
 END_MEM_TAG=':'
-HEX_ESC='#'
-BIN_ESC='$' #TODO not used yet
 
 # Data Declaration (Sizes in bytes)
 DATA_DECLARE={'db':1,'dw':2,'dd':4}

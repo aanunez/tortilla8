@@ -1,16 +1,18 @@
 #!/usr/bin/python3
 
+# Used only when called as script
 import os
 import sys
 import select
-import warnings
 import argparse
 import contextlib
 
+# Used by blackbean
+import warnings
 from cilantro import cilantro
-from mem_addr_register_constants import *
-from pre_proc_assembler_constants import *
-from opcode_constants import *
+from constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, ARG_SUB, OVERFLOW_ADDRESS, REGISTERS
+from constants.opcodes import OP_CODES, OP_CODE_SIZE, OP_ARGS, OP_HEX
+from constants.symbols import BEGIN_COMMENT, HEX_ESC
 
 #Opcode reminders: SHR, SHL, XOR, and SUBN/SM are NOT offically supported by original spec
 #                  SHR and SHL may or may not move Y (Shifted) into X or just shift X.
@@ -32,10 +34,7 @@ class blackbean:
         have already done the hard bit for us. Memory addresses
         start at 0x200 on the CHIP 8.
         """
-        if token_collection is None:
-            self.collection = []
-        else:
-            self.collection = token_collection
+        self.collection = [] if token_collection is None else token_collection
         self.mmap       = {}
         self.address    = PROGRAM_BEGIN_ADDRESS
 
@@ -135,22 +134,22 @@ class blackbean:
         if not tl.instruction:
             return
 
-        for VERSION in OP_CODES[tl.instruction]:
+        for ver in OP_CODES[tl.instruction]:
             issue = False
 
             # Skips versions of the OPCODE that can't work
-            if len(VERSION[OP_ARGS]) != len(tl.arguments):
+            if len(ver[OP_ARGS]) != len(tl.arguments):
                 continue
 
             # Easy matches
-            if len(VERSION[OP_ARGS]) == 0:
-                tl.instruction_int = int(VERSION[OP_HEX], 16)
+            if len(ver[OP_ARGS]) == 0:
+                tl.instruction_int = int(ver[OP_HEX], 16)
                 break
 
             # Validate every argument provided to the instruction
-            working_hex = VERSION[OP_HEX]
-            for i, ARG_TYPE in enumerate(VERSION[OP_ARGS]):
-                working_hex = self.is_valid_instruction_arg(ARG_TYPE, tl.arguments[i], working_hex, ARG_SUB[i])
+            working_hex = ver[OP_HEX]
+            for i, arg_type in enumerate(ver[OP_ARGS]):
+                working_hex = self.is_valid_instruction_arg(arg_type, tl.arguments[i], working_hex, ARG_SUB[i])
                 if not working_hex:
                     break
             if working_hex:
