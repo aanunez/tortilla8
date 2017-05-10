@@ -1,21 +1,28 @@
 #!/usr/bin/python3
 
+# Import curses
 import os
-
 try: import curses
 except ImportError:
     os.environ['PATH'] = os.path.abspath('win32') + ';' + os.environ['PATH'] # TODO this 'import' doesn't seem to work
     import unicurses as curses
 
+# Import Sound
+import wave
+import pyaudio
+
+# Everything else
 import time
 import textwrap
-import argparse
 import collections
 from enum import Enum
 from constants.curses import *
 from guacamole import guacamole, Emulation_Error
 from constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS
 from constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_WIDTH
+
+# Only used when called as script
+import argparse
 
 #TODO Need a simple audio library
 
@@ -146,7 +153,7 @@ class platter:
                 audio_playing = False if self.emu.sound_timer_register == 0 else True
                 if audio_playing:
                     pass
-                    #self.console_print('Audio!') TODO
+                    #self.play_beep()
 
                 self.check_emu_log()
                 self.update_screen()
@@ -187,6 +194,22 @@ class platter:
                                            self.emu.dis_ins.hex_instruction + " " + \
                                            self.emu.dis_ins.mnemonic)
 
+    def play_beep(self):
+        chunk = 1024
+        f = wave.open(r"sound/play.wav","rb")
+        p = pyaudio.PyAudio()
+        stream = p.open(format = p.get_format_from_width(f.getsampwidth()),
+                        channels = f.getnchannels(),
+                        rate = f.getframerate(),
+                        output = True)
+        data = f.readframes(chunk)
+        while data:
+            stream.write(data)
+            data = f.readframes(chunk)
+        stream.stop_stream()
+        stream.close()
+        p.terminate()
+
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Display functions for windows
 
@@ -203,6 +226,12 @@ class platter:
         self.w_stack.clear()
         self.w_console.clear()
         self.w_instr.clear()
+        if self.w_menu is not None:
+            self.w_menu.clear()
+            self.w_menu.border()
+        if self.w_game is not None:
+            self.w_game.clear()
+            self.w_game.border()
         self.w_reg.border()
         self.w_reg.addstr( 1, REG_OFFSET, "Registers")
         self.w_stack.border()
@@ -287,13 +316,14 @@ class platter:
         self.w_logo    = curses.newwin( L - WIN_REG_H, WIN_LOGO_W , WIN_REG_H, self.w_stack.getbegyx()[1] + WIN_STACK_W )
         self.w_game    = None
         self.w_console = None
+        self.w_menu    = None
 
         if (L < DISPLAY_MIN_H) or (C < DISPLAY_MIN_W):
             self.w_console = curses.newwin( L,  self.w_reg.getbegyx()[1], 0, 0 )
         else:
             self.w_game    = curses.newwin( DISPLAY_H, DISPLAY_W, 0, int( ( C - WIN_REG_W - DISPLAY_W ) / 2 ) )
-            self.w_console = curses.newwin( L-DISPLAY_H, self.w_reg.getbegyx()[1], DISPLAY_H, 0 )
-            self.w_game.border()
+            self.w_console = curses.newwin( L - DISPLAY_H - WIN_MENU_H, self.w_reg.getbegyx()[1], DISPLAY_H, 0 )
+            self.w_menu    = curses.newwin( WIN_MENU_H, self.w_reg.getbegyx()[1], L - WIN_MENU_H, 0 )
             self.w_game.noutrefresh()
 
         self.clear_all_windows()
