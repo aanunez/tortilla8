@@ -168,10 +168,10 @@ class guacamole:
             return
 
         # Execute instruction
-        if self.dis_ins:
+        if self.dis_ins.is_valid:
             self.ins_tbl[self.dis_ins.mnemonic]()
 
-        # Error out. NOTE: to add new instruction update OP_REG and OP_CODES and self.
+        # Error out. NOTE: to add new instruction update OP_CODES and self.ins_tbl
         else:
             self.emu_log("Unknown instruction " + self.dis_ins.hex_instruction + " at " + hex(self.program_counter), Emulation_Error._Fatal)
 

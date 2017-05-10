@@ -8,6 +8,8 @@ WIN_STACK_W = 11  + BORDERS
 WIN_INSTR_W = 16  + BORDERS
 WIN_LOGO_W  = 7
 
+WIN_MENU_H = 1 + BORDERS
+
 # TITLE OFFSETS
 REG_OFFSET  = 15
 STAK_OFFSET = 4
@@ -19,8 +21,8 @@ H_MIN       = 15
 # Display size, and mins
 DISPLAY_MIN_W = 104
 DISPLAY_MIN_H = 34
-DISPLAY_H=16 + BORDERS # Terminal blocks are twice as tall as wide
-DISPLAY_W=64 + BORDERS
+DISPLAY_H = 16 + BORDERS # Terminal blocks are twice as tall as wide
+DISPLAY_W = 64 + BORDERS
 
 LEN_STR_REG = len("Regiters")
 LEN_STR_STA = len("Stack")
