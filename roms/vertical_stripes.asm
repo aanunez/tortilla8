@@ -12,6 +12,8 @@
 solid   EQU    #ff           ; Testing replacment
 blank   EQU    #00           ; Testing replacment
 
+
+; Vertical stripes, one at a time
     call    reset
     ld  i,  stripe           ; Load stripe for drawing
 test1:
@@ -25,6 +27,7 @@ test1:
     jp  test1                ; Jump back to draw another line
 
 
+; Vertical stripes, several at a time (8x8)
     call    reset
     ld  i,  block            ; Load block for drawing
 test2:
@@ -38,17 +41,47 @@ test2:
     jp  test2                ; Jump back to draw another line
 
 
+; Checker board, 4x4 at a time
     call    reset
     ld  i,  checker          ; Load block for drawing
 test3:
     drw va, vb, 4            ; Draw a 4px tall, 8px wide block
-    add va, 4                ; Inc x by half a byte (Testing overlap)
+    add va, 8                ; Inc x by a byte
     se  va, 64               ; If x == 64, skip jp
     jp  test3                ; Jump back to draw rest of line
     ld  va, 0                ; reset va
     add vb, 4                ; Inc y by 4, the height of the block
     se  vb, 32               ; If y == 32, skip jp
     jp  test3                ; Jump back to draw another line
+
+
+; Paint solid white, 8x8 at a time
+    call    reset
+    ld  i,  largestripe      ; Load thick stripe
+test4:
+    drw va, vb, 8            ; Draw a 8px tall, 8px wide block
+    add va, 8                ; Inc x by a byte
+    se  va, 64               ; If x == 64, skip jp
+    jp  test4                ; Jump back to draw rest of line
+    ld  va, 0                ; reset va
+    add vb, 8                ; Inc y by 8, the height of the block
+    se  vb, 32               ; If y == 32, skip jp
+    jp  test4                ; Jump back to draw another line
+
+
+; Re paint Checker board, 4x4 at a time, skipping reset to test XOR
+    ld  va, 0                ; Initial X cord
+    ld  vb, 0                ; Initial Y cord
+    ld  i,  checker          ; Load block for drawing
+test5:
+    drw va, vb, 4            ; Draw a 4px tall, 8px wide block
+    add va, 8                ; Inc x by a byte
+    se  va, 64               ; If x == 64, skip jp
+    jp  test5                ; Jump back to draw rest of line
+    ld  va, 0                ; reset va
+    add vb, 4                ; Inc y by 4, the height of the block
+    se  vb, 32               ; If y == 32, skip jp
+    jp  test5                ; Jump back to draw another line
 
 spin:
     jp  spin                 ; Spin forever
@@ -61,6 +94,9 @@ reset:
 
 stripe:
     db  solid
+
+largestripe:
+    db  solid,solid,solid,solid,solid,solid,solid,solid
 
 block:
     db  blank,solid,blank,solid,blank,solid,blank,solid
