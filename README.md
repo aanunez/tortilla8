@@ -7,8 +7,9 @@ What is Chip8
 Major Issues
 ------------
 
-* Key presses are not always correctly respected in Platter.
-* Vertical wrapping on the screen doesn't work yet (no pong).
+* No Windows / Mac support on platter (due to curses)
+* Keypad input could be better
+* No sound due to me not being able to find a multi-platform audio-playback library
 
 Modules
 -------
