@@ -28,11 +28,22 @@ import argparse
 
 #TODO Allow editing controls
 #TODO Improve input. Also, E isn't mapped
+#TODO Dynamic freq control
 
 #TODO Support non 64x32 displays
 #TODO double the resolution if window is large enough
-#TODO add Keypad display
-#TODO add statistics display / menu (X,S,R change freq? Toggle stepmode?)
+#TODO add Keypad display?
+
+PREFIX = [
+    ['Y', 1e24], # yotta
+    ['Z', 1e21], # zetta
+    ['E', 1e18], # exa
+    ['P', 1e15], # peta
+    ['T', 1e12], # tera
+    ['G', 1e9 ], # giga
+    ['M', 1e6 ], # mega
+    ['k', 1e3 ]  # kilo
+]
 
 class platter:
 
@@ -45,8 +56,10 @@ class platter:
         self.draw_fix = drawfix
         self.prev_board=[0x00]*GFX_RESOLUTION
 
+        # General Prep
         self.rom = rom
         self.dynamic_window_gen()
+        self.clear_all_windows()
         self.init_logs()
 
         # Define control mapping
@@ -187,6 +200,7 @@ class platter:
         self.display_stack()
         self.display_instructions()
         self.display_game()
+        self.display_menu()
         curses.doupdate()
 
     def update_instr_history(self):
@@ -229,9 +243,11 @@ class platter:
         if self.w_menu is not None:
             self.w_menu.clear()
             self.w_menu.border()
+            self.w_menu.refresh()
         if self.w_game is not None:
             self.w_game.clear()
             self.w_game.border()
+            self.w_game.refresh()
         self.w_reg.border()
         self.w_reg.addstr( 1, REG_OFFSET, "Registers")
         self.w_stack.border()
@@ -240,7 +256,6 @@ class platter:
         self.w_instr.border()
         self.w_console.nodelay(1)
         self.display_logo()
-        curses.doupdate()
 
     def display_logo(self):
         if self.screen.getmaxyx()[0] < LOGO_MIN: return
@@ -299,6 +314,18 @@ class platter:
             self.w_stack.addstr(top + i, 2, str(self.emu.stack_pointer - i - 1).zfill(2) + ": " + hex2(val))
         self.w_stack.noutrefresh()
 
+    def display_menu(self):
+        if self.w_menu is None: return
+        prefix = ""
+        cpu_hz = str(self.emu.cpu_hz)
+        for pre,val in PREFIX:
+            if self.emu.cpu_hz % val != self.emu.cpu_hz:
+                prefix = pre
+                cpu_hz = str(self.emu.cpu_hz / val)
+                break
+        self.w_menu.addstr( 1, 2, "E̲xit  ̲Reset  ̲Step  🡹🡻 Freq " + cpu_hz + prefix + "hz" )
+        self.w_menu.noutrefresh()
+
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Dynamic Window Generator
 
@@ -324,9 +351,6 @@ class platter:
             self.w_game    = curses.newwin( DISPLAY_H, DISPLAY_W, 0, int( ( C - WIN_REG_W - DISPLAY_W ) / 2 ) )
             self.w_console = curses.newwin( L - DISPLAY_H - WIN_MENU_H, self.w_reg.getbegyx()[1], DISPLAY_H, 0 )
             self.w_menu    = curses.newwin( WIN_MENU_H, self.w_reg.getbegyx()[1], L - WIN_MENU_H, 0 )
-            self.w_game.noutrefresh()
-
-        self.clear_all_windows()
 
 def hex2(integer):
     return "0x" + hex(integer)[2:].zfill(2)

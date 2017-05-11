@@ -1,6 +1,9 @@
 # CHIP-8 Documentation
 The included docs, plus maybe bugging people on /r/emudev should be more than enough to make a working CHIP8 emulator.
 
+Things I got stuck on:
+* Setting VF high means setting it to exectly one.
+
 Included
 --------
 * Original manual - Original RCA manual with chip 8. Excludes some instructions (XOR, shifts, subn)

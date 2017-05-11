@@ -78,10 +78,13 @@ class guacamole:
         self.error_log = []
 
         # Timming variables
+        self.cpu_hz     = cpuhz
         self.cpu_wait   = 1/cpuhz
         self.cpu_time   = 0
+        self.audio_hz   = audiohz
         self.audio_wait = 1/audiohz
         self.audio_time = 0
+        self.delay_hz   = delayhz
         self.delay_wait = 1/delayhz
         self.delay_time = 0
 
@@ -121,9 +124,9 @@ class guacamole:
         Resets the emulator to run another game. By default all frequencies
         and the init_ram flag are preserved.
         '''
-        if cpuhz is None: cpuhz = int(1/self.cpu_wait)
-        if audiohz is None: audiohz = int(1/self.audio_wait)
-        if delayhz is None: delayhz = int(1/self.delay_wait)
+        if cpuhz is None: cpuhz = self.cpu_hz
+        if audiohz is None: audiohz = self.audio_hz
+        if delayhz is None: delayhz = self.delay_hz
         if init_ram is None: init_ram = True if self.ram[0] == 0 else False
         self.__init__(rom, cpuhz, audiohz, delayhz, init_ram)
 
@@ -240,11 +243,11 @@ class guacamole:
             self.program_counter += 2
 
     def i_shl(self):                                         #TODO add option to respect "old" shift
-        self.register[0xF] = 0xFF if self.get_reg1_val() >= 0x80 else 0x0
+        self.register[0xF] = 0x01 if self.get_reg1_val() >= 0x80 else 0x0
         self.register[ self.get_reg1() ] = ( self.get_reg1_val() << 1 ) & 0xFF
 
     def i_shr(self):                                         #TODO add option to respect "old" shift
-        self.register[0xF] = 0xFF if ( self.get_reg1_val() % 2) == 1 else 0x0
+        self.register[0xF] = 0x01 if ( self.get_reg1_val() % 2) == 1 else 0x0
         self.register[ self.get_reg1() ] = self.get_reg1_val() >> 1
 
 
@@ -258,12 +261,12 @@ class guacamole:
         self.register[ self.get_reg1() ] = self.get_reg1_val() ^ self.get_reg2_val()
 
     def i_sub(self):
-        self.register[0xF] = 0xFF if self.get_reg1_val() > self.get_reg2_val() else 0x00
+        self.register[0xF] = 0x01 if self.get_reg1_val() > self.get_reg2_val() else 0x00
         self.register[ self.get_reg1() ] = self.get_reg1_val() - self.get_reg2_val()
         self.register[ self.get_reg1() ] &= 0xFF
 
     def i_subn(self):
-        self.register[0xF] = 0xFF if self.get_reg2_val() > self.get_reg1_val() else 0x00
+        self.register[0xF] = 0x01 if self.get_reg2_val() > self.get_reg1_val() else 0x00
         self.register[ self.get_reg1() ] = self.get_reg2_val() - self.get_reg1_val()
         self.register[ self.get_reg1() ] &= 0xFF
 
@@ -292,8 +295,10 @@ class guacamole:
         else: # Reg + Reg
             self.register[ self.get_reg1() ] += self.get_reg2_val()
             self.register[ self.get_reg1() ] &= 0xFF
+            self.register[0xF] = 0x00
             if  self.get_reg1_val() + self.get_reg2_val() > 0xFF:
                 self.register[ self.get_reg1() ] &= 0xFF
+                self.register[0xF] = 0x01
 
     def i_ld(self):
         arg1 = self.dis_ins.mnemonic_arg_types[0]
@@ -367,7 +372,7 @@ class guacamole:
                 self.ram[ working_byte ] = int(untouched_chunk + xor_chunk,2) if x == 0 else int(xor_chunk + untouched_chunk,2)
 
                 if bin( ( self.ram[ working_byte ] ^ original ) & original ).find('1') != -1:
-                    self.register[0xF] = 0xFF
+                    self.register[0xF] = 0x01
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Hex Extraction ( Private )
