@@ -57,7 +57,7 @@ def dissassemble_file(file_path):
                     else:
                         part = j
                     part = part.ljust(5)
-                    line += ',' + part
+                    line += part + ','
                     pos = 2
                 oh.write(dis_inis.mnemonic.ljust(5) + line[:-1] + '\n')
 
