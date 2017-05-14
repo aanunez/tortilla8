@@ -1,8 +1,11 @@
 # tortilla8
+
+Tortilla8 is a collection of Chip8 tools for per-processing, assembling, emulating, disassembling, and visualizing Chip8 ROMs.
+
 What is Chip8
 -------------
 
-[Chip8](https://en.wikipedia.org/wiki/CHIP-8) is a language published in 1978 via the RCA COSMAC VIP Instruction Manual that was bosted as making programming easier for hobbiests on the system. Chip8 is popular to emulate due to its simplicity and the now extensive amount of documentation.
+[Chip8](https://en.wikipedia.org/wiki/CHIP-8) is a language published in 1978 via the RCA COSMAC VIP Instruction Manual that was bosted as making game programming easier for hobbiests on the system. Chip8 is popular to emulate due to its simplicity and the now extensive amount of documentation.
 
 Major Issues
 ------------
@@ -44,7 +47,7 @@ Emulator for the Chip8 language/system. The emulator has no display, for that yo
 
 * Platter
 
-Text based GUI for Guacamole. Display information, warnings, and fatal errors reported by Guacamole along with all registers, the stack, and recently executed instructions. Detects when the emulator enters a "spin" state and gives the option of reseting.
+Text based GUI for Guacamole that utilizes curses, see below for any issues with your OS. Display information, warnings, and fatal errors reported by Guacamole along with all registers, the stack, and recently executed instructions. Detects when the emulator enters a "spin" state and gives the option of reseting.
 ```
 # Start platter at 10hz, X to exit, R to reset, S to step in step mode (-s flag)
 ./platter.py roms/vertical_stripes.ch8 -f 10
@@ -54,17 +57,37 @@ Text based GUI for Guacamole. Display information, warnings, and fatal errors re
 
 A GTK+ gui. No work has been started on this as of yet.
 
-Running on Windows
--------------
+Running on GNU/Linux, BSD variaents
+-----------------------------------
 
-Platter relies on python's curses, which is built on top of ncurses. The Windows exuivalent is [PDCurses](https://pdcurses.sourceforge.io/), with the popular python library being [UniCurses](https://pdcurses.sourceforge.io/). Instructions on installing follow, but support is not yet included as the syntax differs slightly for UniCurses.
+There is nothing to configure, curses should ship with your python install.
+
+Running on Windows
+------------------
+
+Windows does not ship with Curses, which is needed by platter, so you'll need install the wheel package yourself from [here](http://www.lfd.uci.edu/~gohlke/pythonlibs/). The 'cp34' (CPython 3.4) was tested on Windows 7. Once the package is downloaded, just cd to the directory and install via pip.
 ```
-:: Install pip
+:: If you haven't installed pip, do that
 python -m pip install -U pip setuptools
+:: If you haven't installed Wheel, do that
+pip install wheel
+:: Install Curses for win32
+python -m pip install curses-2.2-cp34-none-win32.whl
+```
+Unfortunately the windows version of curses doesn't support unicode, so only partial platter functionallity exists currently.
+
+The below is only included as an infromational.
+Additonally, there is [PDCurses](https://pdcurses.sourceforge.io/), with the popular python library being [UniCurses](https://pdcurses.sourceforge.io/). Instructions on installing follow, but **support is not included** as the syntax differs for UniCurses accross platforms.
+```
 :: Use pip to install UniCurses
 pip install https://sourceforge.net/projects/pyunicurses/files/latest/download?source=typ_redirect
 ```
 You will also need the dlls for both PDCurses and SDL; both are included in the win32 directory. Alternativly, [PDCurses](https://pdcurses.sourceforge.io/) distributes both source, pre-built dlls, and cofig files. Similarly, [SDL](https://www.libsdl.org/download-1.2.php) pre-built dlls, source, and configs can be easily found. SDL 1.2 is the recomended version for UniCurses 1.2, the latests avaialbe version as of writing, and was used for testing.
+
+Running on Mac OS X
+-------------------
+
+Platter has not been tested on Mac OS X yet.
 
 License
 -------
