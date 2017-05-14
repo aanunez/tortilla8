@@ -15,8 +15,8 @@ REG_OFFSET  = 15
 STAK_OFFSET = 4
 
 # Min size to function
-W_MIN       = 60
-H_MIN       = 15
+W_MIN       = 80
+H_MIN       = 24
 
 # Display size, and mins
 DISPLAY_MIN_W = 104
@@ -48,6 +48,18 @@ KEYPAD_DRAW=[
 '││12││13││14││15││',
 '│└──┘└──┘└──┘└──┘│',
 '└────────────────┘'
+]
+
+# Prefixes to use for hz
+PREFIX = [
+    ['Y', 1e24], # yotta
+    ['Z', 1e21], # zetta
+    ['E', 1e18], # exa
+    ['P', 1e15], # peta
+    ['T', 1e12], # tera
+    ['G', 1e9 ], # giga
+    ['M', 1e6 ], # mega
+    ['k', 1e3 ]  # kilo
 ]
 
 # Logo

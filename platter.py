@@ -3,7 +3,7 @@
 # Import curses
 try: import curses
 except ImportError:
-    raise ImportError('Curses is missing from your system. Consult the README for information on install for your platform.')
+    raise ImportError('Curses is missing from your system. Consult the README for information on installing for your platform.')
 
 # Import Sound
 #import wave
@@ -32,17 +32,6 @@ import argparse
 #TODO Support non 64x32 displays
 #TODO double the resolution if window is large enough
 #TODO add Keypad display?
-
-PREFIX = [
-    ['Y', 1e24], # yotta
-    ['Z', 1e21], # zetta
-    ['E', 1e18], # exa
-    ['P', 1e15], # peta
-    ['T', 1e12], # tera
-    ['G', 1e9 ], # giga
-    ['M', 1e6 ], # mega
-    ['k', 1e3 ]  # kilo
-]
 
 class platter:
 
@@ -322,7 +311,10 @@ class platter:
                 prefix = pre
                 cpu_hz = str(self.emu.cpu_hz / val)
                 break
-        self.w_menu.addstr( 1, 2, "E̲xit  ̲Reset  ̲Step  🡹🡻 Freq " + cpu_hz + prefix + "hz" )
+        left = "E̲xit  ̲Reset  ̲Step"
+        right = "🡹🡻 Freq " + cpu_hz + prefix + "hz"
+        middle = " " * ( self.w_menu.getmaxyx()[1] - len(left) - len(right) - 1 )
+        self.w_menu.addstr( 1, 2, left + middle + right )
         self.w_menu.noutrefresh()
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -340,16 +332,15 @@ class platter:
         self.w_instr   = curses.newwin( L - WIN_REG_H, WIN_INSTR_W, WIN_REG_H, self.w_reg.getbegyx()[1] )
         self.w_stack   = curses.newwin( L - WIN_REG_H, WIN_STACK_W, WIN_REG_H, self.w_instr.getbegyx()[1] + WIN_INSTR_W )
         self.w_logo    = curses.newwin( L - WIN_REG_H, WIN_LOGO_W , WIN_REG_H, self.w_stack.getbegyx()[1] + WIN_STACK_W )
+        self.w_menu = curses.newwin( WIN_MENU_H, self.w_reg.getbegyx()[1], L - WIN_MENU_H, 0 )
         self.w_game    = None
         self.w_console = None
-        self.w_menu    = None
 
         if (L < DISPLAY_MIN_H) or (C < DISPLAY_MIN_W):
-            self.w_console = curses.newwin( L,  self.w_reg.getbegyx()[1], 0, 0 )
+            self.w_console = curses.newwin( L - WIN_MENU_H,  self.w_reg.getbegyx()[1], 0, 0 )
         else:
             self.w_game    = curses.newwin( DISPLAY_H, DISPLAY_W, 0, int( ( C - WIN_REG_W - DISPLAY_W ) / 2 ) )
             self.w_console = curses.newwin( L - DISPLAY_H - WIN_MENU_H, self.w_reg.getbegyx()[1], DISPLAY_H, 0 )
-            self.w_menu    = curses.newwin( WIN_MENU_H, self.w_reg.getbegyx()[1], L - WIN_MENU_H, 0 )
 
 def hex2(integer):
     return "0x" + hex(integer)[2:].zfill(2)
