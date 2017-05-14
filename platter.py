@@ -1,15 +1,13 @@
 #!/usr/bin/python3
 
 # Import curses
-import os
 try: import curses
 except ImportError:
-    os.environ['PATH'] = os.path.abspath('win32') + ';' + os.environ['PATH'] # TODO this 'import' doesn't seem to work
-    import unicurses as curses
+    raise ImportError('Curses is missing from your system. Consult the README for information on install for your platform.')
 
 # Import Sound
-import wave
-import pyaudio
+#import wave
+#import pyaudio
 
 # Everything else
 import time
@@ -22,6 +20,7 @@ from constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS
 from constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_WIDTH
 
 # Only used when called as script
+import os
 import argparse
 
 #TODO Need a simple audio library

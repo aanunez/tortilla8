@@ -250,7 +250,6 @@ class guacamole:
         self.register[0xF] = 0x01 if ( self.get_reg1_val() % 2) == 1 else 0x0
         self.register[ self.get_reg1() ] = self.get_reg1_val() >> 1
 
-
     def i_or(self):
         self.register[ self.get_reg1() ] = self.get_reg1_val() | self.get_reg2_val()
 
