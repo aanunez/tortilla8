@@ -27,21 +27,24 @@ class disassembler:
             if self.is_valid:
                 break
 
-def dissassemble_file(file_path):
+def dissassemble_file(input_path, output_path):
     byte_list = [0,0]
-    file_size = os.path.getsize(file_path)
-    with open(file_path, 'rb') as fh:
-        with open(file_path + '.asm', 'w+') as oh:
+    file_size = os.path.getsize(input_path)
+    with open(input_path, 'rb') as fh:
+        with open(output_path, 'w+') as oh:
             for i in range(int(file_size/2)):
                 byte_list[0] = int.from_bytes(fh.read(1), 'big')
                 byte_list[1] = int.from_bytes(fh.read(1), 'big')
                 dis_inis = disassembler(byte_list)
+
                 if not dis_inis.is_valid:
                     oh.write(dis_inis.hex_instruction + '\n')
                     continue
+
                 if dis_inis.mnemonic_arg_types is None:
                     oh.write(dis_inis.mnemonic + '\n')
                     continue
+
                 line = ""
                 part = ""
                 pos = 1
@@ -59,17 +62,23 @@ def dissassemble_file(file_path):
                     part = part.ljust(5)
                     line += part + ','
                     pos = 2
+
                 oh.write(dis_inis.mnemonic.ljust(5) + line[:-1] + '\n')
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Does a thing')
     parser.add_argument('rom', nargs='?', help='file to disassemble.')
+    parser.add_argument('-o','--output',help='file to write to.')
     opts = parser.parse_args()
+
+    if opts.output is None:
+        opts.output  = '.'.join(opts.rom.split('.')[0:-1]) if opts.rom.find('.') else opts.rom
+        opts.output += '.asm'
 
     return opts
 
 def main(opts):
-    dissassemble_file(opts.rom)
+    dissassemble_file(opts.rom, opts.output)
 
 if __name__ == '__main__':
     main(parse_args())
