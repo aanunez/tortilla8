@@ -57,7 +57,7 @@ Text based GUI for Guacamole that utilizes curses, see below for any issues with
 
 A GTK+ gui. No work has been started on this as of yet.
 
-Running on GNU/Linux, BSD variaents
+Running on GNU/Linux, BSD variants
 -----------------------------------
 
 There is nothing to configure, curses should ship with your python install.

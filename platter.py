@@ -6,8 +6,9 @@ except ImportError:
     raise ImportError('Curses is missing from your system. Consult the README for information on installing for your platform.')
 
 # Import Sound
-#import wave
-#import pyaudio
+try: import simpleaudio as sa
+except ImportError:
+    raise ImportError('SimpleAudio is missing from your system. You can install it via "pip install simpleaudio".')
 
 # Everything else
 import time
@@ -23,10 +24,9 @@ from constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_W
 import os
 import argparse
 
-#TODO Need a simple audio library
-
+#TODO Improve audio
 #TODO Allow editing controls
-#TODO Improve input. Also, E isn't mapped
+#TODO Improve input. Only most recent button press is used. Also, E isn't mapped
 #TODO Dynamic freq control
 
 #TODO Support non 64x32 displays
@@ -39,6 +39,8 @@ class platter:
 
         # Init Curses
         self.screen = curses.initscr()
+        self.C = self.screen.getmaxyx()[1]
+        self.L = self.screen.getmaxyx()[0]
 
         # Used for graphics "smoothing" w/ -d flag
         self.draw_fix = drawfix
@@ -52,10 +54,10 @@ class platter:
 
         # Define control mapping
         self.controls={
-        '0' :0x0,'1' :0x1,'2' :0x2,'3' :0x3,
-        '4' :0x4,'5' :0x5,'6' :0x6,'7' :0x7,
-        '8' :0x8,'9' :0x9,'//':0xA,'*' :0xB,
-        '-' :0xC,'+' :0xD,';' :0xE,'.' :0xF}
+        '0':0x0, '1':0x1, '2':0x2, '3':0x3,
+        '4':0x4, '5':0x5, '6':0x6, '7':0x7,
+        '8':0x8, '9':0x9, '//':0xA,'*':0xB,
+        '-':0xC, '+':0xD, ';':0xE, '.':0xF}
 
         # Print FYI for game window
         if self.w_game is None:
@@ -83,8 +85,9 @@ class platter:
         key_press_time = 0
         audio_playing = False
         key_msg_displayed = False
+        wave_obj = sa.WaveObject.from_wave_file("sound/play.wav")
+        play_obj = None
 
-        #audio_file = os.path.join('sound',"play.wav")
         if step_mode:
             self.console_print("Emulator started in step mode. Press '" + KEY_STEP.upper() + "' to process one instruction.")
 
@@ -98,7 +101,7 @@ class platter:
                     pass
 
                 # Update Keypad press
-                if time.time() - key_press_time > 0.5: #TODO Better input
+                if time.time() - key_press_time > 0.5: #TODO Better input?
                     self.emu.keypad = [False] * 16
                     key_press_time = time.time()
                 if key in self.controls:
@@ -152,9 +155,25 @@ class platter:
 
                 # Start/stop Audio
                 audio_playing = False if self.emu.sound_timer_register == 0 else True
-                if audio_playing:
+                if not audio_playing and play_obj is None:
                     pass
-                    #self.play_beep()
+                elif audio_playing and play_obj is None:
+                    play_obj = wave_obj.play()
+                elif not audio_playing and play_obj is not None:
+                    play_obj.stop()
+                    play_obj = None
+                elif audio_playing and not play_obj.is_playing():
+                    play_obj = wave_obj.play()
+
+                # Check if screen was re-sized
+                if curses.is_term_resized(self.L, self.C):
+                    self.L, self.C = self.screen.getmaxyx()
+                    curses.resizeterm(self.L, self.C)
+                    self.screen.clear()
+                    self.screen.refresh()
+                    self.dynamic_window_gen()
+                    self.clear_all_windows()
+                    self.init_logs()
 
                 self.check_emu_log()
                 self.update_screen()
@@ -321,26 +340,24 @@ class platter:
     # Dynamic Window Generator
 
     def dynamic_window_gen(self):
-        C = self.screen.getmaxyx()[1]
-        L = self.screen.getmaxyx()[0]
 
-        if (L < H_MIN) or (C < W_MIN):
+        if (self.L < H_MIN) or (self.C < W_MIN):
             self.cleanup()
             raise IOError("Terminal window too small to use.\nResize to atleast " + str(W_MIN) + "x" + str(H_MIN)) # TODO display resize message?
 
-        self.w_reg     = curses.newwin( WIN_REG_H, WIN_REG_W , 0, int( C - WIN_REG_W ) )
-        self.w_instr   = curses.newwin( L - WIN_REG_H, WIN_INSTR_W, WIN_REG_H, self.w_reg.getbegyx()[1] )
-        self.w_stack   = curses.newwin( L - WIN_REG_H, WIN_STACK_W, WIN_REG_H, self.w_instr.getbegyx()[1] + WIN_INSTR_W )
-        self.w_logo    = curses.newwin( L - WIN_REG_H, WIN_LOGO_W , WIN_REG_H, self.w_stack.getbegyx()[1] + WIN_STACK_W )
-        self.w_menu = curses.newwin( WIN_MENU_H, self.w_reg.getbegyx()[1], L - WIN_MENU_H, 0 )
+        self.w_reg     = curses.newwin( WIN_REG_H, WIN_REG_W , 0, int( self.C - WIN_REG_W ) )
+        self.w_instr   = curses.newwin( self.L - WIN_REG_H, WIN_INSTR_W, WIN_REG_H, self.w_reg.getbegyx()[1] )
+        self.w_stack   = curses.newwin( self.L - WIN_REG_H, WIN_STACK_W, WIN_REG_H, self.w_instr.getbegyx()[1] + WIN_INSTR_W )
+        self.w_logo    = curses.newwin( self.L - WIN_REG_H, WIN_LOGO_W , WIN_REG_H, self.w_stack.getbegyx()[1] + WIN_STACK_W )
+        self.w_menu = curses.newwin( WIN_MENU_H, self.w_reg.getbegyx()[1], self.L - WIN_MENU_H, 0 )
         self.w_game    = None
         self.w_console = None
 
-        if (L < DISPLAY_MIN_H) or (C < DISPLAY_MIN_W):
-            self.w_console = curses.newwin( L - WIN_MENU_H,  self.w_reg.getbegyx()[1], 0, 0 )
+        if (self.L < DISPLAY_MIN_H) or (self.C < DISPLAY_MIN_W):
+            self.w_console = curses.newwin( self.L - WIN_MENU_H,  self.w_reg.getbegyx()[1], 0, 0 )
         else:
-            self.w_game    = curses.newwin( DISPLAY_H, DISPLAY_W, 0, int( ( C - WIN_REG_W - DISPLAY_W ) / 2 ) )
-            self.w_console = curses.newwin( L - DISPLAY_H - WIN_MENU_H, self.w_reg.getbegyx()[1], DISPLAY_H, 0 )
+            self.w_game    = curses.newwin( DISPLAY_H, DISPLAY_W, 0, int( ( self.C - WIN_REG_W - DISPLAY_W ) / 2 ) )
+            self.w_console = curses.newwin( self.L - DISPLAY_H - WIN_MENU_H, self.w_reg.getbegyx()[1], DISPLAY_H, 0 )
 
 def hex2(integer):
     return "0x" + hex(integer)[2:].zfill(2)
