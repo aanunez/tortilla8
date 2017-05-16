@@ -5,10 +5,11 @@ try: import curses
 except ImportError:
     raise ImportError('Curses is missing from your system. Consult the README for information on installing for your platform.')
 
-# Import Sound
+# Import Sound (optional)
 try: import simpleaudio as sa
 except ImportError:
-    raise ImportError('SimpleAudio is missing from your system. You can install it via "pip install simpleaudio".')
+    sa = None
+    pass
 
 # Everything else
 import time
@@ -24,7 +25,6 @@ from constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_W
 import os
 import argparse
 
-#TODO Improve audio
 #TODO Allow editing controls
 #TODO Improve input. Only most recent button press is used. Also, E isn't mapped
 #TODO Dynamic freq control
@@ -35,7 +35,7 @@ import argparse
 
 class platter:
 
-    def __init__(self, rom, cpuhz, audiohz, delayhz, init_ram, drawfix):
+    def __init__(self, rom, cpuhz, audiohz, delayhz, init_ram, drawfix, wave_file):
 
         # Init Curses
         self.screen = curses.initscr()
@@ -63,6 +63,17 @@ class platter:
         if self.w_game is None:
             self.console_print("Window must be atleast "+ str(DISPLAY_MIN_W) + "x" + str(DISPLAY_MIN_H) +" to display the game screen")
 
+        # Print FYI for sound
+        self.wave_obj = None
+        if sa is None:
+            self.console_print("SimpleAudio is missing from your system. You can install it via 'pip install simpleaudio'. The sound timmer will not be raised.")
+
+        # Init sound
+        elif os.path.isfile(wave_file):
+            self.audio_playing = False
+            self.wave_obj = sa.WaveObject.from_wave_file(wave_file)
+            self.play_obj = None
+
         # Init the emulator
         self.emu = guacamole(rom, cpuhz, audiohz, delayhz, init_ram)
         self.check_emu_log()
@@ -83,16 +94,14 @@ class platter:
 
     def start(self, step_mode=False):
         key_press_time = 0
-        audio_playing = False
         key_msg_displayed = False
-        wave_obj = sa.WaveObject.from_wave_file("sound/play.wav")
-        play_obj = None
 
         if step_mode:
             self.console_print("Emulator started in step mode. Press '" + KEY_STEP.upper() + "' to process one instruction.")
 
         try:
             while True:
+
                 # Try to get a keypress
                 try:
                     key = self.w_console.getkey()
@@ -127,10 +136,6 @@ class platter:
                 if not self.halt:
                     self.emu.run()
 
-                # Display what keys are being pressed
-                #if [i for i, x in enumerate(self.emu.dump_keypad()) if x]:
-                #    self.console_print(self.emu.dump_keypad())
-
                 # Update Display if we executed
                 if self.emu.program_counter != self.previous_pc:
                     self.previous_pc = self.emu.program_counter
@@ -143,7 +148,7 @@ class platter:
                     self.console_print("Program is trying to load a key press.")
                     key_msg_displayed = True
 
-                # Detect Spinning
+                # Detect jp Spinning
                 elif not self.halt and self.emu.spinning:
                     self.instr_history.appendleft(hex3(self.emu.program_counter) + " spin jp")
                     self.console_print("Spin detected. Press '" + KEY_EXIT.upper() + "' to exit")
@@ -154,16 +159,17 @@ class platter:
                     self.halt = True
 
                 # Start/stop Audio
-                audio_playing = False if self.emu.sound_timer_register == 0 else True
-                if not audio_playing and play_obj is None:
-                    pass
-                elif audio_playing and play_obj is None:
-                    play_obj = wave_obj.play()
-                elif not audio_playing and play_obj is not None:
-                    play_obj.stop()
-                    play_obj = None
-                elif audio_playing and not play_obj.is_playing():
-                    play_obj = wave_obj.play()
+                if sa is not None and self.wave_obj is not None:
+                    self.audio_playing = False if self.emu.sound_timer_register == 0 else True
+                    if not self.audio_playing and self.play_obj is None:
+                        pass
+                    elif self.audio_playing and self.play_obj is None:
+                        self.play_obj = self.wave_obj.play()
+                    elif not self.audio_playing and self.play_obj is not None:
+                        self.play_obj.stop()
+                        self.play_obj = None
+                    elif self.audio_playing and not self.play_obj.is_playing():
+                        self.play_obj = self.wave_obj.play()
 
                 # Check if screen was re-sized
                 if curses.is_term_resized(self.L, self.C):
@@ -372,7 +378,8 @@ def parse_args():
     group.add_argument('-f','--frequency', default=10,help='CPU frequency (in Hz) to target, minimum 1 hz.')
     group.add_argument('-s','--step', help='Start the emulator is "step" mode.',action='store_true')
     parser.add_argument('-d','--drawfix', help='Enable anti-flicker, stops platter from drawing to screen when sprites are only removed.', action='store_true')
-    parser.add_argument('-i','--initram', help='Initialize RAM to all zero values.', action='store_true')
+    parser.add_argument('-i','--initram', help='Initialize RAM to all zero values. Needed to run some ROMs that assume untouched addresses to be zero.', action='store_true')
+    parser.add_argument('-a','--audio', help='Path to audio to play for Sound Timer, or "None" to prevent sound from playing.')
     opts = parser.parse_args()
 
     if not os.path.isfile(opts.rom):
@@ -384,13 +391,16 @@ def parse_args():
         if opts.frequency < 1:
             raise ValueError("Please use step mode for sub 1 hz operation")
 
+    if opts.audio is None:
+        opts.audio = "sound/play.wav"
+
     if opts.step:
         opts.frequency = 1000000 # 1 Ghz
 
     return opts
 
 def main(opts):
-    disp = platter(opts.rom, opts.frequency, 60, 60, opts.initram, opts.drawfix)
+    disp = platter(opts.rom, opts.frequency, 60, 60, opts.initram, opts.drawfix, opts.audio)
     disp.start(opts.step)
 
 if __name__ == '__main__':

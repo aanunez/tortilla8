@@ -1,0 +1,1 @@
+The file in this directory named 'play.wav' is used by platter as the default tone for the sound timmer when the '-a' flag is not provided. The default tone is a 440Hz square wave. This file may be replaced with any wav file. You can use the [Online Tone Generator](http://onlinetonegenerator.com/) for other simple, single tone, wav files.
