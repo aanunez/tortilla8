@@ -12,6 +12,7 @@ except ImportError:
     pass
 
 # Everything else
+import os
 import time
 import textwrap
 import collections
@@ -22,7 +23,6 @@ from constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS
 from constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_WIDTH
 
 # Only used when called as script
-import os
 import argparse
 
 #TODO Allow editing controls

@@ -8,7 +8,7 @@ import os       # Rom Loading
 import time     # CPU Frequency
 import random   # RND instruction
 from enum import Enum
-from disassembler import disassembler
+from salsa import salsa
 from constants.reg_rom_stack import BYTES_OF_RAM, PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS, MAX_ROM_SIZE, STACK_ADDRESS, STACK_SIZE
 from constants.graphics import GFX_FONT, GFX_FONT_ADDRESS, GFX_RESOLUTION, GFX_ADDRESS, GFX_WIDTH, GFX_HEIGHT_PX, GFX_WIDTH_PX
 
@@ -165,7 +165,7 @@ class guacamole:
         # Dissassemble next instruction
         self.dis_ins = None
         try:
-            self.dis_ins = disassembler(self.ram[self.program_counter:self.program_counter+2])
+            self.dis_ins = salsa(self.ram[self.program_counter:self.program_counter+2])
         except TypeError:
             self.emu_log("No instruction found at " + hex(self.program_counter), Emulation_Error._Fatal)
             return
