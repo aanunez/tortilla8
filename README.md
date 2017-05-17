@@ -10,9 +10,8 @@ What is Chip8
 Major Issues
 ------------
 
-* No Windows / Mac support on platter (due to curses)
+* Platter is untested on Mac. May work after installing a curses varient.
 * Keypad input could be better
-* No sound due to me not being able to find a multi-platform audio-playback library
 
 Modules
 -------
@@ -45,9 +44,17 @@ Emulator for the Chip8 language/system. The emulator has no display, for that yo
 ./guacamole.py roms/vertical_stripes.ch8 -f 10
 ```
 
+* Salsa
+
+Disassembler for a two bytes worth of data, contains a utilty function to loop over a file handler and fully dissassemble.
+```
+# Invoke salsa
+./guacamole.py roms/vertical_stripes.ch8 -o roms/vertical_stripes.asm
+```
+
 * Platter
 
-Text based GUI for Guacamole that utilizes curses, see below for any issues with your OS. Display information, warnings, and fatal errors reported by Guacamole along with all registers, the stack, and recently executed instructions. Detects when the emulator enters a "spin" state and gives the option of reseting.
+Text based GUI for Guacamole that requires curses and simpleaudio, see below for any issues with your OS. Display information, warnings, and fatal errors reported by Guacamole along with all registers, the stack, and recently executed instructions. Detects when the emulator enters a "spin" state and gives the option of reseting.
 ```
 # Start platter at 10hz, X to exit, R to reset, S to step in step mode (-s flag)
 ./platter.py roms/vertical_stripes.ch8 -f 10
@@ -55,16 +62,17 @@ Text based GUI for Guacamole that utilizes curses, see below for any issues with
 
 * Nachos
 
-A GTK+ gui. No work has been started on this as of yet.
+Kivy based gui intended to be highly portable. No work has started yet.
 
 Running on GNU/Linux, BSD variants
 -----------------------------------
 
-There is nothing to configure, curses should ship with your python install.
+Install SimpleAudio via pip for sound in platter, Curses should ship with your python install.
 
 Running on Windows
 ------------------
 
+Install SimpleAudio via pip for sound in platter.
 Windows does not ship with Curses, which is needed by platter, so you'll need install the wheel package yourself from [here](http://www.lfd.uci.edu/~gohlke/pythonlibs/). The 'cp34' (CPython 3.4) was tested on Windows 7. Once the package is downloaded, just cd to the directory and install via pip.
 ```
 :: If you haven't installed pip, do that
