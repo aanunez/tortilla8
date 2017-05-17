@@ -30,7 +30,7 @@ class salsa:
 
         # If not a valid instruction, assume data
         if not self.is_valid:
-            self.disassembled_line = self.hex_instruction
+            self.disassembled_line = 'dw' + self.hex_instruction
             return
 
         # No args to parse
@@ -39,7 +39,6 @@ class salsa:
             return
 
         # Parse Args
-        tmp = ''
         reg_numb = 1
         for arg_type in self.mnemonic_arg_types:
             if arg_type is 'register':
