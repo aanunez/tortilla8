@@ -6,9 +6,13 @@ from tortilla8.jalapeno import jalapeno
 
 parser = argparse.ArgumentParser(description=
 '''
-Jalapeno will scan your CHIP-8 source code for pre-processor directives, apply
-them as needed, and produce a flattend source file that can be assembled with
-blackbean.
+Scan your CHIP-8 source code for pre-processor directives, apply them as
+needed, and produce a flattend source file.
+Respected Directives:
+    'ifdef', 'ifndef', 'elif', 'elseif', 'elifdef',
+    'elseifdef', 'endif', 'else', 'equ', '='
+
+No mode modifers ('option', 'align' etc) are currently respected.
 ''')
 parser.add_argument('input', help='File to assemble')
 parser.add_argument('-d','--define',nargs='+',help='Strings to define as true for evaluation of pre-processor directives.')
