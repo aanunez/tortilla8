@@ -100,7 +100,7 @@ class blackbean:
             else:
                 file_handler.write(line.original.split(BEGIN_COMMENT)[0].rstrip() + '\n')
 
-    def export_binary(self, file_path):
+    def export_binary(self, file_handler):
         """
         Writes the assembled file to a binary blob.
         """
@@ -112,15 +112,16 @@ class blackbean:
             if line.is_empty:
                 continue
             if line.instruction_int:
-                file_path.write(line.instruction_int.to_bytes(OP_CODE_SIZE, byteorder='big'))
+                file_handler.write(line.instruction_int.to_bytes(OP_CODE_SIZE, byteorder='big'))
             elif line.dd_ints:
                 for i in range(len(line.dd_ints)):
-                    file_path.write(line.dd_ints[i].to_bytes(line.data_size , byteorder='big'))
+                    file_handler.write(line.dd_ints[i].to_bytes(line.data_size , byteorder='big'))
 
     def calc_opcode(self, tl):
         """
         Resolve mnemonics into hex string then to ints.These
         can be easily written out. All instructions are 2 bytes.
+        Input should be a Cilantro 'tokenized line' data container.
         """
         # Skip empty lines
         if not tl.instruction:

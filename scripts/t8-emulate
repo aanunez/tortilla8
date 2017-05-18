@@ -12,7 +12,9 @@ def pos_int(value):
 
 parser = argparse.ArgumentParser(description=
 '''
-Start a text (unicdoe) based Chip8 emulator.
+Start a text (unicdoe) based Chip8 emulator which disaplys a game screen, all
+registers, the stack, recently processed instructions, and a console to log
+any issues that occur.
 ''')
 parser.add_argument('rom', help='ROM to load and play.')
 group = parser.add_mutually_exclusive_group()

@@ -7,16 +7,14 @@ from tortilla8.jalapeno import jalapeno
 parser = argparse.ArgumentParser(description=
 '''
 Scan your CHIP-8 source code for pre-processor directives, apply them as
-needed, and produce a flattend source file.
-Respected Directives:
-    'ifdef', 'ifndef', 'elif', 'elseif', 'elifdef',
-    'elseifdef', 'endif', 'else', 'equ', '='
-
-No mode modifers ('option', 'align' etc) are currently respected.
+needed, and produce a flattend source file. Respected Directives include:
+'ifdef', 'ifndef', 'elif', 'elseif', 'elifdef','elseifdef', 'endif',
+'else', 'equ', '='. Currently, no mode modifers ('option', 'align' etc)
+are respected.
 ''')
 parser.add_argument('input', help='File to assemble')
 parser.add_argument('-d','--define',nargs='+',help='Strings to define as true for evaluation of pre-processor directives.')
-parser.add_argument('-o','--output',help='File to store processed source to, by default INPUT.jala is used.')
+parser.add_argument('-o','--output',help='File to store processed source to, by default INPUT_pp.asm is used.')
 opts = parser.parse_args()
 
 if not os.path.isfile(opts.input):
@@ -24,7 +22,7 @@ if not os.path.isfile(opts.input):
 
 if not opts.output:
     opts.output  = '.'.join(opts.input.split('.')[0:-1]) if opts.input.find('.') != -1 else opts.input
-    opts.output += '.jala'
+    opts.output += '_pp.asm'
 
 with open(opts.input) as fh:
     pp = jalapeno(fh, opts.define)
