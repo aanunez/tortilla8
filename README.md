@@ -1,20 +1,17 @@
 # tortilla8
--------------
+
 Tortilla8 is a collection of Chip8 tools for per-processing, assembling, emulating, disassembling, and visualizing Chip8 ROMs.
 
 ## What is Chip8
--------------
 
 [Chip8](https://en.wikipedia.org/wiki/CHIP-8) is a language published in 1978 via the RCA COSMAC VIP Instruction Manual that was bosted as making game programming easier for hobbiests on the system. Chip8 is popular to emulate due to its simplicity and the now extensive amount of documentation.
 
 ## Major Issues
-------------
 
 * Platter is untested on Mac. May work after installing a curses varient.
 * Keypad input could be better
 
 ## Usage & Scripts
----------------
 
 Scripts exist that wrap the below modules to enable easy action for the user.
 
@@ -25,7 +22,6 @@ Scripts exist that wrap the below modules to enable easy action for the user.
 * t8-emulate
 
 ## Modules
--------
 
 ### Cilantro
 
@@ -56,7 +52,6 @@ Text based GUI for Guacamole that requires curses and simpleaudio, see below for
 Kivy based gui intended to be highly portable. No work has started yet.
 
 ## Platter Compatability
--------------
 
 ### Running on GNU/Linux, BSD variants
 
@@ -89,7 +84,6 @@ You will also need the dlls for both PDCurses and SDL; both are included in the 
 Platter has not been tested on Mac OS X yet.
 
 ## License
--------
 
 All source code is licensed under GPLv3, including the asm for the Chip8 roms. Win32 DLLs include their licenses.
 
