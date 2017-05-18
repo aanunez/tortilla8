@@ -10,16 +10,19 @@ from .constants.preprocessor import MODE_MARKS, EQU_MARKS, ELSE_IF, END_MARKS
 class jalapeno:
     """
     Jalapeno is a pre-processor class that can take file handlers,
-    process all common chip 8 pre processor directives and return
+    process all common chip8 pre processor directives and return
     a flattend source file.
     """
 
-    def __init__(self):
+    def __init__(self, file_handler=None, definitions=None):
         """
         Init the token collection and symbols list.
         """
         self.collection = []
         self.symbols = {}
+
+        if file_handler:
+            self.process(file_handler, definitions)
 
     def reset(self):
         """
