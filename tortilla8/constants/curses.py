@@ -32,6 +32,12 @@ KEY_STEP  = 's'
 KEY_EXIT  = 'x'
 KEY_RESET = 'r'
 
+# Graphics Draw
+from collections import namedtuple
+CHAR_SET = namedtuple('CHAR_SET', 'upper lower both empty')
+UNICODE_DRAW = CHAR_SET('▀','▄','█',' ')
+WIN_DRAW = CHAR_SET('^','v','8',' ')
+
 KEYPAD_DRAW=[
 '┌────────────────┐',
 '│     Keypad     │',

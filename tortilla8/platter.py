@@ -12,6 +12,7 @@ except ImportError:
     pass
 
 # Everything else
+from sys import platform
 import os
 import time
 import textwrap
@@ -33,6 +34,10 @@ from .constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_
 class platter:
 
     def __init__(self, rom, cpuhz, audiohz, delayhz, init_ram, drawfix, wave_file=None):
+
+        # Check if windows (no unicode in their Curses)
+        self.unicode   = True if platform != 'win32' else False
+        self.draw_char = UNICODE_DRAW if self.unicod else WIN_DRAW
 
         # Init Curses
         self.screen = curses.initscr()
@@ -255,6 +260,7 @@ class platter:
 
     def display_logo(self):
         if self.screen.getmaxyx()[0] < LOGO_MIN: return
+        if not self.unicode: return
         logo_offset = int( ( self.w_logo.getmaxyx()[0] - len(LOGO) ) / 2 )
         for i in range(len(LOGO)):
             self.w_logo.addstr( i + logo_offset, 0, LOGO[i] )
@@ -282,8 +288,8 @@ class platter:
             for x in range(GFX_WIDTH):
                 upper_chunk = int( bin( self.emu.ram[ GFX_ADDRESS + ( (y * 2 + 0) * GFX_WIDTH) + x ] )[2:] )
                 lower_chunk = int( bin( self.emu.ram[ GFX_ADDRESS + ( (y * 2 + 1) * GFX_WIDTH) + x ] )[2:].replace('1','2') )
-                total_chunk  = str(upper_chunk + lower_chunk).zfill(8).replace('3', "█" ).replace('2', "▄" )\
-                                                                      .replace('1', "▀" ).replace('0', " " )
+                total_chunk  = str(upper_chunk + lower_chunk).zfill(8).replace('3', self.draw_char.both ).replace('2', self.draw_char.lower )\
+                                                                      .replace('1', self.draw_char.upper ).replace('0', self.draw_char.empty )
                 self.w_game.addstr( 1 + y, 1 + x * 8, total_chunk )
         self.w_game.noutrefresh()
 
