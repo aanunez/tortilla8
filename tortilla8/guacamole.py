@@ -1,16 +1,13 @@
 #!/usr/bin/python3
 
-# Used only when called as script
-import argparse # Command line
-
 # Used by guacamole
 import os       # Rom Loading
 import time     # CPU Frequency
 import random   # RND instruction
 from enum import Enum
-from salsa import salsa
-from constants.reg_rom_stack import BYTES_OF_RAM, PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS, MAX_ROM_SIZE, STACK_ADDRESS, STACK_SIZE
-from constants.graphics import GFX_FONT, GFX_FONT_ADDRESS, GFX_RESOLUTION, GFX_ADDRESS, GFX_WIDTH, GFX_HEIGHT_PX, GFX_WIDTH_PX
+from tortilla8.salsa import salsa
+from .constants.reg_rom_stack import BYTES_OF_RAM, PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS, MAX_ROM_SIZE, STACK_ADDRESS, STACK_SIZE
+from .constants.graphics import GFX_FONT, GFX_FONT_ADDRESS, GFX_RESOLUTION, GFX_ADDRESS, GFX_WIDTH, GFX_HEIGHT_PX, GFX_WIDTH_PX
 
 # TODO 'Load' logs fatal warnings right now, should all instructions check the structure of input args?
 # TODO Shift L/R behavior needs a toggle for "old" and "new" behavior
@@ -459,37 +456,3 @@ class guacamole:
     def dump_pc(self):
         return "\nPC: " + hex(self.program_counter) + " INS: " + self.dis_ins.hex_instruction
 
-def parse_args():
-    """
-    Parse arguments to guacamole when called as a script.
-    """
-    parser = argparse.ArgumentParser(description='Guacamole is a Chip-8 emulator ...')
-    parser.add_argument('rom', help='ROM to load and play.')
-    parser.add_argument("-f","--frequency", default=5,help='Frequency (in Hz) to target for CPU.')
-    parser.add_argument("-st","--soundtimer", default=60,help='Frequency (in Hz) to target for the audio timmer.')
-    parser.add_argument("-dt","--delaytimer", default=60,help='Frequency (in Hz) to target for the delay timmer.')
-    parser.add_argument('-i','--initram', help='Initialize RAM to all zero values.', action='store_true')
-    opts = parser.parse_args()
-
-    if not os.path.isfile(opts.rom):
-        raise OSError("File '" + opts.rom + "' does not exist.")
-
-    if opts.frequency:
-        opts.frequency = int(opts.frequency)
-
-    return opts
-
-def main(opts):
-    """
-    Handles guacamole being called as a script.
-    """
-    guac = guacamole(opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer, opts.initram)
-    guac.log_to_screen = True
-    try:
-        while True:
-            guac.run()
-    except KeyboardInterrupt:
-        pass
-
-if __name__ == '__main__':
-    main(parse_args())

@@ -17,13 +17,10 @@ import time
 import textwrap
 import collections
 from enum import Enum
-from constants.curses import *
-from guacamole import guacamole, Emulation_Error
-from constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS
-from constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_WIDTH
-
-# Only used when called as script
-import argparse
+from .constants.curses import *
+from tortilla8.guacamole import guacamole, Emulation_Error
+from .constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS
+from .constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_WIDTH
 
 #TODO Allow editing controls
 #TODO Improve input. Only most recent button press is used. Also, E isn't mapped
@@ -35,7 +32,7 @@ import argparse
 
 class platter:
 
-    def __init__(self, rom, cpuhz, audiohz, delayhz, init_ram, drawfix, wave_file):
+    def __init__(self, rom, cpuhz, audiohz, delayhz, init_ram, drawfix, wave_file=None):
 
         # Init Curses
         self.screen = curses.initscr()
@@ -65,11 +62,13 @@ class platter:
 
         # Print FYI for sound
         self.wave_obj = None
+        if not wave_file:
+            wave_file = os.path.join('tortilla8','sound','play.wav')
         if sa is None:
             self.console_print("SimpleAudio is missing from your system. You can install it via 'pip install simpleaudio'. The sound timmer will not be raised.")
 
         # Init sound
-        elif os.path.isfile(wave_file):
+        elif wave_file.lower() != 'off':
             self.audio_playing = False
             self.wave_obj = sa.WaveObject.from_wave_file(wave_file)
             self.play_obj = None
@@ -221,22 +220,6 @@ class platter:
                                            self.emu.dis_ins.hex_instruction + " " + \
                                            self.emu.dis_ins.mnemonic)
 
-    def play_beep(self):
-        chunk = 1024
-        f = wave.open(r"sound/play.wav","rb")
-        p = pyaudio.PyAudio()
-        stream = p.open(format = p.get_format_from_width(f.getsampwidth()),
-                        channels = f.getnchannels(),
-                        rate = f.getframerate(),
-                        output = True)
-        data = f.readframes(chunk)
-        while data:
-            stream.write(data)
-            data = f.readframes(chunk)
-        stream.stop_stream()
-        stream.close()
-        p.terminate()
-
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Display functions for windows
 
@@ -365,44 +348,12 @@ class platter:
             self.w_game    = curses.newwin( DISPLAY_H, DISPLAY_W, 0, int( ( self.C - WIN_REG_W - DISPLAY_W ) / 2 ) )
             self.w_console = curses.newwin( self.L - DISPLAY_H - WIN_MENU_H, self.w_reg.getbegyx()[1], DISPLAY_H, 0 )
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Helper functions
+
 def hex2(integer):
     return "0x" + hex(integer)[2:].zfill(2)
 
 def hex3(integer):
     return "0x" + hex(integer)[2:].zfill(3)
-
-def parse_args():
-    parser = argparse.ArgumentParser(description='Platter is a text based front end for the Chip-8 emulator guacamole. ')
-    parser.add_argument('rom', help='ROM to load and play.')
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('-f','--frequency', default=10,help='CPU frequency (in Hz) to target, minimum 1 hz.')
-    group.add_argument('-s','--step', help='Start the emulator is "step" mode.',action='store_true')
-    parser.add_argument('-d','--drawfix', help='Enable anti-flicker, stops platter from drawing to screen when sprites are only removed.', action='store_true')
-    parser.add_argument('-i','--initram', help='Initialize RAM to all zero values. Needed to run some ROMs that assume untouched addresses to be zero.', action='store_true')
-    parser.add_argument('-a','--audio', help='Path to audio to play for Sound Timer, or "None" to prevent sound from playing.')
-    opts = parser.parse_args()
-
-    if not os.path.isfile(opts.rom):
-        raise OSError("File '" + opts.rom + "' does not exist")
-
-    if opts.frequency:
-        try: opts.frequency = int(opts.frequency)
-        except: raise ValueError("Non-numeric frequency provided")
-        if opts.frequency < 1:
-            raise ValueError("Please use step mode for sub 1 hz operation")
-
-    if opts.audio is None:
-        opts.audio = "sound/play.wav"
-
-    if opts.step:
-        opts.frequency = 1000000 # 1 Ghz
-
-    return opts
-
-def main(opts):
-    disp = platter(opts.rom, opts.frequency, 60, 60, opts.initram, opts.drawfix, opts.audio)
-    disp.start(opts.step)
-
-if __name__ == '__main__':
-    main(parse_args())
 

@@ -1,13 +1,8 @@
 #!/usr/bin/python3
 
-# Used only when called as script
-import os
-import argparse
-
-# Used by jalapeno
-from cilantro import cilantro
-from constants.symbols import BEGIN_COMMENT
-from constants.preprocessor import MODE_MARKS, EQU_MARKS, ELSE_IF, END_MARKS
+from tortilla8.cilantro import cilantro
+from .constants.symbols import BEGIN_COMMENT
+from .constants.preprocessor import MODE_MARKS, EQU_MARKS, ELSE_IF, END_MARKS
 
 #TODO Respect MODE_MARKS and add common directives to it.
 #TODO Remove excess whitespace when its around pre-proc directives
@@ -113,38 +108,6 @@ class jalapeno:
             else:
                 file_handler.write(tl.pp_line)
 
-
-def parse_args():
-    """
-    Parse arguments to guacamole when called as a script.
-    """
-    parser = argparse.ArgumentParser(description='Jalapeno will scan your CHIP-8 source code for pre-processor directives, \
-                                                  apply them as needed, and produce a flattend source file that can be \
-                                                  assembled with blackbean.')
-    parser.add_argument('input', help='File to assemble')
-    parser.add_argument('-o','--output',help='file to store processed source to, by default INPUT.jala is used.')
-    opts = parser.parse_args()
-
-    if not os.path.isfile(opts.input):
-        raise OSError("File '" + opts.input + "' does not exist.")
-    if not opts.output:
-        opts.output  = '.'.join(opts.input.split('.')[0:-1]) if opts.input.find('.') else opts.input
-        opts.output += '.jala'
-
-    return opts
-
-def main(opts):
-    """
-    Handles guacamole being called as a script.
-    """
-    pp = jalapeno()
-    with open(opts.input) as FH:
-        pp.process(FH)
-    with open(opts.output, 'w+') as FH:
-        pp.print_processed_source(FH)
-
-if __name__ == '__main__':
-    main(parse_args())
 
 
 
