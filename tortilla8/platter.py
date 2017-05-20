@@ -37,7 +37,7 @@ class platter:
 
         # Check if windows (no unicode in their Curses)
         self.unicode   = True if platform != 'win32' else False
-        self.draw_char = UNICODE_DRAW if self.unicod else WIN_DRAW
+        self.draw_char = UNICODE_DRAW if self.unicode else WIN_DRAW
 
         # Init Curses
         self.screen = curses.initscr()

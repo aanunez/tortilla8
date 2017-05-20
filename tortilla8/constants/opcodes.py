@@ -21,13 +21,13 @@ OP_CODES = {
             ['f.1e',['i','register'],'Fx1E']],
     'or'  :[['8..1',['register','register'],'8xy1']],
     'and' :[['8..2',['register','register'],'8xy2']],
-    'xor' :[['8..3',['register','register'],'8xy3']],#TODO not in orig spec.
+    'xor' :[['8..3',['register','register'],'8xy3']],
     'sub' :[['8..5',['register','register'],'8xy5']],
-    'subn':[['8..7',['register','register'],'8xy7']],#TODO not in orig spec.
-    'shr' :[['8..6',['register'],'8x06'],            #TODO not in orig spec.
-            ['    ',['register','register'],'8xy6']],#TODO not in orig spec.  # TODO no support in guac
-    'shl' :[['8..e',['register'],'8x0E'],            #TODO not in orig spec.
-            ['    ',['register','register'],'8xyE']],#TODO not in orig spec.  # TODO no support in guac
+    'subn':[['8..7',['register','register'],'8xy7']],
+    'shr' :[['8..6',['register'],'8x06'],
+            ['    ',['register','register'],'8xy6']],# TODO no support in guac
+    'shl' :[['8..e',['register'],'8x0E'],
+            ['    ',['register','register'],'8xyE']],# TODO no support in guac
     'rnd' :[['c...',['register','byte'],'Cxyy']],
     'jp'  :[['b...',['v0','address'],'Byyy'],
             ['1...',['address'],'1xxx']],
@@ -44,3 +44,4 @@ OP_CODES = {
             ['f.55',['[i]','register'],'Fy55']],
     'drw' :[['d...',['register','register','nibble'],'Dxyz']]
     }
+UNOFFICIAL_OP_CODES = ('xor','shr','shl','subn')

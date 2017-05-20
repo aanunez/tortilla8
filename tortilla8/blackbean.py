@@ -10,7 +10,6 @@ from .constants.symbols import BEGIN_COMMENT, HEX_ESC, BIN_ESC
 #                  SHR and SHL may or may not move Y (Shifted) into X or just shift X.
 
 #TODO don't allow modifying VF
-#TODO Use the "enfore" flag
 
 class blackbean:
     """
@@ -19,7 +18,7 @@ class blackbean:
     listing, or binary file.
     """
 
-    def __init__(self, token_collection=None):
+    def __init__(self, token_collection=None, enforce_offical_ins=False):
         """
         Init the token collection and memory map. Pre-Processor may
         have already done the hard bit for us. Memory addresses
@@ -28,6 +27,7 @@ class blackbean:
         self.collection = [] if token_collection is None else token_collection
         self.mmap       = {}
         self.address    = PROGRAM_BEGIN_ADDRESS
+        self.enforce    = enforce_offical_ins
 
     def reset(self, token_collection=None):
         """
@@ -126,6 +126,9 @@ class blackbean:
         if not tl.instruction:
             return
 
+        if self.enforce and tl.instruction in UNOFFICIAL_OP_CODES:
+            raise RuntimeError("Restricted instruction on line " + str(tl.line_numb) + "\n" + tl.original )
+
         for ver in OP_CODES[tl.instruction]:
             issue = False
 
@@ -203,8 +206,9 @@ class blackbean:
     def calc_data_declares(self, tl):
         """
         Resolve a data declarations into list of ints. These can
-        be easily written out. Size (# of bytes) was found when
-        tokenizing the line.
+        be easily written out. Support exists for Hex escaped values
+        just like on all other arguments, but also for binary
+        escaped (via $) in for the form '$1111....' or '$11110000'.
         """
         # Skip lines w/o dd
         if not tl.data_declarations:
