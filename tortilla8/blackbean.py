@@ -8,6 +8,7 @@ from .constants.symbols import BEGIN_COMMENT, HEX_ESC, BIN_ESC
 
 #Opcode reminders: SHR, SHL, XOR, and SUBN/SM are NOT offically supported by original spec
 #                  SHR and SHL may or may not move Y (Shifted) into X or just shift X.
+#                  Enforce flag can be used to prevent using them.
 
 #TODO don't allow modifying VF
 

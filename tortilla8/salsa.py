@@ -18,7 +18,6 @@ class salsa:
         # Match the instruction via a regex index
         for mnemonic, reg_patterns in OP_CODES.items():
             for pattern_version in reg_patterns:
-                #if pattern_version == '': continue
                 if not re.match(pattern_version[OP_REG], self.hex_instruction): continue
                 self.mnemonic = mnemonic
                 self.mnemonic_arg_types = pattern_version[OP_ARGS]

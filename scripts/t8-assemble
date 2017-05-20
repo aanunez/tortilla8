@@ -11,8 +11,7 @@ from tortilla8.blackbean import blackbean
 parser = argparse.ArgumentParser(description=\
 '''
 Assemble your CHIP-8 programs to executable machine code. Listing files and
-comment-striped files can also be generated. The "enforce" option is not
-currently supported.
+comment-striped files can also be generated.
 ''')
 parser.add_argument('input', nargs='?', help='File to assemble.')
 parser.add_argument('-o','--output',help='Name of every generated file, will have either "strip", "lst", or "ch8" appended.')
