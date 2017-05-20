@@ -28,6 +28,8 @@ if not os.path.isfile(opts.input):
 if not opts.output:
     opts.output  = '.'.join(opts.input.split('.')[0:-1]) if opts.input.find('.') != -1 else opts.input
 
+print(opts.output)
+
 bb = blackbean()
 with open(opts.input) as fh:
     bb.assemble(fh)

@@ -11,7 +11,21 @@ Tortilla8 is a collection of Chip8 tools for per-processing, assembling, emulati
 * Platter is untested on Mac. May work after installing a curses varient.
 * Keypad input could be better
 
-## Usage & Scripts
+## Setup
+
+Setup is strait forward, two optional dependencies are used for emulation (the platter module), Simple Audio and Curses, the later of which is discussed below on an OS-to-OS bases.
+
+```
+\# Navigate to the root of the package
+\# If you haven't installed pip, do that
+python -m pip install -U pip setuptools
+\# Install tortiall8
+sudo pip install .
+\# Install Simple Audio (optional)
+sudo pip install simpleaudio
+```
+
+## Scripts
 
 Scripts exist that wrap the below modules to enable easy action for the user.
 
@@ -161,19 +175,26 @@ Text based GUI for Guacamole that requires curses and simpleaudio, see below for
 
 Kivy based gui intended to be highly portable. No work has started yet.
 
-## Platter Compatability
+## Demo
+
+After insallation you can pre-processes, assemble, and emulate the provided ROM by navigating to the package's root directory and...
+```
+\# Pre-Proc and Assemble, then Emulate at 250Hz
+t8-preproc roms/vertical_stripes.asm
+t8-assemble roms/vertical_stripes_pp.asm -o roms/demo
+t8-emulate roms/demo.ch8 -f 150
+```
+
+## Platter Compatability (Curses)
 
 ### Running on GNU/Linux, BSD variants
 
-Install SimpleAudio via pip for sound in platter (optional), Curses should ship with your python install.
+Curses should ship with your python install, I have had no issues thus far.
 
 ### Running on Windows
 
-Install SimpleAudio via pip for sound in platter, this is optional.
 Windows does not ship with Curses, which is needed by platter, so you'll need install the wheel package yourself from [here](http://www.lfd.uci.edu/~gohlke/pythonlibs/). The 'cp34' (CPython 3.4) was tested on Windows 7. Once the package is downloaded, just cd to the directory and install via pip.
 ```
-:: If you haven't installed pip, do that
-python -m pip install -U pip setuptools
 :: If you haven't installed Wheel, do that
 pip install wheel
 :: Install Curses for win32
