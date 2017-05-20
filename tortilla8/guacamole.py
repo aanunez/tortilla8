@@ -54,7 +54,7 @@ class guacamole:
 
         # Program Counter
         self.program_counter = PROGRAM_BEGIN_ADDRESS
-        self.calling_pc      = 0
+        self.calling_pc      = PROGRAM_BEGIN_ADDRESS
 
         # I/O
         self.keypad      = [False] * 16
@@ -177,7 +177,7 @@ class guacamole:
 
         # Print what was processed to screen
         if self.log_to_screen:
-            print( hex(self.program_counter) + " " + self.dis_ins.hex_instruction + " " + self.dis_ins.mnemonic )
+            print( hex(self.calling_pc) + " " + self.dis_ins.hex_instruction + " " + self.dis_ins.mnemonic )
 
         # Increment the PC
         self.calling_pc = self.program_counter

@@ -17,7 +17,8 @@ def dissassemble_file(in_handler, out_handler):
 parser = argparse.ArgumentParser(description=
 '''
 Dissassemble a Chip8 ROM, any byte pair that is not an instruction is assumed
-to be a data declaration, regardless of it being referenced.
+to be a data declaration. No checks are performed to insure the program is
+valid.
 ''')
 parser.add_argument('rom', nargs='?', help='File to disassemble.')
 parser.add_argument('-o','--output',help='File to write to.')

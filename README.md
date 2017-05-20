@@ -15,11 +15,121 @@ Tortilla8 is a collection of Chip8 tools for per-processing, assembling, emulati
 
 Scripts exist that wrap the below modules to enable easy action for the user.
 
-* t8-preproc
-* t8-assemble
-* t8-disassemble
-* t8-execute
-* t8-emulate
+### t8-preproc
+```
+usage: t8-preproc [-h] [-d DEFINE [DEFINE ...]] [-o OUTPUT] input
+
+Scan your CHIP-8 source code for pre-processor directives, apply them as
+needed, and produce a flattend source file. Respected Directives are: 'ifdef',
+'ifndef', 'elif', 'elseif', 'elifdef','elseifdef', 'endif', 'else', 'equ',
+'='. Currently, no mode modifers ('option', 'align' etc) are respected.
+
+positional arguments:
+  input                 File to assemble.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -d DEFINE [DEFINE ...], --define DEFINE [DEFINE ...]
+                        Strings to define as true for evaluation of pre-
+                        processor directives.
+  -o OUTPUT, --output OUTPUT
+                        File to store processed source to, by default
+                        INPUT_pp.asm is used.
+```
+
+### t8-assemble
+```
+usage: t8-assemble [-h] [-o OUTPUT] [-l] [-s] [-e] [input]
+
+Assemble your CHIP-8 programs to executable machine code. Listing files and
+comment-striped files can also be generated. Arguments to mnemonics must be
+either be integers in decimal or hex using '#' as a prefix. Data declares may
+also be prefixed with '$' to denote binary (i.e. '$11001100' or '$11..11..').
+
+positional arguments:
+  input                 File to assemble.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o OUTPUT, --output OUTPUT
+                        Name of every generated file, will have either
+                        "strip", "lst", or "ch8" appended.
+  -l, --list            Generate listing file and store to OUTPUT.lst file.
+  -s, --strip           Strip comments and store to OUTPUT.strip file.
+  -e, --enforce         Force original Chip-8 specification and do not allow
+                        SHR, SHL, XOR, or SUBN instructions.
+```
+
+### t8-disassemble
+```
+usage: t8-disassemble [-h] [-o OUTPUT] [rom]
+
+Dissassemble a Chip8 ROM, any byte pair that is not an instruction is assumed
+to be a data declaration. No checks are performed to insure the program is
+valid.
+
+positional arguments:
+  rom                   File to disassemble.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o OUTPUT, --output OUTPUT
+                        File to write to.
+```
+
+### t8-execute
+```
+usage: t8-execute [-h] [-f FREQUENCY] [-st SOUNDTIMER] [-dt DELAYTIMER] [-i] rom
+
+Execute a rom to quickly check for errors. The program counter, hex
+instruction (the two bytes that make up the opcode), and mnemonic are printed
+to the screen immediately after the execution of that operation code. All
+errors (info, warning, and fatal) are printed to screen.
+
+positional arguments:
+  rom                   ROM to load and play.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -f FREQUENCY, --frequency FREQUENCY
+                        Frequency (in Hz) to target for CPU.
+  -st SOUNDTIMER, --soundtimer SOUNDTIMER
+                        Frequency (in Hz) to target for the audio timmer.
+  -dt DELAYTIMER, --delaytimer DELAYTIMER
+                        Frequency (in Hz) to target for the delay timmer.
+  -i, --initram         Initialize RAM to all zero values.
+```
+
+### t8-emulate
+```
+usage: t8-emulate [-h] [-f FREQUENCY | -s] [-d] [-i] [-a AUDIO]
+                  [-st SOUNDTIMER] [-dt DELAYTIMER]
+                  rom
+
+Start a text (unicdoe) based Chip8 emulator which disaplys a game screen, all
+registers, the stack, recently processed instructions, and a console to log
+any issues that occur.
+
+positional arguments:
+  rom                   ROM to load and play.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -f FREQUENCY, --frequency FREQUENCY
+                        CPU frequency (in Hz) to target, minimum 1 hz.
+  -s, --step            Start the emulator is "step" mode.
+  -d, --drawfix         Enable anti-flicker, stops platter from drawing to
+                        screen when sprites are only removed.
+  -i, --initram         Initialize RAM to all zero values. Needed to run some
+                        ROMs that assume untouched addresses to be zero.
+  -a AUDIO, --audio AUDIO
+                        Path to audio to play for Sound Timer, or "off" to
+                        prevent sound from playing.
+  -st SOUNDTIMER, --soundtimer SOUNDTIMER
+                        Frequency (in Hz) to target for the audio timmer.
+  -dt DELAYTIMER, --delaytimer DELAYTIMER
+                        Frequency (in Hz) to target for the delay timmer.
+```
 
 ## Modules
 

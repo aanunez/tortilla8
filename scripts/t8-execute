@@ -12,8 +12,10 @@ def pos_int(value):
 
 parser = argparse.ArgumentParser(description=
 '''
-Execute a rom to quickly check for errors, instructions are printed to screen
-immediately after execution of that operation code.
+Execute a rom to quickly check for errors. The program counter, hex instruction (the two
+bytes that make up the opcode), and mnemonic are printed to the screen immediately after
+the execution of that operation code. All errors (info, warning, and fatal) are printed
+to screen.
 ''')
 parser.add_argument('rom', help='ROM to load and play.')
 parser.add_argument("-f","--frequency",   type=pos_int, default=5,  help='Frequency (in Hz) to target for CPU.')
