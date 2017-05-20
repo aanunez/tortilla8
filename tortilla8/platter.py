@@ -65,18 +65,23 @@ class platter:
         if self.w_game is None:
             self.console_print("Window must be atleast "+ str(DISPLAY_MIN_W) + "x" + str(DISPLAY_MIN_H) +" to display the game screen")
 
-        # Print FYI for sound
+        # Load default sound
         self.wave_obj = None
         if not wave_file:
             wave_file = os.path.join('tortilla8','sound','play.wav')
+
+        # Print FYI for sound if no SA
         if sa is None:
             self.console_print("SimpleAudio is missing from your system. You can install it via 'pip install simpleaudio'. The sound timmer will not be raised.")
 
-        # Init sound
+        # Init sound if available
         elif wave_file.lower() != 'off':
-            self.audio_playing = False
-            self.wave_obj = sa.WaveObject.from_wave_file(wave_file)
-            self.play_obj = None
+            try:
+                self.wave_obj = sa.WaveObject.from_wave_file(wave_file)
+                self.play_obj = None
+                self.audio_playing = False
+            except FileNotFoundError:
+                self.console_print("No sound file provided as parameter. Unable to load default 'play.wav' from sound directory.")
 
         # Init the emulator
         self.emu = guacamole(rom, cpuhz, audiohz, delayhz, init_ram)
