@@ -4,14 +4,13 @@ import warnings
 from tortilla8.cilantro import cilantro
 from .constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, ARG_SUB, OVERFLOW_ADDRESS, REGISTERS
 from .constants.opcodes import OP_CODES, OP_CODE_SIZE, OP_ARGS, OP_HEX
-from .constants.symbols import BEGIN_COMMENT, HEX_ESC
+from .constants.symbols import BEGIN_COMMENT, HEX_ESC, BIN_ESC
 
 #Opcode reminders: SHR, SHL, XOR, and SUBN/SM are NOT offically supported by original spec
 #                  SHR and SHL may or may not move Y (Shifted) into X or just shift X.
 
 #TODO don't allow modifying VF
 #TODO Use the "enfore" flag
-#TODO support for $ notation
 
 class blackbean:
     """
@@ -219,6 +218,11 @@ class blackbean:
                 arg = arg[1:]
                 if len(arg) == (2 * tl.data_size):
                     try: val = int(arg, 16)
+                    except: pass
+            elif arg[0] is BIN_ESC:
+                arg = arg[1:].replace('.',0)
+                if len(arg) == (8 * tl.data_size):
+                    try: val = int(arg, 2)
                     except: pass
             elif arg.isdigit():
                 val = int(arg)
