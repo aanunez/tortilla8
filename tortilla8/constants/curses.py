@@ -28,9 +28,19 @@ LEN_STR_REG = len("Regiters")
 LEN_STR_STA = len("Stack")
 
 # Action Keys
-KEY_STEP  = 's'
-KEY_EXIT  = 'x'
-KEY_RESET = 'r'
+KEY_ESC   = 27  # Invisable esc
+KEY_ARROW = 91  # '['
+KEY_STEP  = 115 #S
+KEY_EXIT  = 120 #X
+KEY_RESET = 114 #R
+
+KEY_CONTROLS={
+48:0x0, 49:0x1, 50:0x2, 51:0x3, # 0 1 2 3
+52:0x4, 53:0x5, 54:0x6, 55:0x7, # 4 5 6 7
+56:0x8, 57:0x9, 47:0xA, 42:0xB, # 8 9 / *
+45:0xC, 43:0xD, 10:0xE, 46:0xF} # - + E .
+
+KEY_ARROW_MAP={65:'up',66:'down',67:'right',68:'left'}
 
 # Graphics Draw
 from collections import namedtuple

@@ -54,13 +54,6 @@ class platter:
         self.clear_all_windows()
         self.init_logs()
 
-        # Define control mapping
-        self.controls={
-        '0':0x0, '1':0x1, '2':0x2, '3':0x3,
-        '4':0x4, '5':0x5, '6':0x6, '7':0x7,
-        '8':0x8, '9':0x9, '//':0xA,'*':0xB,
-        '-':0xC, '+':0xD, ';':0xE, '.':0xF}
-
         # Print FYI for game window
         if self.w_game is None:
             self.console_print("Window must be atleast "+ str(DISPLAY_MIN_W) + "x" + str(DISPLAY_MIN_H) +" to display the game screen")
@@ -106,24 +99,33 @@ class platter:
         key_msg_displayed = False
 
         if step_mode:
-            self.console_print("Emulator started in step mode. Press '" + KEY_STEP.upper() + "' to process one instruction.")
+            self.console_print("Emulator started in step mode. Press '" + chr(KEY_STEP).upper() + "' to process one instruction.")
 
         try:
+
             while True:
 
-                # Try to get a keypress
-                try:
-                    key = self.w_console.getkey()
-                except:
-                    key = ''
-                    pass
+                # Grab key, escape any arrow seq
+                key = self.w_console.getch()
+                if key == KEY_ESC:
+                    key = self.w_console.getch()
+                    if key == KEY_ARROW:
+                        key = KEY_ARROW_MAP[self.w_console.getch()]
+
+                # Freq modifications
+                if key == 'up':
+                    self.emu.cpu_hz *= 1.05
+                    self.emu.cpu_wait = 1/self.emu.cpu_hz
+                if key == 'down':
+                    self.emu.cpu_hz = 1 if self.emu.cpu_hz * .95 < 1 else self.emu.cpu_hz * .95
+                    self.emu.cpu_wait = 1/self.emu.cpu_hz
 
                 # Update Keypad press
                 if time.time() - key_press_time > 0.5: #TODO Better input?
                     self.emu.keypad = [False] * 16
                     key_press_time = time.time()
-                if key in self.controls:
-                    self.emu.keypad[self.controls[key]] = True
+                if key in KEY_CONTROLS:
+                    self.emu.keypad[KEY_CONTROLS[key]] = True
 
                 # Exit check
                 if key == KEY_EXIT:
@@ -160,7 +162,7 @@ class platter:
                 # Detect jp Spinning
                 elif not self.halt and self.emu.spinning:
                     self.instr_history.appendleft(hex3(self.emu.program_counter) + " spin jp")
-                    self.console_print("Spin detected. Press '" + KEY_EXIT.upper() + "' to exit")
+                    self.console_print("Spin detected. Press '" + chr(KEY_EXIT).upper() + "' to exit")
                     self.halt  = True
 
                 # Toggle for Step Mode
@@ -207,7 +209,7 @@ class platter:
             self.console_print( str(err[0]) + ": " + err[1] )
             if err[0] is Emulation_Error._Fatal:
                 self.halt = True
-                self.console_print( "Fatal error has occured. Press '" + KEY_RESET.upper() + "' to reset" )
+                self.console_print( "Fatal error has occured. Press '" + chr(KEY_RESET).upper() + "' to reset" )
 
         # Manually reset
         self.emu.error_log = []
@@ -324,11 +326,11 @@ class platter:
     def display_menu(self):
         if self.w_menu is None: return
         prefix = ""
-        cpu_hz = str(self.emu.cpu_hz)
+        cpu_hz = str(self.emu.cpu_hz) if self.emu.cpu_hz > 1e3 else str(self.emu.cpu_hz)[0:5]
         for pre,val in PREFIX:
             if self.emu.cpu_hz % val != self.emu.cpu_hz:
                 prefix = pre
-                cpu_hz = str(self.emu.cpu_hz / val)
+                cpu_hz = str(self.emu.cpu_hz / val)[0:5]
                 break
         left = "E̲xit  ̲Reset  ̲Step"
         right = "🡹🡻 Freq " + cpu_hz + prefix + "hz"
