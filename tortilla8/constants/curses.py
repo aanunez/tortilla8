@@ -50,7 +50,7 @@ KEY_ARROW_MAP={65:'up',66:'down',67:'right',68:'left'}
 from collections import namedtuple
 CHAR_SET = namedtuple('CHAR_SET', 'upper lower both empty')
 UNICODE_DRAW = CHAR_SET('▀','▄','█',' ')
-WIN_DRAW = CHAR_SET('^','v','8',' ')
+WIN_DRAW = CHAR_SET('*','o','8',' ')
 
 KEYPAD_DRAW=[
 '┌────────────────┐',
