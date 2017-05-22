@@ -15,8 +15,12 @@ REG_OFFSET  = 15
 STAK_OFFSET = 4
 
 # Min size to function
-W_MIN       = 80
-H_MIN       = 24
+W_MIN = 80
+H_MIN = 24
+
+# Messages to display when window is too small
+DY_MSG_1 = "Window too small"
+DY_MSG_2 = "Resize to " + str(W_MIN) + "x" + str(H_MIN)
 
 # Display size, and mins
 DISPLAY_MIN_W = 104
@@ -30,9 +34,9 @@ LEN_STR_STA = len("Stack")
 # Action Keys
 KEY_ESC   = 27  # Invisable esc
 KEY_ARROW = 91  # '['
-KEY_STEP  = 115 #S
-KEY_EXIT  = 120 #X
-KEY_RESET = 114 #R
+KEY_STEP  = 115 # S
+KEY_EXIT  = 120 # X
+KEY_RESET = 114 # R
 
 KEY_CONTROLS={
 48:0x0, 49:0x1, 50:0x2, 51:0x3, # 0 1 2 3

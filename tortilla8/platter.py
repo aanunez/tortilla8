@@ -24,8 +24,7 @@ from .constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS
 from .constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_WIDTH
 
 #TODO Allow editing controls
-#TODO Improve input. Only most recent button press is used. Also, E isn't mapped
-#TODO Dynamic freq control
+#TODO Improve input. Only most recent button press is used.
 
 #TODO Support non 64x32 displays
 #TODO double the resolution if window is large enough
@@ -41,8 +40,8 @@ class platter:
 
         # Init Curses
         self.screen = curses.initscr()
-        self.C = self.screen.getmaxyx()[1]
-        self.L = self.screen.getmaxyx()[0]
+        self.screen.clear()
+        self.L, self.C = self.screen.getmaxyx()
 
         # Used for graphics "smoothing" w/ -d flag
         self.draw_fix = drawfix
@@ -94,6 +93,11 @@ class platter:
         self.instr_history   = collections.deque(maxlen = self.w_instr.getmaxyx()[0] - BORDERS)
         self.console_history = collections.deque(maxlen = self.w_console.getmaxyx()[0] - BORDERS)
 
+    def resize_logs(self):
+        if (self.w_instr.getmaxyx()[0] - BORDERS) != self.instr_history.maxlen:
+            self.instr_history
+        self.console_history
+
     def start(self, step_mode=False):
         key_press_time = 0
         key_msg_displayed = False
@@ -115,10 +119,8 @@ class platter:
                 # Freq modifications
                 if key == 'up':
                     self.emu.cpu_hz *= 1.05
-                    self.emu.cpu_wait = 1/self.emu.cpu_hz
                 if key == 'down':
                     self.emu.cpu_hz = 1 if self.emu.cpu_hz * .95 < 1 else self.emu.cpu_hz * .95
-                    self.emu.cpu_wait = 1/self.emu.cpu_hz
 
                 # Update Keypad press
                 if time.time() - key_press_time > 0.5: #TODO Better input?
@@ -342,10 +344,18 @@ class platter:
     # Dynamic Window Generator
 
     def dynamic_window_gen(self):
-
-        if (self.L < H_MIN) or (self.C < W_MIN):
-            self.cleanup()
-            raise IOError("Terminal window too small to use.\nResize to atleast " + str(W_MIN) + "x" + str(H_MIN)) # TODO display resize message?
+        while (self.L < H_MIN) or (self.C < W_MIN):
+            try:
+                self.screen.addstr(int(self.L/2)-1,   int( (self.C - len(DY_MSG_1)) /2 ) , DY_MSG_1)
+                self.screen.addstr(int(self.L/2), int( (self.C - len(DY_MSG_2)) /2 ) , DY_MSG_2)
+                self.screen.refresh()
+                if curses.is_term_resized(self.L, self.C):
+                    self.L, self.C = self.screen.getmaxyx()
+                    curses.resizeterm(self.L, self.C)
+                    self.screen.clear()
+            except:
+                self.cleanup()
+                raise IOError("Terminal window too small to use.\nResize to atleast " + str(W_MIN) + "x" + str(H_MIN))
 
         self.w_reg     = curses.newwin( WIN_REG_H, WIN_REG_W , 0, int( self.C - WIN_REG_W ) )
         self.w_instr   = curses.newwin( self.L - WIN_REG_H, WIN_INSTR_W, WIN_REG_H, self.w_reg.getbegyx()[1] )
