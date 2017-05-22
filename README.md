@@ -16,12 +16,12 @@ Tortilla8 is a collection of Chip8 tools for per-processing, assembling, emulati
 Setup is strait forward, two optional dependencies are used for emulation (the platter module), Simple Audio and Curses, the later of which is discussed below on an OS-to-OS bases.
 
 ```
-\# Navigate to the root of the package
-\# If you haven't installed pip, do that
+# Navigate to the root of the package
+# If you haven't installed pip, do that
 python -m pip install -U pip setuptools
-\# Install tortiall8
+# Install tortiall8
 sudo pip install .
-\# Install Simple Audio (optional)
+# Install Simple Audio (optional)
 sudo pip install simpleaudio
 ```
 
@@ -179,7 +179,7 @@ Kivy based gui intended to be highly portable. No work has started yet.
 
 After insallation you can pre-processes, assemble, and emulate the provided ROM by navigating to the package's root directory and...
 ```
-\# Pre-Proc and Assemble, then Emulate at 250Hz
+# Pre-Proc and Assemble, then Emulate at 250Hz
 t8-preproc roms/vertical_stripes.asm
 t8-assemble roms/vertical_stripes_pp.asm -o roms/demo
 t8-emulate roms/demo.ch8 -f 150
