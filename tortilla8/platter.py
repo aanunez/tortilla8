@@ -270,7 +270,7 @@ class platter:
     def display_logo(self):
         if self.screen.getmaxyx()[0] < LOGO_MIN: return
         if not self.unicode: return
-        logo_offset = int( ( self.w_logo.getmaxyx()[0] - len(LOGO) ) / 2 )
+        logo_offset = ( self.w_logo.getmaxyx()[0] - len(LOGO) ) // 2
         for i in range(len(LOGO)):
             self.w_logo.addstr( i + logo_offset, 0, LOGO[i] )
         self.w_logo.noutrefresh()
@@ -309,7 +309,7 @@ class platter:
 
     def display_registers(self):
         for i in range(NUMB_OF_REGS):
-            self.w_reg.addstr( int( i / 4 ) + 2, i % 4 * 9 + 2, hex(i)[2] + ": " + hex2(self.emu.register[i]) )
+            self.w_reg.addstr( ( i // 4 ) + 2, i % 4 * 9 + 2, hex(i)[2] + ": " + hex2(self.emu.register[i]) )
         self.w_reg.addstr(6, 1, " dt: " + hex2(self.emu.delay_timer_register) + \
                                "  st: " + hex2(self.emu.sound_timer_register) + \
                                 "  i: " + hex3(self.emu.index_register))
@@ -346,8 +346,8 @@ class platter:
     def dynamic_window_gen(self):
         while (self.L < H_MIN) or (self.C < W_MIN):
             try:
-                self.screen.addstr(int(self.L/2)-1,   int( (self.C - len(DY_MSG_1)) /2 ) , DY_MSG_1)
-                self.screen.addstr(int(self.L/2), int( (self.C - len(DY_MSG_2)) /2 ) , DY_MSG_2)
+                self.screen.addstr(self.L//2 -1, (self.C - len(DY_MSG_1)) //2 , DY_MSG_1)
+                self.screen.addstr(self.L//2,    (self.C - len(DY_MSG_2)) //2 , DY_MSG_2)
                 self.screen.refresh()
                 if curses.is_term_resized(self.L, self.C):
                     self.L, self.C = self.screen.getmaxyx()
@@ -357,7 +357,7 @@ class platter:
                 self.cleanup()
                 raise IOError("Terminal window too small to use.\nResize to atleast " + str(W_MIN) + "x" + str(H_MIN))
 
-        self.w_reg     = curses.newwin( WIN_REG_H, WIN_REG_W , 0, int( self.C - WIN_REG_W ) )
+        self.w_reg     = curses.newwin( WIN_REG_H, WIN_REG_W , 0, self.C - WIN_REG_W )
         self.w_instr   = curses.newwin( self.L - WIN_REG_H, WIN_INSTR_W, WIN_REG_H, self.w_reg.getbegyx()[1] )
         self.w_stack   = curses.newwin( self.L - WIN_REG_H, WIN_STACK_W, WIN_REG_H, self.w_instr.getbegyx()[1] + WIN_INSTR_W )
         self.w_logo    = curses.newwin( self.L - WIN_REG_H, WIN_LOGO_W , WIN_REG_H, self.w_stack.getbegyx()[1] + WIN_STACK_W )
@@ -368,7 +368,7 @@ class platter:
         if (self.L < DISPLAY_MIN_H) or (self.C < DISPLAY_MIN_W):
             self.w_console = curses.newwin( self.L - WIN_MENU_H,  self.w_reg.getbegyx()[1], 0, 0 )
         else:
-            self.w_game    = curses.newwin( DISPLAY_H, DISPLAY_W, 0, int( ( self.C - WIN_REG_W - DISPLAY_W ) / 2 ) )
+            self.w_game    = curses.newwin( DISPLAY_H, DISPLAY_W, 0, ( self.C - WIN_REG_W - DISPLAY_W ) // 2 )
             self.w_console = curses.newwin( self.L - DISPLAY_H - WIN_MENU_H, self.w_reg.getbegyx()[1], DISPLAY_H, 0 )
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
