@@ -187,7 +187,7 @@ class guacamole:
         # Execute instruction
         if self.dis_ins.is_valid:
             self.ins_tbl[self.dis_ins.mnemonic]()
-            if self.warn_exotic_ins and self.dis_inis.unoffical_op:
+            if self.warn_exotic_ins and self.dis_ins.unoffical_op:
                 self.emu_log("Unoffical instruction '" + self.dis_ins.mnemonic +"' executed at " + hex(self.program_counter), self.warn_exotic_ins)
 
         # Error out. NOTE: to add new instruction update OP_CODES and self.ins_tbl

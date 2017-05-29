@@ -12,19 +12,21 @@ def pos_int(value):
 
 parser = argparse.ArgumentParser(description=
 '''
-Start a text (unicdoe) based Chip8 emulator which disaplys a game screen, all
+Start a text (unicode) based Chip8 emulator which disaplys a game screen, all
 registers, the stack, recently processed instructions, and a console to log
 any issues that occur.
 ''')
 parser.add_argument('rom', help='ROM to load and play.')
 group = parser.add_mutually_exclusive_group()
 group.add_argument('-f','--frequency', type=pos_int, default=10,help='CPU frequency (in Hz) to target, minimum 1 hz.')
-group.add_argument('-s','--step',     help='Start the emulator is "step" mode.',action='store_true')
+group.add_argument('-s','--step', help='Start the emulator is "step" mode.',action='store_true')
 parser.add_argument('-d','--drawfix', help='Enable anti-flicker, stops platter from drawing to screen when sprites are only removed.', action='store_true')
 parser.add_argument('-i','--initram', help='Initialize RAM to all zero values. Needed to run some ROMs that assume untouched addresses to be zero.', action='store_true')
-parser.add_argument('-a','--audio',   help='Path to audio to play for Sound Timer, or "off" to prevent sound from playing.')
+parser.add_argument('-a','--audio', help='Path to audio to play for Sound Timer, or "off" to prevent sound from playing.')
 parser.add_argument("-st","--soundtimer", type=pos_int, default=60, help='Frequency (in Hz) to target for the audio timmer.')
 parser.add_argument("-dt","--delaytimer", type=pos_int, default=60, help='Frequency (in Hz) to target for the delay timmer.')
+parser.add_argument('-ls','--legacy_shift', help='Use the legacy shift method of bit shift Y and storing to X.', action='store_true')
+parser.add_argument("-e","--enforce_instructions", default='None', help='Warning to log if an unoffical instruction is executed. Options: None Info Warning Fatal')
 opts = parser.parse_args()
 
 if not os.path.isfile(opts.rom):
@@ -33,6 +35,6 @@ if not os.path.isfile(opts.rom):
 if opts.step:
     opts.frequency = 1000000 # 1 Ghz
 
-disp = platter(opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer, opts.initram, opts.drawfix, opts.audio)
+disp = platter(opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer, opts.initram, opts.drawfix, opts.legacy_shift, opts.enforce_instructions, opts.audio)
 disp.start(opts.step)
 

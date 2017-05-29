@@ -23,8 +23,6 @@ from tortilla8.guacamole import guacamole, Emulation_Error
 from .constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS
 from .constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_WIDTH
 
-#TODO pass through for shift (old/new) functionality
-
 #TODO Allow editing controls
 #TODO Improve input. Only most recent button press is used.
 
@@ -34,7 +32,7 @@ from .constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_
 
 class platter:
 
-    def __init__(self, rom, cpuhz, audiohz, delayhz, init_ram, drawfix, wave_file=None):
+    def __init__(self, rom, cpuhz, audiohz, delayhz, init_ram, drawfix, legacy_shift, enforce_ins,wave_file=None):
 
         # Check if windows (no unicode in their Curses)
         self.unicode   = True if platform != 'win32' else False
@@ -78,7 +76,7 @@ class platter:
                 self.console_print("No sound file provided as parameter. Unable to load default 'play.wav' from sound directory.")
 
         # Init the emulator
-        self.emu = guacamole(rom, cpuhz, audiohz, delayhz, init_ram)
+        self.emu = guacamole(rom, cpuhz, audiohz, delayhz, init_ram, legacy_shift, enforce_ins)
         self.check_emu_log()
         self.init_emu_status()
 
