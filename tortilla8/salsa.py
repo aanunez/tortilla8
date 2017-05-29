@@ -4,63 +4,67 @@ import re
 from collections import namedtuple
 from .constants.opcodes import OP_REG, OP_ARGS, OP_CODES, UNOFFICIAL_OP_CODES
 
+salsa_data = namedtuple('salsa_data', 'hex_instruction is_valid mnemonic\
+    mnemonic_arg_types disassembled_line unoffical_op')
+
 def salsa(byte_list):
     '''
-    Salsa is a one line (2 byte) dissassembler function for CHIP-8 Roms. It
+    Salsa is a one line (2 byte) dissassembler function for CHIP-8 Rom It
     returns a named tuple with various information on the line.
     '''
-    s = namedtuple('salsa_data', 'hex_instruction is_valid mnemonic\
-        mnemonic_arg_types disassembled_line unoffical_op')
-    s.hex_instruction =  hex( byte_list[0] )[2:].zfill(2)
-    s.hex_instruction += hex( byte_list[1] )[2:].zfill(2)
-    s.is_valid = False
-    s.mnemonic = None
-    s.mnemonic_arg_types = None
-    s.disassembled_line = ""
-    s.unoffical_op = False
+    hex_instruction =  hex( byte_list[0] )[2:].zfill(2)
+    hex_instruction += hex( byte_list[1] )[2:].zfill(2)
+    is_valid = False
+    mnemonic = None
+    mnemonic_arg_types = None
+    disassembled_line = ""
+    unoffical_op = False
 
     # Match the instruction via a regex index
     for mnemonic, reg_patterns in OP_CODES.items():
         for pattern_version in reg_patterns:
-            if not re.match(pattern_version[OP_REG], s.hex_instruction): continue
-            s.mnemonic = mnemonic
-            s.mnemonic_arg_types = pattern_version[OP_ARGS]
-            s.is_valid = True
+            if not re.match(pattern_version[OP_REG], hex_instruction): continue
+            mnemonic = mnemonic
+            mnemonic_arg_types = pattern_version[OP_ARGS]
+            is_valid = True
             break
-        if s.is_valid:
+        if is_valid:
             break
 
     # If not a valid instruction, assume data
-    if not s.is_valid:
-        s.disassembled_line = s.hex_instruction
-        return s
+    if not is_valid:
+        disassembled_line = hex_instruction
+        return salsa_data(hex_instruction, is_valid, mnemonic,
+            mnemonic_arg_types, disassembled_line, unoffical_op)
 
     # If unoffical, flag it.
-    if s.mnemonic in UNOFFICIAL_OP_CODES:
-        s.unoffical_op = True
+    if mnemonic in UNOFFICIAL_OP_CODES:
+        unoffical_op = True
 
     # No args to parse
-    if s.mnemonic_arg_types is None:
-        s.disassembled_line = s.mnemonic
-        return s
+    if mnemonic_arg_types is None:
+        disassembled_line = mnemonic
+        return salsa_data(hex_instruction, is_valid, mnemonic,
+            mnemonic_arg_types, disassembled_line, unoffical_op)
 
     # Parse Args
     tmp = ''
     reg_numb = 1
-    for arg_type in s.mnemonic_arg_types:
+    for arg_type in mnemonic_arg_types:
         if arg_type is 'register':
-            tmp = 'v'+s.hex_instruction[reg_numb]
+            tmp = 'v'+hex_instruction[reg_numb]
         elif arg_type is 'byte':
-            tmp = '#'+s.hex_instruction[2:]
+            tmp = '#'+hex_instruction[2:]
         elif arg_type is 'address':
-            tmp = '#'+s.hex_instruction[1:]
+            tmp = '#'+hex_instruction[1:]
         elif arg_type is 'nibble':
-            tmp = '#'+s.hex_instruction[3]
+            tmp = '#'+hex_instruction[3]
         else:
             tmp = arg_type
-        s.disassembled_line += tmp.ljust(5) + ','
+        disassembled_line += tmp.ljust(5) + ','
         reg_numb = 2
 
-    s.disassembled_line = (s.mnemonic.ljust(5) + s.disassembled_line[:-1]).rstrip()
-    return s
+    disassembled_line = (mnemonic.ljust(5) + disassembled_line[:-1]).rstrip()
+    return salsa_data(hex_instruction, is_valid, mnemonic,
+        mnemonic_arg_types, disassembled_line, unoffical_op)
 

@@ -6,6 +6,7 @@ import time     # CPU Frequency
 import random   # RND instruction
 from enum import Enum
 from tortilla8.salsa import salsa
+from collections import namedtuple, deque
 from .constants.reg_rom_stack import BYTES_OF_RAM, PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS, MAX_ROM_SIZE, STACK_ADDRESS, STACK_SIZE
 from .constants.graphics import GFX_FONT, GFX_FONT_ADDRESS, GFX_RESOLUTION, GFX_ADDRESS, GFX_WIDTH, GFX_HEIGHT_PX, GFX_WIDTH_PX
 
@@ -30,6 +31,10 @@ class Emulation_Error(Enum):
         if (value == "fatal"):
             return self._Fatal
         return None
+
+rewind_ds = namedtuple('rewind_data', 'ram register index_register \
+ delay_timer_register sound_timer_register dis_ins program_counter \
+ calling_pc stack stack_pointer draw_flag waiting_for_key spinning')
 
 class guacamole:
     """
@@ -80,9 +85,12 @@ class guacamole:
         self.stack = []
         self.stack_pointer = 0
 
-        # Instruction modifications
+        # Instruction modification settings
         self.legacy_shift = legacy_shift
         self.warn_exotic_ins = Emulation_Error.from_string(err_unoffical)
+
+        # Rewind Info
+        self.rewind_data = deque(maxlen=30)
 
         # # # # # # # # # # # # # # # # # # # # # # # #
         # Private
@@ -201,6 +209,12 @@ class guacamole:
         # Increment the PC
         self.calling_pc = self.program_counter
         self.program_counter += 2
+
+    def save_rewind_data(self):
+        pass
+
+    def rewind(self, depth):
+        pass
 
     def emu_log(self, message, error_type):
         '''
