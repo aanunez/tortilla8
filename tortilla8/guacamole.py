@@ -10,7 +10,6 @@ from collections import namedtuple, deque
 from .constants.reg_rom_stack import BYTES_OF_RAM, PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS, MAX_ROM_SIZE, STACK_ADDRESS, STACK_SIZE
 from .constants.graphics import GFX_FONT, GFX_FONT_ADDRESS, GFX_RESOLUTION, GFX_ADDRESS, GFX_WIDTH, GFX_HEIGHT_PX, GFX_WIDTH_PX
 
-# TODO Rewind is mostly broken
 # TODO 'Load' logs fatal errors right now, should all instructions check the structure of input args?
 
 class Emulation_Error(Enum):
@@ -42,7 +41,7 @@ class guacamole:
     at a select frequency with various other options available.
     """
 
-    def __init__(self, rom=None, cpuhz=200, audiohz=60, delayhz=60, init_ram=False, legacy_shift=False, err_unoffical="None", rewind_depth=50):
+    def __init__(self, rom=None, cpuhz=200, audiohz=60, delayhz=60, init_ram=False, legacy_shift=False, err_unoffical="None", rewind_depth=1):
         '''
         Init the RAM, registers, instruction information, IO, load the ROM etc. ROM
         is a path to a chip-8 rom, *hz is the frequency to target for for the cpu,

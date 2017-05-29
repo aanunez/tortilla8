@@ -13,11 +13,11 @@ except ImportError:
 
 # Everything else
 from sys import platform
-import os
-import time
-import textwrap
-import collections
+from os import path
 from enum import Enum
+from textwrap import wrap
+from time import time, sleep
+from collections import deque
 from .constants.curses import *
 from tortilla8.guacamole import guacamole, Emulation_Error
 from .constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS
@@ -62,7 +62,7 @@ class platter:
         # Load default sound
         self.wave_obj = None
         if not wave_file:
-            wave_file = os.path.join('tortilla8','sound','play.wav')
+            wave_file = path.join('tortilla8','sound','play.wav')
 
         # Print FYI for sound if no SA
         if sa is None:
@@ -92,8 +92,8 @@ class platter:
         self.halt        = False
 
     def init_logs(self):
-        self.instr_history   = collections.deque(maxlen = self.w_instr.getmaxyx()[0] - BORDERS)
-        self.console_history = collections.deque(maxlen = self.w_console.getmaxyx()[0] - BORDERS)
+        self.instr_history   = deque(maxlen = self.w_instr.getmaxyx()[0] - BORDERS)
+        self.console_history = deque(maxlen = self.w_console.getmaxyx()[0] - BORDERS)
 
     def resize_logs(self):
         if (self.w_instr.getmaxyx()[0] - BORDERS) != self.instr_history.maxlen:
@@ -121,13 +121,15 @@ class platter:
                 # Freq modifications
                 if key == 'up':
                     self.emu.cpu_hz *= 1.05
+                    self.emu.cpu_wait = 1/self.emu.cpu_hz
                 if key == 'down':
                     self.emu.cpu_hz = 1 if self.emu.cpu_hz * .95 < 1 else self.emu.cpu_hz * .95
+                    self.emu.cpu_wait = 1/self.emu.cpu_hz
 
                 # Update Keypad press
-                if time.time() - key_press_time > 0.5: #TODO Better input?
+                if time() - key_press_time > 0.5: #TODO Better input?
                     self.emu.keypad = [False] * 16
-                    key_press_time = time.time()
+                    key_press_time = time()
                 if key in KEY_CONTROLS:
                     self.emu.keypad[KEY_CONTROLS[key]] = True
 
@@ -201,6 +203,9 @@ class platter:
                     self.clear_all_windows()
                     self.init_logs()
 
+                # Don't waste too many cycles
+                sleep(self.emu.cpu_wait * 0.25)
+
                 self.check_emu_log()
                 self.update_screen()
 
@@ -245,7 +250,7 @@ class platter:
     # Display functions for windows
 
     def console_print(self, message):
-        message_list = textwrap.wrap("-" + message, self.w_console.getmaxyx()[1]- (BORDERS + 1) )
+        message_list = wrap("-" + message, self.w_console.getmaxyx()[1]- (BORDERS + 1) )
         for msg in reversed(message_list):
             self.console_history.appendleft( msg.ljust(self.w_console.getmaxyx()[1] - (BORDERS + 1) ) )
         for i,val in enumerate(self.console_history):

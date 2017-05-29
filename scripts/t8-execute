@@ -2,6 +2,7 @@
 
 import os
 import argparse
+from time import sleep
 from tortilla8.guacamole import guacamole
 
 def pos_int(value):
@@ -31,9 +32,12 @@ if not os.path.isfile(opts.rom):
 
 guac = guacamole(opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer, opts.initram, opts.legacy_shift, opts.enforce_instructions)
 guac.log_to_screen = True
+sleep_time = (1/opts.frequency)*.98
 try:
     while True:
         guac.run()
+        sleep(sleep_time)
+
 except KeyboardInterrupt:
     pass
 
