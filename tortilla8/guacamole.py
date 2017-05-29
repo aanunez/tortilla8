@@ -206,15 +206,15 @@ class guacamole:
         if self.log_to_screen:
             print( hex(self.calling_pc) + " " + self.dis_ins.hex_instruction + " " + self.dis_ins.mnemonic )
 
+        # Increment the PC
+        self.calling_pc = self.program_counter
+        self.program_counter += 2
+
         # Save Rewind Data
         self.rewind_frames.append( rewind_data(self.ram.copy(), self.register.copy(), self.index_register,
             self.delay_timer_register, self.sound_timer_register, self.dis_ins, self.program_counter,
             self.calling_pc, self.stack.copy(), self.stack_pointer, self.draw_flag, self.waiting_for_key,
             self.spinning ) )
-
-        # Increment the PC
-        self.calling_pc = self.program_counter
-        self.program_counter += 2
 
     def rewind(self, depth):
         '''
