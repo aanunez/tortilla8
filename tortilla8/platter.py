@@ -23,6 +23,8 @@ from tortilla8.guacamole import guacamole, Emulation_Error
 from .constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS
 from .constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_WIDTH
 
+#TODO pass through for shift (old/new) functionality
+
 #TODO Allow editing controls
 #TODO Improve input. Only most recent button press is used.
 

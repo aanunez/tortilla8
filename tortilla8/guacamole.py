@@ -9,9 +9,8 @@ from tortilla8.salsa import salsa
 from .constants.reg_rom_stack import BYTES_OF_RAM, PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS, MAX_ROM_SIZE, STACK_ADDRESS, STACK_SIZE
 from .constants.graphics import GFX_FONT, GFX_FONT_ADDRESS, GFX_RESOLUTION, GFX_ADDRESS, GFX_WIDTH, GFX_HEIGHT_PX, GFX_WIDTH_PX
 
-# TODO 'Load' logs fatal warnings right now, should all instructions check the structure of input args?
-# TODO Shift L/R behavior needs a toggle for "old" and "new" behavior
-# TODO Log a warning when running a unoffical instruction? (enforce flag?)
+# TODO add rewind feature
+# TODO 'Load' logs fatal errors right now, should all instructions check the structure of input args?
 
 class Emulation_Error(Enum):
     _Information = 1
@@ -21,19 +20,33 @@ class Emulation_Error(Enum):
     def __str__(self):
         return self.name[1:]
 
+    @classmethod
+    def from_string(self, value):
+        value = value.lower()
+        if (value == "info") or (value == "information"):
+            return self._Information
+        if (value == "warning"):
+            return self._Warning
+        if (value == "fatal"):
+            return self._Fatal
+        return None
+
 class guacamole:
     """
     Guacamole is an emulator class that will happily emulate a Chip-8 ROM
     at a select frequency with various other options available.
     """
 
-    def __init__(self, rom=None, cpuhz=200, audiohz=60, delayhz=60, init_ram=False):
+    def __init__(self, rom=None, cpuhz=200, audiohz=60, delayhz=60, init_ram=False, legacy_shift=False, err_unoffical="None"):
         '''
         Init the RAM, registers, instruction information, IO, load the ROM etc. ROM
         is a path to a chip-8 rom, *hz is the frequency to target for for the cpu,
         audio register, or delay register. Init_Ram signals that the RAM should be
         initialized to zero. Not initializing the RAM is a great way to find
-        incorrect RAM accesses.
+        incorrect RAM accesses. Legacy Shift can be set to true to use the older
+        'Store shift Y to X' rather than 'Shift X' method of bitshifting. Lastly,
+        err_unoffical can be used to log an error when an offical instruction is
+        found in the program.
         '''
         random.seed()
 
@@ -66,6 +79,10 @@ class guacamole:
         # Stack
         self.stack = []
         self.stack_pointer = 0
+
+        # Instruction modifications
+        self.legacy_shift = legacy_shift
+        self.warn_exotic_ins = Emulation_Error.from_string(err_unoffical)
 
         # # # # # # # # # # # # # # # # # # # # # # # #
         # Private
@@ -170,6 +187,8 @@ class guacamole:
         # Execute instruction
         if self.dis_ins.is_valid:
             self.ins_tbl[self.dis_ins.mnemonic]()
+            if self.warn_exotic_ins and self.dis_inis.unoffical_op:
+                self.emu_log("Unoffical instruction '" + self.dis_ins.mnemonic +"' executed at " + hex(self.program_counter), self.warn_exotic_ins)
 
         # Error out. NOTE: to add new instruction update OP_CODES and self.ins_tbl
         else:
@@ -218,7 +237,7 @@ class guacamole:
         self.stack_pointer += 1
         self.stack.append(self.program_counter)
         if self.stack_pointer > STACK_SIZE:
-            self.emu_log("Warning: Stack overflow. Stack is now size " + self.stack_pointer, Emulation_Error._Warning)
+            self.emu_log("Stack overflow. Stack is now size " + self.stack_pointer, Emulation_Error._Warning)
         self.program_counter = self.get_address() - 2
 
     def i_skp(self):
@@ -239,13 +258,21 @@ class guacamole:
         if  self.get_reg1_val() != comp:
             self.program_counter += 2
 
-    def i_shl(self):                                         #TODO add option to respect "old" shift
-        self.register[0xF] = 0x01 if self.get_reg1_val() >= 0x80 else 0x0
-        self.register[ self.get_reg1() ] = ( self.get_reg1_val() << 1 ) & 0xFF
+    def i_shl(self):
+        if self.legacy_shift:
+            self.register[0xF] = 0x01 if self.get_reg2_val() >= 0x80 else 0x0
+            self.register[ self.get_reg1() ] = ( self.get_reg2_val() << 1 ) & 0xFF
+        else:
+            self.register[0xF] = 0x01 if self.get_reg1_val() >= 0x80 else 0x0
+            self.register[ self.get_reg1() ] = ( self.get_reg1_val() << 1 ) & 0xFF
 
-    def i_shr(self):                                         #TODO add option to respect "old" shift
-        self.register[0xF] = 0x01 if ( self.get_reg1_val() % 2) == 1 else 0x0
-        self.register[ self.get_reg1() ] = self.get_reg1_val() >> 1
+    def i_shr(self):
+        if self.legacy_shift:
+            self.register[0xF] = 0x01 if ( self.get_reg2_val() % 2) == 1 else 0x0
+            self.register[ self.get_reg1() ] = self.get_reg2_val() >> 1
+        else:
+            self.register[0xF] = 0x01 if ( self.get_reg1_val() % 2) == 1 else 0x0
+            self.register[ self.get_reg1() ] = self.get_reg1_val() >> 1
 
     def i_or(self):
         self.register[ self.get_reg1() ] = self.get_reg1_val() | self.get_reg2_val()

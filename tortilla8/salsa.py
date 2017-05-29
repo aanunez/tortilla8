@@ -1,19 +1,25 @@
 #!/usr/bin/python3
 
 import re
-from .constants.opcodes import OP_REG, OP_ARGS, OP_CODES
+from .constants.opcodes import OP_REG, OP_ARGS, OP_CODES, UNOFFICIAL_OP_CODES
 
-# TODO Strings, comments
+#TODO Remove class, should just be a function that returns a tuple/dict
 
 class salsa:
+    '''
+    '''
 
     def __init__(self, byte_list):
+        '''
+        '''
+
         self.hex_instruction =  hex( byte_list[0] )[2:].zfill(2)
         self.hex_instruction += hex( byte_list[1] )[2:].zfill(2)
         self.is_valid = False
         self.mnemonic = None
         self.mnemonic_arg_types = None
         self.disassembled_line = ""
+        self.unoffical_op = False
 
         # Match the instruction via a regex index
         for mnemonic, reg_patterns in OP_CODES.items():
@@ -30,6 +36,10 @@ class salsa:
         if not self.is_valid:
             self.disassembled_line = self.hex_instruction
             return
+
+        # If unoffical, flag it.
+        if self.mnemonic in UNOFFICIAL_OP_CODES:
+            self.unoffical_op = True
 
         # No args to parse
         if self.mnemonic_arg_types is None:
