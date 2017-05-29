@@ -23,6 +23,8 @@ from tortilla8.guacamole import guacamole, Emulation_Error
 from .constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS
 from .constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_WIDTH
 
+#TODO Better rewind support
+
 #TODO Allow editing controls
 #TODO Improve input. Only most recent button press is used.
 
@@ -132,6 +134,11 @@ class platter:
                 # Exit check
                 if key == KEY_EXIT:
                     break
+
+                # Rewind check:
+                if key == KEY_REWIN:
+                    self.emu.rewind(5)
+                    continue
 
                 # Reset check
                 if key == KEY_RESET:
@@ -334,7 +341,7 @@ class platter:
                 prefix = pre
                 cpu_hz = str(self.emu.cpu_hz / val)[0:5]
                 break
-        left = "E̲xit  ̲Reset  ̲Step"
+        left = "E̲xit  ̲Reset  ̲Step  Re̲wind"
         right = "🡹🡻 Freq " + cpu_hz + prefix + "hz"
         middle = " " * ( self.w_menu.getmaxyx()[1] - len(left) - len(right) - 1 )
         self.w_menu.addstr( 1, 2, left + middle + right )

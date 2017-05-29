@@ -10,7 +10,7 @@ from collections import namedtuple, deque
 from .constants.reg_rom_stack import BYTES_OF_RAM, PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS, MAX_ROM_SIZE, STACK_ADDRESS, STACK_SIZE
 from .constants.graphics import GFX_FONT, GFX_FONT_ADDRESS, GFX_RESOLUTION, GFX_ADDRESS, GFX_WIDTH, GFX_HEIGHT_PX, GFX_WIDTH_PX
 
-# TODO add rewind feature
+# TODO Rewind is mostly broken
 # TODO 'Load' logs fatal errors right now, should all instructions check the structure of input args?
 
 class Emulation_Error(Enum):
@@ -32,7 +32,7 @@ class Emulation_Error(Enum):
             return self._Fatal
         return None
 
-rewind_ds = namedtuple('rewind_data', 'ram register index_register \
+rewind_data = namedtuple('rewind_data', 'ram register index_register \
  delay_timer_register sound_timer_register dis_ins program_counter \
  calling_pc stack stack_pointer draw_flag waiting_for_key spinning')
 
@@ -42,7 +42,7 @@ class guacamole:
     at a select frequency with various other options available.
     """
 
-    def __init__(self, rom=None, cpuhz=200, audiohz=60, delayhz=60, init_ram=False, legacy_shift=False, err_unoffical="None"):
+    def __init__(self, rom=None, cpuhz=200, audiohz=60, delayhz=60, init_ram=False, legacy_shift=False, err_unoffical="None", rewind_depth=50):
         '''
         Init the RAM, registers, instruction information, IO, load the ROM etc. ROM
         is a path to a chip-8 rom, *hz is the frequency to target for for the cpu,
@@ -90,7 +90,7 @@ class guacamole:
         self.warn_exotic_ins = Emulation_Error.from_string(err_unoffical)
 
         # Rewind Info
-        self.rewind_data = deque(maxlen=30)
+        self.rewind_frames = deque(maxlen=rewind_depth)
 
         # # # # # # # # # # # # # # # # # # # # # # # #
         # Private
@@ -206,15 +206,31 @@ class guacamole:
         if self.log_to_screen:
             print( hex(self.calling_pc) + " " + self.dis_ins.hex_instruction + " " + self.dis_ins.mnemonic )
 
+        # Save Rewind Data
+        self.rewind_frames.append( rewind_data(self.ram.copy(), self.register.copy(), self.index_register,
+            self.delay_timer_register, self.sound_timer_register, self.dis_ins, self.program_counter,
+            self.calling_pc, self.stack.copy(), self.stack_pointer, self.draw_flag, self.waiting_for_key,
+            self.spinning ) )
+
         # Increment the PC
         self.calling_pc = self.program_counter
         self.program_counter += 2
 
-    def save_rewind_data(self):
-        pass
-
     def rewind(self, depth):
-        pass
+        '''
+        '''
+        frame = None
+        try:
+            for _ in range(depth):
+                frame = self.rewind_frames.pop()
+        except IndexError:
+            if frame is None:
+                return
+        self.ram, self.register, self.index_register = frame.ram, frame.register, frame.index_register
+        self.delay_timer_register, self.sound_timer_register = frame.delay_timer_register, frame.sound_timer_register
+        self.dis_ins, self.program_counter, self.calling_pc = frame.dis_ins, frame.program_counter, frame.calling_pc
+        self.stack, self.stack_pointer = frame.stack, frame.stack_pointer
+        self.draw_flag, self.waiting_for_key, self.spinning = frame.draw_flag, frame.waiting_for_key, frame.spinning
 
     def emu_log(self, message, error_type):
         '''
