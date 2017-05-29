@@ -31,9 +31,9 @@ class Emulation_Error(Enum):
             return self._Fatal
         return None
 
-rewind_data = namedtuple('rewind_data', 'ram register index_register \
- delay_timer_register sound_timer_register dis_ins program_counter \
- calling_pc stack stack_pointer draw_flag waiting_for_key spinning')
+rewind_data = namedtuple('rewind_data', 'ram_diff register index_register \
+ delay_timer_register sound_timer_register program_counter calling_pc \
+ stack stack_pointer draw_flag waiting_for_key spinning')
 
 class guacamole:
     """
@@ -41,7 +41,7 @@ class guacamole:
     at a select frequency with various other options available.
     """
 
-    def __init__(self, rom=None, cpuhz=200, audiohz=60, delayhz=60, init_ram=False, legacy_shift=False, err_unoffical="None", rewind_depth=1):
+    def __init__(self, rom=None, cpuhz=200, audiohz=60, delayhz=60, init_ram=False, legacy_shift=False, err_unoffical="None", rewind_depth=5000):
         '''
         Init the RAM, registers, instruction information, IO, load the ROM etc. ROM
         is a path to a chip-8 rom, *hz is the frequency to target for for the cpu,
@@ -210,10 +210,21 @@ class guacamole:
         self.program_counter += 2
 
         # Save Rewind Data
-        self.rewind_frames.append( rewind_data(self.ram.copy(), self.register.copy(), self.index_register,
-            self.delay_timer_register, self.sound_timer_register, self.dis_ins, self.program_counter,
-            self.calling_pc, self.stack.copy(), self.stack_pointer, self.draw_flag, self.waiting_for_key,
-            self.spinning ) )
+        # Stats at depth of 5000
+        # New way = 37.7 (71% of prev)
+        # old way = 52.8 (full copy of ram)
+        ram_diff = {}
+        try:
+            for i in range(len(self.ram)):
+                if self.ram[i] != self.rewind_frames[-1].ram_diff.get(i, self.ram[0]):
+                    ram_diff[i] = self.ram[i]
+        except IndexError:
+            for i in range(len(self.ram)):
+                if self.ram[i] != self.ram[0]:
+                    ram_diff[i] = self.ram[i]
+        self.rewind_frames.append( rewind_data(ram_diff, self.register.copy(), self.index_register,
+            self.delay_timer_register, self.sound_timer_register, self.program_counter, self.calling_pc,
+            self.stack.copy(), self.stack_pointer, self.draw_flag, self.waiting_for_key, self.spinning ) )
 
     def rewind(self, depth):
         '''
@@ -222,12 +233,14 @@ class guacamole:
         try:
             for _ in range(depth):
                 frame = self.rewind_frames.pop()
+                for pair in frame.ram_diff.items():
+                    self.ram[pair[0]] = pair[1]
         except IndexError:
             if frame is None:
                 return
-        self.ram, self.register, self.index_register = frame.ram, frame.register, frame.index_register
+        self.register, self.index_register = frame.register, frame.index_register
         self.delay_timer_register, self.sound_timer_register = frame.delay_timer_register, frame.sound_timer_register
-        self.dis_ins, self.program_counter, self.calling_pc = frame.dis_ins, frame.program_counter, frame.calling_pc
+        self.program_counter, self.calling_pc = frame.program_counter, frame.calling_pc
         self.stack, self.stack_pointer = frame.stack, frame.stack_pointer
         self.draw_flag, self.waiting_for_key, self.spinning = frame.draw_flag, frame.waiting_for_key, frame.spinning
 
