@@ -33,7 +33,7 @@ class Emulation_Error(Enum):
 
 rewind_data = namedtuple('rewind_data', 'ram_diff register index_register \
  delay_timer_register sound_timer_register program_counter calling_pc \
- stack stack_pointer draw_flag waiting_for_key spinning')
+ dis_ins stack stack_pointer draw_flag waiting_for_key spinning')
 
 class guacamole:
     """
@@ -180,6 +180,9 @@ class guacamole:
         else:
             self.prev_keypad = self.decode_keypad()
 
+        # Record current PC
+        self.calling_pc = self.program_counter
+
         # Reset error log
         self.error = []
 
@@ -206,25 +209,25 @@ class guacamole:
             print( hex(self.calling_pc) + " " + self.dis_ins.hex_instruction + " " + self.dis_ins.mnemonic )
 
         # Increment the PC
-        self.calling_pc = self.program_counter
         self.program_counter += 2
 
         # Save Rewind Data
-        # Stats at depth of 5000
-        # New way = 37.7 (71% of prev)
+        # Stats at depth of 5000 ( 7.6 megs are used with no rewind )
+        # New way = 37.7 (71% of prev) (6 kb per frame)
         # old way = 52.8 (full copy of ram)
         ram_diff = {}
         try:
-            for i in range(len(self.ram)):
+            for i in range(0x200, len(self.ram) - 0x200):
                 if self.ram[i] != self.rewind_frames[-1].ram_diff.get(i, self.ram[0]):
                     ram_diff[i] = self.ram[i]
         except IndexError:
-            for i in range(len(self.ram)):
+            for i in range(0x200, len(self.ram) - 0x200):
                 if self.ram[i] != self.ram[0]:
                     ram_diff[i] = self.ram[i]
         self.rewind_frames.append( rewind_data(ram_diff, self.register.copy(), self.index_register,
             self.delay_timer_register, self.sound_timer_register, self.program_counter, self.calling_pc,
-            self.stack.copy(), self.stack_pointer, self.draw_flag, self.waiting_for_key, self.spinning ) )
+            self.dis_ins + (), self.stack.copy(), self.stack_pointer, self.draw_flag, self.waiting_for_key,
+            self.spinning ) )
 
     def rewind(self, depth):
         '''
@@ -241,7 +244,7 @@ class guacamole:
         self.register, self.index_register = frame.register, frame.index_register
         self.delay_timer_register, self.sound_timer_register = frame.delay_timer_register, frame.sound_timer_register
         self.program_counter, self.calling_pc = frame.program_counter, frame.calling_pc
-        self.stack, self.stack_pointer = frame.stack, frame.stack_pointer
+        self.dis_ins, self.stack, self.stack_pointer = self.dis_ins, frame.stack, frame.stack_pointer
         self.draw_flag, self.waiting_for_key, self.spinning = frame.draw_flag, frame.waiting_for_key, frame.spinning
 
     def emu_log(self, message, error_type):

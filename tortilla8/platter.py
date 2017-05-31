@@ -140,6 +140,7 @@ class platter:
                 # Rewind check:
                 if key == KEY_REWIN:
                     self.emu.rewind(5)
+                    self.instr_history.appendleft("rewind: " + hex3(self.emu.program_counter))
                     continue
 
                 # Reset check
@@ -150,8 +151,14 @@ class platter:
                     self.clear_all_windows()
                     continue
 
-                # Step if requested
+                # Step check
                 if key == KEY_STEP:
+                    step_mode = True
+                    self.halt = False
+
+                # Resume check
+                if key == KEY_RESUM:
+                    step_mode = False
                     self.halt = False
 
                 # Try to tick the cpu
@@ -203,11 +210,12 @@ class platter:
                     self.clear_all_windows()
                     self.init_logs()
 
-                # Don't waste too many cycles
-                sleep(self.emu.cpu_wait * 0.25)
-
+                # Update the logs/screen
                 self.check_emu_log()
                 self.update_screen()
+
+                # Don't waste too many cycles
+                sleep(self.emu.cpu_wait * 0.25)
 
             self.update_screen()
         except KeyboardInterrupt:
@@ -346,7 +354,7 @@ class platter:
                 prefix = pre
                 cpu_hz = str(self.emu.cpu_hz / val)[0:5]
                 break
-        left = "E̲xit  ̲Reset  ̲Step  Re̲wind"
+        left = "E̲xit  ̲Reset  ̲Step  Re̲wind  Res̲ume"
         right = "🡹🡻 Freq " + cpu_hz + prefix + "hz"
         middle = " " * ( self.w_menu.getmaxyx()[1] - len(left) - len(right) - 1 )
         self.w_menu.addstr( 1, 2, left + middle + right )
