@@ -31,7 +31,7 @@ class Emulation_Error(Enum):
             return self._Fatal
         return None
 
-rewind_data = namedtuple('rewind_data', 'ram_diff register index_register \
+rewind_data = namedtuple('rewind_data', 'gfx_buffer register index_register \
  delay_timer_register sound_timer_register program_counter calling_pc \
  dis_ins stack stack_pointer draw_flag waiting_for_key spinning')
 
@@ -110,7 +110,7 @@ class guacamole:
         self.delay_time = 0
 
         # Load Font, clear screen
-        self.ram[GFX_FONT_ADDRESS:GFX_FONT_ADDRESS + len(GFX_FONT)] = [i for i in GFX_FONT]
+        self.ram[GFX_FONT_ADDRESS:GFX_FONT_ADDRESS + len(GFX_FONT)] = GFX_FONT
         self.ram[GFX_ADDRESS:GFX_ADDRESS + GFX_RESOLUTION] = [0x00] * GFX_RESOLUTION
 
         # Notification
@@ -180,10 +180,8 @@ class guacamole:
         else:
             self.prev_keypad = self.decode_keypad()
 
-        # Record current PC
+        # Record current PC, Reset error log
         self.calling_pc = self.program_counter
-
-        # Reset error log
         self.error = []
 
         # Dissassemble next instruction
@@ -208,39 +206,36 @@ class guacamole:
         if self.log_to_screen:
             print( hex(self.calling_pc) + " " + self.dis_ins.hex_instruction + " " + self.dis_ins.mnemonic )
 
-        # Increment the PC
+        # Increment the PC, Store Rewind Data
         self.program_counter += 2
+        self.store_rewind_data()
 
-        # Save Rewind Data
-        # Stats at depth of 5000 ( 7.6 megs are used with no rewind )
-        # New way = 37.7 (71% of prev) (6 kb per frame)
-        # old way = 52.8 (full copy of ram)
-        ram_diff = {}
-        try:
-            for i in range(0x200, len(self.ram) - 0x200):
-                if self.ram[i] != self.rewind_frames[-1].ram_diff.get(i, self.ram[0]):
-                    ram_diff[i] = self.ram[i]
-        except IndexError:
-            for i in range(0x200, len(self.ram) - 0x200):
-                if self.ram[i] != self.ram[0]:
-                    ram_diff[i] = self.ram[i]
-        self.rewind_frames.append( rewind_data(ram_diff, self.register.copy(), self.index_register,
+    def store_rewind_data(self):
+        '''
+        Save the current state of the emulator.
+        Without rewind guac/platter use 7.6 megs of RAM. Using rewind uses
+        2.64 kB of ram per frame.
+        '''
+        if self.rewind_frames.maxlen == 0:
+            return
+        gfx_buffer = self.ram[GFX_ADDRESS:GFX_ADDRESS + GFX_RESOLUTION]
+        self.rewind_frames.append( rewind_data(gfx_buffer, self.register.copy(), self.index_register,
             self.delay_timer_register, self.sound_timer_register, self.program_counter, self.calling_pc,
             self.dis_ins + (), self.stack.copy(), self.stack_pointer, self.draw_flag, self.waiting_for_key,
             self.spinning ) )
 
     def rewind(self, depth):
         '''
+        "Un-ticks" the CPU depth many times.
         '''
         frame = None
         try:
             for _ in range(depth):
                 frame = self.rewind_frames.pop()
-                for pair in frame.ram_diff.items():
-                    self.ram[pair[0]] = pair[1]
         except IndexError:
             if frame is None:
                 return
+        self.ram[GFX_ADDRESS:GFX_ADDRESS + GFX_RESOLUTION] = frame.gfx_buffer
         self.register, self.index_register = frame.register, frame.index_register
         self.delay_timer_register, self.sound_timer_register = frame.delay_timer_register, frame.sound_timer_register
         self.program_counter, self.calling_pc = frame.program_counter, frame.calling_pc
