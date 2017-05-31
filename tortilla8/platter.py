@@ -128,6 +128,7 @@ class platter:
 
                 # Update Keypad press
                 if time() - key_press_time > 0.5: #TODO Better input?
+                    self.emu.prev_keypad = 0
                     self.emu.keypad = [False] * 16
                     key_press_time = time()
                 if key in KEY_CONTROLS:

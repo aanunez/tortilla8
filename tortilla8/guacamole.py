@@ -173,7 +173,7 @@ class guacamole:
         '''
         Ticks the CPU forward a cycle without regard for the target frequency.
         '''
-        # Handle the ld k,reg instruction
+        # Handle the ld reg,k instruction
         if self.waiting_for_key:
             self.handle_load_key()
             return
@@ -462,7 +462,7 @@ class guacamole:
     # Helpers for Load Key ( Private )
 
     def decode_keypad(self):
-        return int(''.join(['1' if x else '0' for x in self.keypad]))
+        return int(''.join(['1' if x else '0' for x in self.keypad]),2)
 
     def handle_load_key(self):
         k = self.decode_keypad()
