@@ -26,15 +26,14 @@ from .constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_
 #TODO Better rewind support
 
 #TODO Allow editing controls
-#TODO Improve input. Only most recent button press is used.
+#TODO Improve input.
 
-#TODO Support non 64x32 displays
 #TODO double the resolution if window is large enough
 #TODO add Keypad display?
 
 class platter:
 
-    def __init__(self, rom, cpuhz, audiohz, delayhz, init_ram, drawfix, legacy_shift, enforce_ins,wave_file=None):
+    def __init__(self, rom, cpuhz, audiohz, delayhz, init_ram, legacy_shift, enforce_ins, rewind_depth, drawfix, wave_file=None):
 
         # Check if windows (no unicode in their Curses)
         self.unicode   = True if platform != 'win32' else False
@@ -78,9 +77,10 @@ class platter:
                 self.console_print("No sound file provided as parameter. Unable to load default 'play.wav' from sound directory.")
 
         # Init the emulator
-        self.emu = guacamole(rom, cpuhz, audiohz, delayhz, init_ram, legacy_shift, enforce_ins)
+        self.emu = guacamole(rom, cpuhz, audiohz, delayhz, init_ram, legacy_shift, enforce_ins, rewind_depth)
         self.check_emu_log()
         self.init_emu_status()
+        self.rewind_size = 1
 
         # Curses settings
         curses.noecho()
@@ -126,6 +126,12 @@ class platter:
                     self.emu.cpu_hz = 1 if self.emu.cpu_hz * .95 < 1 else self.emu.cpu_hz * .95
                     self.emu.cpu_wait = 1/self.emu.cpu_hz
 
+                # Rewind modifications
+                if key == 'left':
+                    self.rewind_size -= 1 if self.rewind_size > 1 else 0
+                if key == 'right':
+                    self.rewind_size += 1
+
                 # Update Keypad press
                 if time() - key_press_time > 0.5: #TODO Better input?
                     self.emu.prev_keypad = 0
@@ -140,7 +146,7 @@ class platter:
 
                 # Rewind check:
                 if key == KEY_REWIN:
-                    self.emu.rewind(5)
+                    self.emu.rewind(self.rewind_size)
                     self.instr_history.appendleft("rewind: " + hex3(self.emu.program_counter))
                     continue
 
@@ -356,8 +362,8 @@ class platter:
                 cpu_hz = str(self.emu.cpu_hz / val)[0:5]
                 break
         left = "E̲xit  ̲Reset  ̲Step  Re̲wind  Res̲ume"
-        right = "🡹🡻 Freq " + cpu_hz + prefix + "hz"
-        middle = " " * ( self.w_menu.getmaxyx()[1] - len(left) - len(right) - 1 )
+        right = "⇄ RwSize " + str(self.rewind_size) + "  " + "⇅ Freq " + cpu_hz + prefix + "hz"
+        middle = " " * ( self.w_menu.getmaxyx()[1] - len(left) - len(right) + 1 )
         self.w_menu.addstr( 1, 2, left + middle + right )
         self.w_menu.noutrefresh()
 
