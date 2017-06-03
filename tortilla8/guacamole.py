@@ -11,6 +11,7 @@ from .constants.reg_rom_stack import BYTES_OF_RAM, PROGRAM_BEGIN_ADDRESS, NUMB_O
 from .constants.graphics import GFX_FONT, GFX_FONT_ADDRESS, GFX_RESOLUTION, GFX_ADDRESS,
                                 GFX_WIDTH, GFX_HEIGHT_PX, GFX_WIDTH_PX
 
+# TODO Rewind bug when waiting for keypress
 # TODO 'Load' logs fatal errors right now, should all instructions check the structure of input args?
 
 class Emulation_Error(Enum):
@@ -41,7 +42,6 @@ class guacamole:
     Guacamole is an emulator class that will happily emulate a Chip-8 ROM
     at a select frequency with various other options available.
     """
-
     def __init__(self, rom=None, cpuhz=200, audiohz=60, delayhz=60,
                  init_ram=False, legacy_shift=False, err_unoffical="None",
                  rewind_depth=5000):
@@ -92,7 +92,7 @@ class guacamole:
         self.warn_exotic_ins = Emulation_Error.from_string(err_unoffical)
 
         # Rewind Info
-        self.rewind_frames = deque(maxlen=rewind_depth)
+        self.rewind_frames = None if rewind_depth == 0 else deque(maxlen=rewind_depth)
 
         # # # # # # # # # # # # # # # # # # # # # # # #
         # Private
@@ -224,7 +224,7 @@ class guacamole:
         Without rewind guac/platter use 7.6 megs of RAM. Using rewind uses
         2.64 kB of ram per frame.
         '''
-        if self.rewind_frames.maxlen == 0:
+        if not self.rewind_frames:
             return
         gfx_buffer = self.ram[GFX_ADDRESS:GFX_ADDRESS + GFX_RESOLUTION]
         self.rewind_frames.append( rewind_data(gfx_buffer, self.register.copy(), self.index_register,
