@@ -79,7 +79,7 @@ class platter:
 
         # Init the emulator
         self.emu = guacamole(rom, cpuhz, audiohz, delayhz, init_ram, legacy_shift, enforce_ins)
-        self.check_emu_log()
+        self.check_log()
         self.init_emu_status()
 
         # Curses settings
@@ -212,7 +212,7 @@ class platter:
                     self.init_logs()
 
                 # Update the logs/screen
-                self.check_emu_log()
+                self.check_log()
                 self.update_screen()
 
                 # Don't waste too many cycles
@@ -226,7 +226,7 @@ class platter:
         finally:
             self.cleanup()
 
-    def check_emu_log(self):
+    def check_log(self):
         # Print all logged errors in the emu
         for err in reversed(self.emu.error_log):
             self.console_print( str(err[0]) + ": " + err[1] )
@@ -378,11 +378,11 @@ class platter:
                 self.cleanup()
                 raise IOError("Terminal window too small to use.\nResize to atleast " + str(W_MIN) + "x" + str(H_MIN))
 
-        self.w_reg     = curses.newwin( WIN_REG_H, WIN_REG_W , 0, self.C - WIN_REG_W )
-        self.w_instr   = curses.newwin( self.L - WIN_REG_H, WIN_INSTR_W, WIN_REG_H, self.w_reg.getbegyx()[1] )
-        self.w_stack   = curses.newwin( self.L - WIN_REG_H, WIN_STACK_W, WIN_REG_H, self.w_instr.getbegyx()[1] + WIN_INSTR_W )
-        self.w_logo    = curses.newwin( self.L - WIN_REG_H, WIN_LOGO_W , WIN_REG_H, self.w_stack.getbegyx()[1] + WIN_STACK_W )
-        self.w_menu = curses.newwin( WIN_MENU_H, self.w_reg.getbegyx()[1], self.L - WIN_MENU_H, 0 )
+        self.w_reg   = curses.newwin( WIN_REG_H, WIN_REG_W , 0, self.C - WIN_REG_W )
+        self.w_instr = curses.newwin( self.L - WIN_REG_H, WIN_INSTR_W, WIN_REG_H, self.w_reg.getbegyx()[1] )
+        self.w_stack = curses.newwin( self.L - WIN_REG_H, WIN_STACK_W, WIN_REG_H, self.w_instr.getbegyx()[1] + WIN_INSTR_W )
+        self.w_logo  = curses.newwin( self.L - WIN_REG_H, WIN_LOGO_W , WIN_REG_H, self.w_stack.getbegyx()[1] + WIN_STACK_W )
+        self.w_menu  = curses.newwin( WIN_MENU_H, self.w_reg.getbegyx()[1], self.L - WIN_MENU_H, 0 )
         self.w_game    = None
         self.w_console = None
 
