@@ -36,6 +36,8 @@ if not os.path.isfile(opts.rom):
 if opts.step:
     opts.frequency = 1000000 # 1 Ghz
 
-disp = platter( opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer, opts.initram, opts.legacy_shift, opts.enforce_instructions, opts.rewind_depth, opts.drawfix, opts.audio )
+disp = platter( opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer,
+                opts.initram, opts.legacy_shift, opts.enforce_instructions,
+                opts.rewind_depth, opts.drawfix, opts.audio )
 disp.start(opts.step)
 
