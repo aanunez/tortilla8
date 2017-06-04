@@ -128,7 +128,8 @@ class blackbean:
             return
 
         if self.enforce and tl.instruction in UNOFFICIAL_OP_CODES:
-            raise RuntimeError("Restricted instruction on line " + str(tl.line_numb) + "\n" + tl.original )
+            raise RuntimeError("Restricted instruction on line " + \
+                str(tl.line_numb) + "\n" + tl.original )
 
         for ver in OP_CODES[tl.instruction]:
             issue = False
@@ -153,7 +154,8 @@ class blackbean:
                 break
 
         if not tl.instruction_int:
-            raise RuntimeError("Unkown mnemonic-argument combination on line " + str(tl.line_numb) + "\n" + tl.original )
+            raise RuntimeError("Unkown mnemonic-argument combination on line " + \
+                str(tl.line_numb) + "\n" + tl.original )
 
     def is_valid_instruction_arg(self, arg_type, arg_value, hex_template, sub_string):
         """
@@ -225,7 +227,7 @@ class blackbean:
                     try: val = int(arg, 16)
                     except: pass
             elif arg[0] is BIN_ESC:
-                arg = arg[1:].replace('.',0)
+                arg = arg[1:].replace('.','0')
                 if len(arg) == (8 * tl.data_size):
                     try: val = int(arg, 2)
                     except: pass

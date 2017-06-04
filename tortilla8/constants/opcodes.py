@@ -18,7 +18,7 @@ OP_CODES = {
             ['4...',['register','byte'],'4xyy']],
     'add' :[['7...',['register','byte'],'7xyy'],
             ['8..4',['register','register'],'8xy4'],
-            ['f.1e',['i','register'],'Fx1E']],
+            ['f.1e',['i','register'],'Fy1E']],
     'or'  :[['8..1',['register','register'],'8xy1']],
     'and' :[['8..2',['register','register'],'8xy2']],
     'xor' :[['8..3',['register','register'],'8xy3']],
