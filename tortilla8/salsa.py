@@ -23,7 +23,8 @@ def salsa(byte_list):
     # Match the instruction via a regex index
     for mnemonic, reg_patterns in OP_CODES.items():
         for pattern_version in reg_patterns:
-            if not re.match(pattern_version[OP_REG], hex_instruction): continue
+            if not re.match(pattern_version[OP_REG], hex_instruction):
+                continue
             mnemonic = mnemonic
             mnemonic_arg_types = pattern_version[OP_ARGS]
             is_valid = True

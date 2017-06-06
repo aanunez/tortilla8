@@ -45,3 +45,19 @@ OP_CODES = {
     'drw' :[['d...',['register','register','nibble'],'Dxyz']]
     }
 UNOFFICIAL_OP_CODES = ('xor','shr','shl','subn')
+BANNED_OP_CODES = ('7f..','8f.4','8f.6','8f.e','cf..','6f..','8f.0','ff07','ff0a','ff65') # Ins that modify VF: add, shr, shl, rnd, ld
+BANNED_OP_CODES_EXPLODED = []
+for item in BANNED_OP_CODES:
+    if item.find('.') == -1:
+        BANNED_OP_CODES_EXPLODED.append(item)
+    else:
+        upper = 256 if item[2:] == '..' else 16
+        repl  = '..' if upper == 256 else '.'
+        for i in range(0, upper):
+            BANNED_OP_CODES_EXPLODED.append(item.replace(repl, hex(i)[2:]))
+
+
+
+
+
+

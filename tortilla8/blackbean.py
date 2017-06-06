@@ -3,14 +3,12 @@
 import warnings
 from tortilla8.cilantro import cilantro
 from .constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, ARG_SUB, OVERFLOW_ADDRESS, REGISTERS
-from .constants.opcodes import OP_CODES, OP_CODE_SIZE, OP_ARGS, OP_HEX
+from .constants.opcodes import OP_CODES, OP_CODE_SIZE, OP_ARGS, OP_HEX, BANNED_OP_CODES_EXPLODED
 from .constants.symbols import BEGIN_COMMENT, HEX_ESC, BIN_ESC
 
 #Opcode reminders: SHR, SHL, XOR, and SUBN/SM are NOT offically supported by original spec
 #                  SHR and SHL may or may not move Y (Shifted) into X or just shift X.
 #                  Enforce flag can be used to prevent using them.
-
-#TODO don't allow modifying VF
 
 class blackbean:
     """
@@ -18,7 +16,6 @@ class blackbean:
     assemble the contents, and return a stripped (comment free),
     listing, or binary file.
     """
-
     def __init__(self, token_collection=None, enforce_offical_ins=False):
         """
         Init the token collection and memory map. Pre-Processor may
@@ -149,8 +146,12 @@ class blackbean:
                 working_hex = self.is_valid_instruction_arg(arg_type, tl.arguments[i], working_hex, ARG_SUB[i])
                 if not working_hex:
                     break
+
+            # If working hex is populated then save it off and break
             if working_hex:
                 tl.instruction_int = int(working_hex, 16)
+                if working_hex in BANNED_OP_CODES_EXPLODED:
+                    warnings.warn("Instruction that modifies F register on line " + str(tl.line_numb))
                 break
 
         if not tl.instruction_int:
