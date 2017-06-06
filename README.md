@@ -10,7 +10,7 @@ Tortilla8 is a collection of Chip8 tools for per-processing, assembling, emulati
 
 * Platter is untested on Mac. May work after installing a curses varient.
 * Keypad input could be better
-* Some terminals do not correctly display Unicode underline characters 
+* Some terminals do not correctly display Unicode underline characters
 
 ## Setup
 
@@ -124,6 +124,11 @@ optional arguments:
 
 ### t8-emulate
 ```
+usage: t8-emulate [-h] [-f FREQUENCY | -s] [-d] [-i] [-a AUDIO]
+                  [-st SOUNDTIMER] [-dt DELAYTIMER] [-ls]
+                  [-e ENFORCE_INSTRUCTIONS] [-r REWIND_DEPTH]
+                  rom
+
 Start a text (unicode) based Chip8 emulator which disaplys a game screen, all
 registers, the stack, recently processed instructions, and a console to log
 any issues that occur.
@@ -134,24 +139,37 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -f FREQUENCY, --frequency FREQUENCY
-                        CPU frequency (in Hz) to target, minimum 1 hz.
-  -s, --step            Start the emulator is "step" mode.
-  -d, --drawfix         Enable anti-flicker, stops platter from drawing to
+                        CPU frequency to target, minimum 1Hz. 10Hz by default.
+                        CPU frequency can be adjusted in platter.
+  -s, --step            Start the emulator in "step" mode. Allows for
+                        execution of a single instruction at a time.
+  -d, --drawfix         Enable anti-flicker, stops platter from drawing to the
                         screen when sprites are only removed.
   -i, --initram         Initialize RAM to all zero values. Needed to run some
-                        ROMs that assume untouched addresses to be zero.
+                        ROMs that assume untouched addresses to be zero. By
+                        default RAM address without values are not initalized,
+                        accessing them will cause an Emulation Error.
   -a AUDIO, --audio AUDIO
                         Path to audio to play for Sound Timer, or "off" to
-                        prevent sound from playing.
+                        prevent sound from playing. By default a 440Hz square
+                        wave is used.
   -st SOUNDTIMER, --soundtimer SOUNDTIMER
-                        Frequency (in Hz) to target for the audio timmer.
+                        Frequency to target for the audio timmer. 60Hz by
+                        default.
   -dt DELAYTIMER, --delaytimer DELAYTIMER
-                        Frequency (in Hz) to target for the delay timmer.
+                        Frequency to target for the delay timmer. 60Hz by
+                        default.
   -ls, --legacy_shift   Use the legacy shift method of bit shift Y and storing
-                        to X.
+                        to X. By default the newer method is used where Y is
+                        ignored and X is bitshifted then stored to itself.
   -e ENFORCE_INSTRUCTIONS, --enforce_instructions ENFORCE_INSTRUCTIONS
                         Warning to log if an unoffical instruction is
-                        executed. Options: None Info Warning Fatal
+                        executed. By default, no errors are logged. Options:
+                        None Info Warning Fatal
+  -r REWIND_DEPTH, --rewind_depth REWIND_DEPTH
+                        Number of instructions back to be recorded to enable
+                        rewinding. To disable set to zero or "off". By default
+                        1000 instructions are recorded.
 ```
 
 ## Modules
