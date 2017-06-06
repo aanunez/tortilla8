@@ -9,7 +9,15 @@ except ImportError:
 try: import simpleaudio as sa
 except ImportError:
     sa = None
-    pass
+
+# Import System to clear keybuffer
+try:
+    termios = True
+    from termios import tcflush, TCIOFLUSH
+    from sys import stdin
+except ImportError:
+    termios = None
+    from msvcrt import getch, kbhit
 
 # Everything else
 from sys import platform
@@ -19,22 +27,24 @@ from textwrap import wrap
 from time import time, sleep
 from collections import deque
 from .constants.curses import *
-from tortilla8.guacamole import guacamole, Emulation_Error
+from tortilla8.guacamole import guacamole
+from tortilla8.emulation_error import Emulation_Error
 from .constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS
 from .constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_WIDTH
 
 #TODO Better rewind support
 
 #TODO Allow editing controls
-#TODO Improve input. Only most recent button press is used.
+#TODO Improve input.
 
-#TODO Support non 64x32 displays
 #TODO double the resolution if window is large enough
 #TODO add Keypad display?
 
 class platter:
 
-    def __init__(self, rom, cpuhz, audiohz, delayhz, init_ram, drawfix, legacy_shift, enforce_ins,wave_file=None):
+    def __init__(self, rom, cpuhz, audiohz, delayhz,
+                 init_ram, legacy_shift, enforce_ins,
+                 rewind_depth, drawfix, wave_file=None):
 
         # Check if windows (no unicode in their Curses)
         self.unicode   = True if platform != 'win32' else False
@@ -78,9 +88,10 @@ class platter:
                 self.console_print("No sound file provided as parameter. Unable to load default 'play.wav' from sound directory.")
 
         # Init the emulator
-        self.emu = guacamole(rom, cpuhz, audiohz, delayhz, init_ram, legacy_shift, enforce_ins)
+        self.emu = guacamole(rom, cpuhz, audiohz, delayhz, init_ram, legacy_shift, enforce_ins, rewind_depth)
         self.check_log()
         self.init_emu_status()
+        self.rewind_size = 5
 
         # Curses settings
         curses.noecho()
@@ -117,6 +128,7 @@ class platter:
                     key = self.w_console.getch()
                     if key == KEY_ARROW:
                         key = KEY_ARROW_MAP[self.w_console.getch()]
+                    flush_key_buffer()
 
                 # Freq modifications
                 if key == 'up':
@@ -125,6 +137,12 @@ class platter:
                 if key == 'down':
                     self.emu.cpu_hz = 1 if self.emu.cpu_hz * .95 < 1 else self.emu.cpu_hz * .95
                     self.emu.cpu_wait = 1/self.emu.cpu_hz
+
+                # Rewind modifications
+                if key == 'left':
+                    self.rewind_size -= 1 if self.rewind_size > 1 else 0
+                if key == 'right':
+                    self.rewind_size += 1
 
                 # Update Keypad press
                 if time() - key_press_time > 0.5: #TODO Better input?
@@ -140,7 +158,7 @@ class platter:
 
                 # Rewind check:
                 if key == KEY_REWIN:
-                    self.emu.rewind(5)
+                    self.emu.rewind(self.rewind_size)
                     self.instr_history.appendleft("rewind: " + hex3(self.emu.program_counter))
                     continue
 
@@ -289,12 +307,18 @@ class platter:
         self.display_logo()
 
     def display_logo(self):
-        if self.screen.getmaxyx()[0] < LOGO_MIN: return
-        if not self.unicode: return
-        logo_offset = ( self.w_logo.getmaxyx()[0] - len(LOGO) ) // 2
-        for i in range(len(LOGO)):
-            self.w_logo.addstr( i + logo_offset, 0, LOGO[i] )
-        self.w_logo.noutrefresh()
+        if self.screen.getmaxyx()[0] < LOGO_MIN:
+            return
+        if not self.unicode:
+            return
+        try: # Moving the window quickly causes an error, but on on the logo... weird.
+            logo_offset = ( self.w_logo.getmaxyx()[0] - len(LOGO) ) // 2
+            for i in range(len(LOGO)):
+                self.w_logo.addstr( i + logo_offset, 0, LOGO[i] )
+            self.w_logo.noutrefresh()
+        except:
+            self.w_logo.clear()
+            pass
 
     def display_game(self):
         if not self.w_game or not self.emu.draw_flag: return
@@ -318,8 +342,9 @@ class platter:
             for x in range(GFX_WIDTH):
                 upper_chunk = int( bin( self.emu.ram[ GFX_ADDRESS + ( (y * 2 + 0) * GFX_WIDTH) + x ] )[2:] )
                 lower_chunk = int( bin( self.emu.ram[ GFX_ADDRESS + ( (y * 2 + 1) * GFX_WIDTH) + x ] )[2:].replace('1','2') )
-                total_chunk  = str(upper_chunk + lower_chunk).zfill(8).replace('3', self.draw_char.both ).replace('2', self.draw_char.lower )\
-                                                                      .replace('1', self.draw_char.upper ).replace('0', self.draw_char.empty )
+                total_chunk  = str(upper_chunk + lower_chunk).zfill(8) \
+                    .replace('3', self.draw_char.both ).replace('2', self.draw_char.lower ) \
+                    .replace('1', self.draw_char.upper ).replace('0', self.draw_char.empty )
                 self.w_game.addstr( 1 + y, 1 + x * 8, total_chunk )
         self.w_game.noutrefresh()
 
@@ -329,8 +354,8 @@ class platter:
         self.w_instr.noutrefresh()
 
     def display_registers(self):
-        for i in range(NUMB_OF_REGS):
-            self.w_reg.addstr( ( i // 4 ) + 2, i % 4 * 9 + 2, hex(i)[2] + ": " + hex2(self.emu.register[i]) )
+        for i, reg in enumerate(self.emu.register):
+            self.w_reg.addstr( ( i // 4 ) + 2, i % 4 * 9 + 2, hex(i)[2] + ": " + hex2(reg) )
         self.w_reg.addstr(6, 1, " dt: " + hex2(self.emu.delay_timer_register) + \
                                "  st: " + hex2(self.emu.sound_timer_register) + \
                                 "  i: " + hex3(self.emu.index_register))
@@ -356,8 +381,8 @@ class platter:
                 cpu_hz = str(self.emu.cpu_hz / val)[0:5]
                 break
         left = "E̲xit  ̲Reset  ̲Step  Re̲wind  Res̲ume"
-        right = "🡹🡻 Freq " + cpu_hz + prefix + "hz"
-        middle = " " * ( self.w_menu.getmaxyx()[1] - len(left) - len(right) - 1 )
+        right = "⇄RwSize " + str(self.rewind_size) + "  " + "⇅Freq " + cpu_hz + prefix + "hz"
+        middle = " " * ( self.w_menu.getmaxyx()[1] - len(left) - len(right) + 1 )
         self.w_menu.addstr( 1, 2, left + middle + right )
         self.w_menu.noutrefresh()
 
@@ -400,4 +425,11 @@ def hex2(integer):
 
 def hex3(integer):
     return "0x" + hex(integer)[2:].zfill(3)
+
+def flush_key_buffer():
+    if termios:
+        tcflush(stdin, TCIOFLUSH)
+    else:
+        while kbhit():
+            getch()
 

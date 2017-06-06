@@ -7,7 +7,7 @@ from tortilla8.platter import platter
 def pos_int(value):
     ivalue = int(value)
     if ivalue < 1:
-         raise argparse.ArgumentTypeError("%s is an invalid positive int value." % value)
+         raise argparse.ArgumentTypeError( value + " is an invalid positive int value." )
     return ivalue
 
 parser = argparse.ArgumentParser(description=
@@ -18,15 +18,16 @@ any issues that occur.
 ''')
 parser.add_argument('rom', help='ROM to load and play.')
 group = parser.add_mutually_exclusive_group()
-group.add_argument('-f','--frequency', type=pos_int, default=10,help='CPU frequency (in Hz) to target, minimum 1 hz.')
-group.add_argument('-s','--step', help='Start the emulator is "step" mode.',action='store_true')
-parser.add_argument('-d','--drawfix', help='Enable anti-flicker, stops platter from drawing to screen when sprites are only removed.', action='store_true')
-parser.add_argument('-i','--initram', help='Initialize RAM to all zero values. Needed to run some ROMs that assume untouched addresses to be zero.', action='store_true')
-parser.add_argument('-a','--audio', help='Path to audio to play for Sound Timer, or "off" to prevent sound from playing.')
-parser.add_argument("-st","--soundtimer", type=pos_int, default=60, help='Frequency (in Hz) to target for the audio timmer.')
-parser.add_argument("-dt","--delaytimer", type=pos_int, default=60, help='Frequency (in Hz) to target for the delay timmer.')
-parser.add_argument('-ls','--legacy_shift', help='Use the legacy shift method of bit shift Y and storing to X.', action='store_true')
-parser.add_argument("-e","--enforce_instructions", default='None', help='Warning to log if an unoffical instruction is executed. Options: None Info Warning Fatal')
+group.add_argument('-f','--frequency', type=pos_int, default=10,help='CPU frequency to target, minimum 1Hz. 10Hz by default. CPU frequency can be adjusted in platter.')
+group.add_argument('-s','--step', help='Start the emulator in "step" mode. Allows for execution of a single instruction at a time.',action='store_true')
+parser.add_argument('-d','--drawfix', help='Enable anti-flicker, stops platter from drawing to the screen when sprites are only removed.', action='store_true')
+parser.add_argument('-i','--initram', help='Initialize RAM to all zero values. Needed to run some ROMs that assume untouched addresses to be zero. By default RAM address without values are not initalized, accessing them will cause an Emulation Error.', action='store_true')
+parser.add_argument('-a','--audio', help='Path to audio to play for Sound Timer, or "off" to prevent sound from playing. By default a 440Hz square wave is used.')
+parser.add_argument("-st","--soundtimer", type=pos_int, default=60, help='Frequency to target for the audio timmer. 60Hz by default.')
+parser.add_argument("-dt","--delaytimer", type=pos_int, default=60, help='Frequency to target for the delay timmer. 60Hz by default.')
+parser.add_argument('-ls','--legacy_shift', help='Use the legacy shift method of bit shift Y and storing to X. By default the newer method is used where Y is ignored and X is bitshifted then stored to itself.', action='store_true')
+parser.add_argument("-e","--enforce_instructions", default='None', help='Warning to log if an unoffical instruction is executed. By default, no errors are logged. Options: None Info Warning Fatal')
+parser.add_argument("-r","--rewind_depth", type=pos_int, default=1000, help='Number of instructions back to be recorded to enable rewinding. To disable set to zero or "off". By default 1000 instructions are recorded.')
 opts = parser.parse_args()
 
 if not os.path.isfile(opts.rom):
@@ -35,6 +36,8 @@ if not os.path.isfile(opts.rom):
 if opts.step:
     opts.frequency = 1000000 # 1 Ghz
 
-disp = platter(opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer, opts.initram, opts.drawfix, opts.legacy_shift, opts.enforce_instructions, opts.audio)
+disp = platter( opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer,
+                opts.initram, opts.legacy_shift, opts.enforce_instructions,
+                opts.rewind_depth, opts.drawfix, opts.audio )
 disp.start(opts.step)
 
