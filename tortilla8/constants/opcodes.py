@@ -18,16 +18,16 @@ OP_CODES = {
             ['4...',['register','byte'],'4xyy']],
     'add' :[['7...',['register','byte'],'7xyy'],
             ['8..4',['register','register'],'8xy4'],
-            ['f.1e',['i','register'],'Fx1E']],
+            ['f.1e',['i','register'],'Fy1E']],
     'or'  :[['8..1',['register','register'],'8xy1']],
     'and' :[['8..2',['register','register'],'8xy2']],
     'xor' :[['8..3',['register','register'],'8xy3']],
     'sub' :[['8..5',['register','register'],'8xy5']],
     'subn':[['8..7',['register','register'],'8xy7']],
     'shr' :[['8..6',['register'],'8x06'],
-            ['    ',['register','register'],'8xy6']],# TODO no support in guac
+            ['    ',['register','register'],'8xy6']], # Blank regex, we never match, use shfit_mod instead
     'shl' :[['8..e',['register'],'8x0E'],
-            ['    ',['register','register'],'8xyE']],# TODO no support in guac
+            ['    ',['register','register'],'8xyE']], # as above
     'rnd' :[['c...',['register','byte'],'Cxyy']],
     'jp'  :[['b...',['v0','address'],'Byyy'],
             ['1...',['address'],'1xxx']],

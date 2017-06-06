@@ -2,6 +2,7 @@
 
 import os
 import argparse
+from time import sleep
 from tortilla8.guacamole import guacamole
 
 def pos_int(value):
@@ -22,16 +23,21 @@ parser.add_argument("-f","--frequency",   type=pos_int, default=5,  help='Freque
 parser.add_argument("-st","--soundtimer", type=pos_int, default=60, help='Frequency (in Hz) to target for the audio timmer.')
 parser.add_argument("-dt","--delaytimer", type=pos_int, default=60, help='Frequency (in Hz) to target for the delay timmer.')
 parser.add_argument('-i','--initram', help='Initialize RAM to all zero values.', action='store_true')
+parser.add_argument('-ls','--legacy_shift', help='Use the legacy shift method of bit shift Y and storing to X.', action='store_true')
+parser.add_argument("-e","--enforce_instructions", default='None', help='Warning to log if an unoffical instruction is executed. Options: None Info Warning Fatal')
 opts = parser.parse_args()
 
 if not os.path.isfile(opts.rom):
     raise OSError("File '" + opts.rom + "' does not exist.")
 
-guac = guacamole(opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer, opts.initram)
+guac = guacamole(opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer, opts.initram, opts.legacy_shift, opts.enforce_instructions)
 guac.log_to_screen = True
+sleep_time = (1/opts.frequency)*.98
 try:
     while True:
         guac.run()
+        sleep(sleep_time)
+
 except KeyboardInterrupt:
     pass
 

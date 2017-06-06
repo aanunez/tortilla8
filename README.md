@@ -4,25 +4,26 @@ Tortilla8 is a collection of Chip8 tools for per-processing, assembling, emulati
 
 ## What is Chip8
 
-[Chip8](https://en.wikipedia.org/wiki/CHIP-8) is a language published in 1978 via the RCA COSMAC VIP Instruction Manual that was bosted as making game programming easier for hobbiests on the system. Chip8 is popular to emulate due to its simplicity and the now extensive amount of documentation.
+[Chip8](https://en.wikipedia.org/wiki/CHIP-8) is a language published in 1978 via the RCA COSMAC VIP Instruction Manual that was bosted as making game programming easier for hobbiests on the system. Chip8 is popular to emulate due to its simplicity and the now extensive amount of documentation. Unfortunately there are some issues with Chip8 emulations, notably that there were differing implementations early on. These differences have been very well documented [here](https://github.com/Chromatophore/HP48-Superchip#behavior-and-quirk-investigations). Some of these isuses are addressed in tortilla8, but some are not as I have yet to encounter them for myself.
 
-## Major Issues
+## Known Issues
 
 * Platter is untested on Mac. May work after installing a curses varient.
 * Keypad input could be better
+* Some terminals do not correctly display Unicode underline characters
 
 ## Setup
 
-Setup is strait forward, two optional dependencies are used for emulation (the platter module), Simple Audio and Curses, the later of which is discussed below on an OS-to-OS bases.
+Setup is strait forward, two dependencies are used for the text based gui (platter), Simple Audio and Curses, the later of which is discussed below on specifc OSes
 
 ```
 # Navigate to the root of the package
 # If you haven't installed pip, do that
 python -m pip install -U pip setuptools
 # Install tortiall8
-sudo pip install .
+pip install .
 # Install Simple Audio (optional)
-sudo pip install simpleaudio
+pip install simpleaudio
 ```
 
 ## Scripts
@@ -93,7 +94,9 @@ optional arguments:
 
 ### t8-execute
 ```
-usage: t8-execute [-h] [-f FREQUENCY] [-st SOUNDTIMER] [-dt DELAYTIMER] [-i] rom
+usage: t8-execute [-h] [-f FREQUENCY] [-st SOUNDTIMER] [-dt DELAYTIMER] [-i]
+                  [-ls] [-e ENFORCE_INSTRUCTIONS]
+                  rom
 
 Execute a rom to quickly check for errors. The program counter, hex
 instruction (the two bytes that make up the opcode), and mnemonic are printed
@@ -112,15 +115,21 @@ optional arguments:
   -dt DELAYTIMER, --delaytimer DELAYTIMER
                         Frequency (in Hz) to target for the delay timmer.
   -i, --initram         Initialize RAM to all zero values.
+  -ls, --legacy_shift   Use the legacy shift method of bit shift Y and storing
+                        to X.
+  -e ENFORCE_INSTRUCTIONS, --enforce_instructions ENFORCE_INSTRUCTIONS
+                        Warning to log if an unoffical instruction is
+                        executed. Options: None Info Warning Fatal
 ```
 
 ### t8-emulate
 ```
 usage: t8-emulate [-h] [-f FREQUENCY | -s] [-d] [-i] [-a AUDIO]
-                  [-st SOUNDTIMER] [-dt DELAYTIMER]
+                  [-st SOUNDTIMER] [-dt DELAYTIMER] [-ls]
+                  [-e ENFORCE_INSTRUCTIONS] [-r REWIND_DEPTH]
                   rom
 
-Start a text (unicdoe) based Chip8 emulator which disaplys a game screen, all
+Start a text (unicode) based Chip8 emulator which disaplys a game screen, all
 registers, the stack, recently processed instructions, and a console to log
 any issues that occur.
 
@@ -130,42 +139,60 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -f FREQUENCY, --frequency FREQUENCY
-                        CPU frequency (in Hz) to target, minimum 1 hz.
-  -s, --step            Start the emulator is "step" mode.
-  -d, --drawfix         Enable anti-flicker, stops platter from drawing to
+                        CPU frequency to target, minimum 1Hz. 10Hz by default.
+                        CPU frequency can be adjusted in platter.
+  -s, --step            Start the emulator in "step" mode. Allows for
+                        execution of a single instruction at a time.
+  -d, --drawfix         Enable anti-flicker, stops platter from drawing to the
                         screen when sprites are only removed.
   -i, --initram         Initialize RAM to all zero values. Needed to run some
-                        ROMs that assume untouched addresses to be zero.
+                        ROMs that assume untouched addresses to be zero. By
+                        default RAM address without values are not initalized,
+                        accessing them will cause an Emulation Error.
   -a AUDIO, --audio AUDIO
                         Path to audio to play for Sound Timer, or "off" to
-                        prevent sound from playing.
+                        prevent sound from playing. By default a 440Hz square
+                        wave is used.
   -st SOUNDTIMER, --soundtimer SOUNDTIMER
-                        Frequency (in Hz) to target for the audio timmer.
+                        Frequency to target for the audio timmer. 60Hz by
+                        default.
   -dt DELAYTIMER, --delaytimer DELAYTIMER
-                        Frequency (in Hz) to target for the delay timmer.
+                        Frequency to target for the delay timmer. 60Hz by
+                        default.
+  -ls, --legacy_shift   Use the legacy shift method of bit shift Y and storing
+                        to X. By default the newer method is used where Y is
+                        ignored and X is bitshifted then stored to itself.
+  -e ENFORCE_INSTRUCTIONS, --enforce_instructions ENFORCE_INSTRUCTIONS
+                        Warning to log if an unoffical instruction is
+                        executed. By default, no errors are logged. Options:
+                        None Info Warning Fatal
+  -r REWIND_DEPTH, --rewind_depth REWIND_DEPTH
+                        Number of instructions back to be recorded to enable
+                        rewinding. To disable set to zero or "off". By default
+                        1000 instructions are recorded.
 ```
 
 ## Modules
 
 ### Cilantro
 
-A lexer/tokenizer used by blackbean and jalapeno for individual lines of Chip8 assembly. The initialiser does the tokenizing, the class is then used as a data container.
+A lexer/tokenizer used by blackbean and jalapeno for individual lines of Chip8 assembly. The initialiser does the tokenizing, the class is then used as a data container that can be populated later for information only the assembler or pre-proccessor would know.
 
 ### Jalapeno
 
-Pre-Processor used to flatten files before running them through blackbean. Currently strips "mode" and "option" directives without respecting them.
+Pre-Processor used to flatten files before running them through blackbean. Currently strips "mode" and "option" directives without respecting them. Repects options such as "if" and "else".
 
 ### Blackbean
 
-An assembler that can generate Chip8 roms, comment-stripped Chip8 assembly, or a listing file (asm with memory addresses).
+An assembler that can generate Chip8 roms, comment-stripped Chip8 assembly, or a listing file (asm with memory addresses). The assembler makes no attempt to insure that illegal calls are not made or that the VF register isn't set.
 
 ### Salsa
 
-Disassembler for a two bytes worth of data. Similar to cilantro, salsa can be used as a data container after dissassembling the instruction. If the input is not a valid instruction then it is assumed to be a data declaration.
+Disassembler function for two bytes worth of data. If the input is not a valid instruction then it is assumed to be a data declaration.
 
 ### Guacamole
 
-Emulator for the Chip8 language/system. The emulator has no display, for that you should use platter or nacho. All successfully executed instructions are printed to the screen with the current value of the program counter and their mnemonic representation. All informational, warning, and fatal errors are also directed to stdout.
+Emulator for the Chip8 language/system. The emulator has no display, for that you should use platter or nacho. There are currently no known major bugs in guacamole, however there are oddoties in Chip-8 in general (see abve in the 'What is Chip8' section).
 
 ### Platter
 
