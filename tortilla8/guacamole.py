@@ -182,7 +182,7 @@ class guacamole:
             try:
                 self.ins_tbl[self.dis_ins.mnemonic](self)
             except:
-
+                raise # Python error happened.
             if self.warn_exotic_ins and self.dis_ins.unoffical_op:
                 self.log("Unoffical instruction '" + self.dis_ins.mnemonic + \
                     "' executed at " + hex(self.program_counter), self.warn_exotic_ins)

@@ -90,7 +90,7 @@ def i_jp(emu):
 
     if 'v0' is emu.dis_ins.mnemonic_arg_types[0] and numb_args == 2:
         emu.program_counter = get_address(emu) + emu.register[0] - 2
-    elif numb_args == 1
+    elif numb_args == 1:
         emu.program_counter = get_address(emu) - 2
     else:
         emu.log("Unknown argument at address " + hex(emu.program_counter), Emulation_Error._Fatal)
