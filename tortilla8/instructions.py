@@ -40,12 +40,12 @@ def i_sknp(emu):
         emu.program_counter += 2
 
 def i_se(emu):
-    comp =  get_lower_byte(emu) if 'byte' is emu.dis_ins.mnemonic_arg_types[0] else get_reg2_val(emu)
+    comp = get_lower_byte(emu) if 'byte' is emu.dis_ins.mnemonic_arg_types[1] else get_reg2_val(emu)
     if  get_reg1_val(emu) == comp:
         emu.program_counter += 2
 
 def i_sne(emu):
-    comp =  get_lower_byte(emu) if 'byte' is emu.dis_ins.mnemonic_arg_types[0] else get_reg2_val(emu)
+    comp = get_lower_byte(emu) if 'byte' is emu.dis_ins.mnemonic_arg_types[1] else get_reg2_val(emu)
     if  get_reg1_val(emu) != comp:
         emu.program_counter += 2
 
@@ -106,6 +106,7 @@ def i_add(emu):
     arg2 = emu.dis_ins.mnemonic_arg_types[1]
 
     if 'register' is arg1:
+
         if 'byte' is arg2:
             emu.register[ get_reg1(emu) ] += get_lower_byte(emu)
             emu.register[ get_reg1(emu) ] &= 0xFF

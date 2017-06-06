@@ -189,12 +189,14 @@ class blackbean:
             else:
                 try:
                     arg_value = hex(int(arg_value))[2:].zfill(2)
-                except: pass
+                except:
+                    pass
             if len(arg_value) == 2:
                 try:
                     int(arg_value, 16)
                     return hex_template.replace(sub_string * 2, arg_value)
-                except: pass
+                except:
+                    pass
 
         elif arg_type is 'nibble':
             if arg_value[0] is HEX_ESC:
@@ -203,7 +205,8 @@ class blackbean:
                 try:
                     int(arg_value, 16)
                     return hex_template.replace(sub_string, arg_value)
-                except: pass
+                except:
+                    pass
 
         return ''
 
