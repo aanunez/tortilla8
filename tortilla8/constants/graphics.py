@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 GFX_ADDRESS    = 0xF00
 GFX_HEIGHT_PX  = 32

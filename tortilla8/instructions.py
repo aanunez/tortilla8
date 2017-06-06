@@ -1,6 +1,6 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
-#from random import randint
+from random import randint
 from tortilla8.emulation_error import Emulation_Error
 from .constants.reg_rom_stack import STACK_ADDRESS, STACK_SIZE
 from .constants.graphics import GFX_FONT_ADDRESS, GFX_RESOLUTION, GFX_ADDRESS, \

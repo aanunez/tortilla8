@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 from .constants.preprocessor import END_MEM_TAG, PRE_PROC, DATA_DECLARE
 from .constants.symbols import BEGIN_COMMENT

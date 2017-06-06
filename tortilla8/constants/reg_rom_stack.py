@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # Register stuff
 NUMB_OF_REGS = 16
