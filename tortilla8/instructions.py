@@ -6,7 +6,6 @@ from .constants.reg_rom_stack import STACK_ADDRESS, STACK_SIZE
 from .constants.graphics import GFX_FONT_ADDRESS, GFX_RESOLUTION, GFX_ADDRESS, \
                                 GFX_WIDTH, GFX_HEIGHT_PX, GFX_WIDTH_PX
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Instructions - All 20 mnemonics, 35 total instructions
 # Add-3 SE-2 SNE-2 LD-11 JP-2 (mnemonics w/ extra instructions)
 
@@ -41,12 +40,12 @@ def i_sknp(emu):
         emu.program_counter += 2
 
 def i_se(emu):
-    comp =  get_lower_byte(emu) if "byte" in emu.dis_ins.mnemonic_arg_types else get_reg2_val(emu)
+    comp =  get_lower_byte(emu) if 'byte' is emu.dis_ins.mnemonic_arg_types[0] else get_reg2_val(emu)
     if  get_reg1_val(emu) == comp:
         emu.program_counter += 2
 
 def i_sne(emu):
-    comp =  get_lower_byte(emu) if "byte" in emu.dis_ins.mnemonic_arg_types else get_reg2_val(emu)
+    comp =  get_lower_byte(emu) if 'byte' is emu.dis_ins.mnemonic_arg_types[0] else get_reg2_val(emu)
     if  get_reg1_val(emu) != comp:
         emu.program_counter += 2
 
@@ -87,10 +86,14 @@ def i_subn(emu):
 
 def i_jp(emu):
     init_pc = emu.program_counter
-    if 'v0' in emu.dis_ins.mnemonic_arg_types:
+    numb_args = len(emu.dis_ins.mnemonic_arg_types)
+
+    if 'v0' is emu.dis_ins.mnemonic_arg_types[0] and numb_args == 2:
         emu.program_counter = get_address(emu) + emu.register[0] - 2
-    else:
+    elif numb_args == 1
         emu.program_counter = get_address(emu) - 2
+    else:
+        emu.log("Unknown argument at address " + hex(emu.program_counter), Emulation_Error._Fatal)
 
     if init_pc == emu.program_counter + 2:
         emu.spinning = True
@@ -99,21 +102,29 @@ def i_rnd(emu):
     emu.register[ get_reg1(emu) ] = randint(0, 255) & get_lower_byte(emu)
 
 def i_add(emu):
-    if 'byte' in emu.dis_ins.mnemonic_arg_types:
-        emu.register[ get_reg1(emu) ] += get_lower_byte(emu)
-        emu.register[ get_reg1(emu) ] &= 0xFF
+    arg1 = emu.dis_ins.mnemonic_arg_types[0]
+    arg2 = emu.dis_ins.mnemonic_arg_types[1]
 
-    elif 'i' in emu.dis_ins.mnemonic_arg_types:
+    if 'register' is arg1:
+        if 'byte' is arg2:
+            emu.register[ get_reg1(emu) ] += get_lower_byte(emu)
+            emu.register[ get_reg1(emu) ] &= 0xFF
+        elif 'register' is arg2:
+            emu.register[ get_reg1(emu) ] += get_reg2_val(emu)
+            emu.register[ get_reg1(emu) ] &= 0xFF
+            emu.register[0xF] = 0x00
+            if  get_reg1_val(emu) + get_reg2_val(emu) > 0xFF:
+                emu.register[ get_reg1(emu) ] &= 0xFF
+                emu.register[0xF] = 0x01
+        else:
+            emu.log("Unknown argument at address " + hex(emu.program_counter), Emulation_Error._Fatal)
+
+    elif 'i' in arg1 and 'register' is arg2:
         emu.index_register += get_reg1_val(emu)
         emu.index_register &= 0xFFF
 
-    else: # Reg + Reg
-        emu.register[ get_reg1(emu) ] += get_reg2_val(emu)
-        emu.register[ get_reg1(emu) ] &= 0xFF
-        emu.register[0xF] = 0x00
-        if  get_reg1_val(emu) + get_reg2_val(emu) > 0xFF:
-            emu.register[ get_reg1(emu) ] &= 0xFF
-            emu.register[0xF] = 0x01
+    else:
+        emu.log("Unknown argument at address " + hex(emu.program_counter), Emulation_Error._Fatal)
 
 def i_ld(emu):
     arg1 = emu.dis_ins.mnemonic_arg_types[0]
@@ -131,7 +142,8 @@ def i_ld(emu):
                 emu.register[i] = emu.ram[emu.index_register + i]
 
         else:
-            emu.log("Loads with argument type '" + arg2 + "' are not supported.", Emulation_Error._Fatal)
+            emu.log("Loads with second argument type '" + arg2 + \
+                "' are not supported.", Emulation_Error._Fatal)
 
     elif 'register' is arg2:
         if   'dt' is arg1: emu.delay_timer_register =  get_reg1_val(emu)
@@ -147,14 +159,13 @@ def i_ld(emu):
                 emu.ram[emu.index_register + i] = emu.register[i]
 
         else:
-            emu.log("Loads with argument type '" + arg1 + "' are not supported.", Emulation_Error._Fatal)
+            emu.log("Unknown argument at address " + hex(emu.program_counter), Emulation_Error._Fatal)
 
     elif 'i' is arg1 and 'address' is arg2:
         emu.index_register =  get_address(emu)
 
     else:
-        emu.log("Loads with argument types '" + arg1 + "' and '" + arg2 +  \
-            "' are not supported.", Emulation_Error._Fatal)
+        emu.log("Unknown argument at address " + hex(emu.program_counter), Emulation_Error._Fatal)
 
 def i_drw(emu):
     emu.draw_flag = True

@@ -12,7 +12,6 @@ from .constants.graphics import GFX_FONT, GFX_FONT_ADDRESS, GFX_RESOLUTION, GFX_
 
 # TODO Update reset
 # TODO Rewind bug when waiting for keypress
-# TODO 'Load' logs fatal errors right now, should all instructions check the structure of input args?
 
 rewind_data = namedtuple('rewind_data', 'gfx_buffer register index_register ' + \
     'delay_timer_register sound_timer_register program_counter calling_pc ' + \
@@ -180,7 +179,10 @@ class guacamole:
 
         # Execute instruction
         if self.dis_ins.is_valid:
-            self.ins_tbl[self.dis_ins.mnemonic](self)
+            try:
+                self.ins_tbl[self.dis_ins.mnemonic](self)
+            except:
+
             if self.warn_exotic_ins and self.dis_ins.unoffical_op:
                 self.log("Unoffical instruction '" + self.dis_ins.mnemonic + \
                     "' executed at " + hex(self.program_counter), self.warn_exotic_ins)
