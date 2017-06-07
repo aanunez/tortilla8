@@ -3,7 +3,8 @@
 # Import curses
 try: import curses
 except ImportError:
-    raise ImportError('Curses is missing from your system. Consult the README for information on installing for your platform.')
+    raise ImportError("Curses is missing from your system. " + \
+        "Consult the README for information on installing for your platform.")
 
 # Import Sound (optional)
 try: import simpleaudio as sa
@@ -20,8 +21,9 @@ except ImportError:
     from msvcrt import getch, kbhit
 
 # Everything else
-from os import path, name as osName
+from os import path
 from enum import Enum
+from sys import platform
 from textwrap import wrap
 from time import time, sleep
 from collections import deque
@@ -40,12 +42,14 @@ class platter:
 
     def __init__(self, rom, cpuhz, audiohz, delayhz,
                  init_ram, legacy_shift, enforce_ins,
-                 rewind_depth, drawfix, wave_file=None):
+                 rewind_depth, drawfix,
+                 enable_screen_unicode, enable_menu_unicode,
+                 wave_file=None):
 
         # Check if windows (no unicode in their Curses)
-        self.screen_unicode = False if osName == 'nt' else True
-        self.draw_char = UNICODE_DRAW if self.screen_unicode else WIN_DRAW
-        self.menu_unicode = False if osName in ['mac','nt'] else True
+        self.screen_unicode = enable_screen_unicode
+        self.menu_unicode = enable_menu_unicode
+        self.draw_char = UNICODE_DRAW if enable_screen_unicode else WIN_DRAW
 
         # Init Curses
         self.screen = curses.initscr()
@@ -64,7 +68,8 @@ class platter:
 
         # Print FYI for game window
         if self.w_game is None:
-            self.console_print("Window must be atleast "+ str(DISPLAY_MIN_W) + "x" + str(DISPLAY_MIN_H) +" to display the game screen")
+            self.console_print("Window must be atleast " + str(DISPLAY_MIN_W) + \
+                "x" + str(DISPLAY_MIN_H) +" to display the game screen")
 
         # Load default sound
         self.wave_obj = None
@@ -73,7 +78,9 @@ class platter:
 
         # Print FYI for sound if no SA
         if sa is None:
-            self.console_print("SimpleAudio is missing from your system. You can install it via 'pip install simpleaudio'. The sound timmer will not be raised.")
+            self.console_print("SimpleAudio is missing from your system." + \
+                "You can install it via 'pip install simpleaudio'. " + \
+                "The sound timmer will not be raised.")
 
         # Init sound if available
         elif wave_file.lower() != 'off':
@@ -82,7 +89,8 @@ class platter:
                 self.play_obj = None
                 self.audio_playing = False
             except FileNotFoundError:
-                self.console_print("No sound file provided as parameter. Unable to load default 'play.wav' from sound directory.")
+                self.console_print("No sound file provided as parameter. " + \
+                    "Unable to load default 'play.wav' from sound directory.")
 
         # Init the emulator
         self.emu = guacamole(rom, cpuhz, audiohz, delayhz, init_ram, legacy_shift, enforce_ins, rewind_depth)
@@ -113,7 +121,8 @@ class platter:
         key_msg_displayed = False
 
         if step_mode:
-            self.console_print("Emulator started in step mode. Press '" + chr(KEY_STEP).upper() + "' to process one instruction.")
+            self.console_print("Emulator started in step mode. Press '" + \
+                chr(KEY_STEP).upper() + "' to process one instruction.")
 
         try:
 
@@ -217,7 +226,7 @@ class platter:
                         self.play_obj = self.wave_obj.play()
 
                 # Check if screen was re-sized
-                if osName != 'nt':
+                if platform != 'win32':
                     if curses.is_term_resized(self.L, self.C):
                         self.L, self.C = self.screen.getmaxyx()
                         curses.resizeterm(self.L, self.C)
@@ -249,7 +258,8 @@ class platter:
             self.console_print( str(err[0]) + ": " + err[1] )
             if err[0] is Emulation_Error._Fatal:
                 self.halt = True
-                self.console_print( "Fatal error has occured. Press '" + chr(KEY_RESET).upper() + "' to reset" )
+                self.console_print( "Fatal error has occured. Press '" + \
+                    chr(KEY_RESET).upper() + "' to reset" )
 
         # Manually reset
         self.emu.error_log = []
@@ -382,12 +392,13 @@ class platter:
 
         if self.menu_unicode:
             left = "E̲xit  ̲Reset  ̲Step  Re̲wind  Res̲ume"
-            right = "⇄RwSize " + str(self.rewind_size) + "  " + "⇅Freq " + cpu_hz + prefix + "hz"
+            right = "⇄RwSize " + str(self.rewind_size) + "  ⇅Freq " + cpu_hz + prefix + "hz"
+            middle = " " * ( self.w_menu.getmaxyx()[1] - len(left) - len(right) + 1 )
         else:
             left = "eXit  Reset  Step  reWind  resUme"
-            right = "RwSize " + str(self.rewind_size) + "  " + "Freq " + cpu_hz + prefix + "hz"
+            right = "RwSize " + str(self.rewind_size) + "  Freq " + cpu_hz + prefix + "hz"
+            middle = " " * ( self.w_menu.getmaxyx()[1] - len(left) - len(right) - 4 )
 
-        middle = " " * ( self.w_menu.getmaxyx()[1] - len(left) - len(right) + 1 )
         self.w_menu.addstr( 1, 2, left + middle + right )
         self.w_menu.noutrefresh()
 
