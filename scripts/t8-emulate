@@ -53,7 +53,7 @@ if opts.unicode:
         elif val[0] == 'game' and val[1]== 'on':
             game_unicode = True
         elif val[0] == 'game' and val[1]== 'off':
-            game_unicode = False:
+            game_unicode = False
         else:
             raise IOError("Unknown value following the '--unicode' flag.")
 

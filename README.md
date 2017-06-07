@@ -129,6 +129,7 @@ optional arguments:
 usage: t8-emulate [-h] [-f FREQUENCY | -s] [-d] [-i] [-a AUDIO]
                   [-st SOUNDTIMER] [-dt DELAYTIMER] [-ls]
                   [-e ENFORCE_INSTRUCTIONS] [-r REWIND_DEPTH]
+                  [-u [UNICODE [UNICODE ...]]]
                   rom
 
 Start a text (unicode) based Chip8 emulator which disaplys a game screen, all
@@ -172,6 +173,13 @@ optional arguments:
                         Number of instructions back to be recorded to enable
                         rewinding. To disable set to zero or "off". By default
                         1000 instructions are recorded.
+  -u [UNICODE [UNICODE ...]], --unicode [UNICODE [UNICODE ...]]
+                        Forces unicode on or off for the menu and game screen.
+                        Valid values are: On, Off, Menu-On, Menu-Off, Game-On,
+                        Game-Off. By default, unicode support is determined by
+                        the OS. Mac displays a unicode game screen, Windows
+                        displays no unicode, and GNU/Linux displays both the
+                        game and menu in unicode.
 ```
 
 ## Modules
@@ -194,7 +202,7 @@ Disassembler function for two bytes worth of data. If the input is not a valid i
 
 ### Guacamole
 
-Emulator for the Chip8 language/system. The emulator has no display, for that you should use platter or nacho. There are currently no known major bugs in guacamole, however there are oddoties in Chip-8 in general (see abve in the 'What is Chip8' section).
+Emulator for the Chip8 language/system. The emulator has no display, for that you should use platter or nacho. There are currently no known major bugs in guacamole, however there are oddoties in Chip-8 in general (see abve in the 'What is Chip8' section). Guacamole makes use of two other modules: 'emulation_error' which houses a simple enum to determine the severity of an error that occured within the emulation and not one raised by python, and 'instructions' which contains a function for every Chip-8 opcode.
 
 ### Platter
 
@@ -222,7 +230,7 @@ The Curses module ships with your python install, I have had no issues thus far.
 
 ### Running on Windows
 
-Windows does not ship with Curses, which is needed by platter, so you'll need install the wheel package yourself from [here](http://www.lfd.uci.edu/~gohlke/pythonlibs/). The 'cp34' (CPython 3.4) was tested on Windows 7. Once the package is downloaded, just cd to the directory and install via pip.
+Python for Windows does not ship with Curses, which is needed by platter, so you'll need install the wheel package yourself from [here](http://www.lfd.uci.edu/~gohlke/pythonlibs/). The 'cp34' (CPython 3.4) was tested on Windows 7. Once the package is downloaded, just cd to the directory and install via pip.
 ```
 :: If you haven't installed Wheel, do that
 pip install wheel
