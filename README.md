@@ -8,9 +8,11 @@ Tortilla8 is a collection of Chip8 tools for per-processing, assembling, emulati
 
 ## Known Issues
 
-* Platter is untested on Mac. May work after installing a curses varient.
 * Keypad input could be better
-* Some terminals do not correctly display Unicode underline characters
+* Controls can't be edited
+* Bugs that I don't know about yet
+* Rewinding while waiting for key input (ld reg, k) causes odd behavior
+* Pre-Proc does not remove extra whitespace due to removing 'junk' lines
 
 ## Setup
 
@@ -196,7 +198,7 @@ Emulator for the Chip8 language/system. The emulator has no display, for that yo
 
 ### Platter
 
-Text based GUI for Guacamole that requires curses and simpleaudio, see below for any issues with your OS. Display information, warnings, and fatal errors reported by Guacamole along with all registers, the stack, and recently executed instructions. Detects when the emulator enters a "spin" state and gives the option of reseting.
+Text based GUI for Guacamole that requires curses and simpleaudio, see below for any issues with your OS. Display information, warnings, and fatal errors reported by the emulator along with all registers, the stack, and recently executed instructions. Detects when the emulator enters a "spin" state and gives the option of reseting. Press the underlined (on GNU/Linux) or uppercase (Mac/Windows) to perform the menu actions (i.e. Stepping through the program, exiting) and use the arrow keys to control the rewind size (Left/Right) and emulation target frequency (Up/Down).
 
 ### Nachos
 
@@ -216,7 +218,7 @@ t8-emulate roms/demo.ch8 -f 150
 
 ### Running on GNU/Linux, BSD variants
 
-Curses should ship with your python install, I have had no issues thus far.
+The Curses module ships with your python install, I have had no issues thus far. Some terminals will not correctly display some unicode characters, you can use either use the '-u' flag to disable unicode if that is the case.
 
 ### Running on Windows
 
@@ -239,7 +241,7 @@ You will also need the dlls for both PDCurses and SDL; both are included in the 
 
 ### Running on Mac OS X
 
-Platter has not been tested on Mac OS X yet.
+The Curses module ships with your python install, however the mac default terminal does not correctly display unicode underline characters. Instead a version is shown where the uppercase letters are the hot-keys to perform the action.
 
 ## License
 

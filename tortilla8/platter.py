@@ -20,8 +20,7 @@ except ImportError:
     from msvcrt import getch, kbhit
 
 # Everything else
-from sys import platform
-from os import path
+from os import path, name as osName
 from enum import Enum
 from textwrap import wrap
 from time import time, sleep
@@ -44,8 +43,9 @@ class platter:
                  rewind_depth, drawfix, wave_file=None):
 
         # Check if windows (no unicode in their Curses)
-        self.unicode   = True if platform != 'win32' else False
-        self.draw_char = UNICODE_DRAW if self.unicode else WIN_DRAW
+        self.screen_unicode = False if osName == 'nt' else True
+        self.draw_char = UNICODE_DRAW if self.screen_unicode else WIN_DRAW
+        self.menu_unicode = False if osName in ['mac','nt'] else True
 
         # Init Curses
         self.screen = curses.initscr()
@@ -217,14 +217,15 @@ class platter:
                         self.play_obj = self.wave_obj.play()
 
                 # Check if screen was re-sized
-                if curses.is_term_resized(self.L, self.C):
-                    self.L, self.C = self.screen.getmaxyx()
-                    curses.resizeterm(self.L, self.C)
-                    self.screen.clear()
-                    self.screen.refresh()
-                    self.dynamic_window_gen()
-                    self.clear_all_windows()
-                    self.init_logs()
+                if osName != 'nt':
+                    if curses.is_term_resized(self.L, self.C):
+                        self.L, self.C = self.screen.getmaxyx()
+                        curses.resizeterm(self.L, self.C)
+                        self.screen.clear()
+                        self.screen.refresh()
+                        self.dynamic_window_gen()
+                        self.clear_all_windows()
+                        self.init_logs()
 
                 # Update the logs/screen
                 self.check_log()
@@ -237,10 +238,10 @@ class platter:
         except KeyboardInterrupt:
             return
         except:
+            print("Unhandled Error!")
             raise
         finally:
             self.cleanup()
-            print("Unhandled Error!")
 
     def check_log(self):
         # Print all logged errors in the emu
@@ -307,7 +308,7 @@ class platter:
     def display_logo(self):
         if self.screen.getmaxyx()[0] < LOGO_MIN:
             return
-        if not self.unicode:
+        if not self.screen_unicode:
             return
         try: # Moving the window quickly causes an error, but on on the logo... weird.
             logo_offset = ( self.w_logo.getmaxyx()[0] - len(LOGO) ) // 2
@@ -378,8 +379,14 @@ class platter:
                 prefix = pre
                 cpu_hz = str(self.emu.cpu_hz / val)[0:5]
                 break
-        left = "E̲xit  ̲Reset  ̲Step  Re̲wind  Res̲ume"
-        right = "⇄RwSize " + str(self.rewind_size) + "  " + "⇅Freq " + cpu_hz + prefix + "hz"
+
+        if self.menu_unicode:
+            left = "E̲xit  ̲Reset  ̲Step  Re̲wind  Res̲ume"
+            right = "⇄RwSize " + str(self.rewind_size) + "  " + "⇅Freq " + cpu_hz + prefix + "hz"
+        else:
+            left = "eXit  Reset  Step  reWind  resUme"
+            right = "RwSize " + str(self.rewind_size) + "  " + "Freq " + cpu_hz + prefix + "hz"
+
         middle = " " * ( self.w_menu.getmaxyx()[1] - len(left) - len(right) + 1 )
         self.w_menu.addstr( 1, 2, left + middle + right )
         self.w_menu.noutrefresh()
