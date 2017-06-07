@@ -40,21 +40,22 @@ if opts.step:
     opts.frequency = 1000000 # 1 Ghz
 
 screen_unicode = False if platform == 'win32' else True
-menu_unicode = True if platform == 'linux' else False
+menu_unicode   = True  if platform == 'linux' else False
 if opts.unicode:
     if len(opts.unicode) > 2:
         raise IOError("Too many values following the '--unicode' flag.")
     for val in opts.unicode:
-        if val.lower().find('menu') != -1:
-            if val.lower().find('on') != -1:
-                menu_unicode = True
-            if val.lower().find('off') != -1:
-                menu_unicode = False
-        if val.lower().find('game') != -1:
-            if val.lower().find('on') != -1:
-                screen_unicode = True
-            if val.lower().find('off') != -1:
-                screen_unicode = False
+        val = val.lower().split('-')
+        if   val[0] == 'menu' and val[1]== 'on':
+            menu_unicode = True
+        elif val[0] == 'menu' and val[1]== 'off':
+            menu_unicode = False
+        elif val[0] == 'game' and val[1]== 'on':
+            game_unicode = True
+        elif val[0] == 'game' and val[1]== 'off':
+            game_unicode = False:
+        else:
+            raise IOError("Unknown value following the '--unicode' flag.")
 
 disp = platter( opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer,
                 opts.initram, opts.legacy_shift, opts.enforce_instructions,

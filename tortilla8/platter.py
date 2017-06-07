@@ -33,10 +33,11 @@ from tortilla8.emulation_error import Emulation_Error
 from .constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS
 from .constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_WIDTH
 
-#TODO Allow editing controls
-#TODO Improve input.
-#TODO double the resolution if window is large enough
-#TODO add Keypad display?
+# TODO Prevent menu from drawing when screen is small
+# TODO Allow editing controls
+# TODO Improve input.
+# TODO double the resolution if window is large enough
+# TODO add Keypad display?
 
 class platter:
 
