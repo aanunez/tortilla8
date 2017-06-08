@@ -13,20 +13,32 @@ Tortilla8 is a collection of Chip8 tools for per-processing, assembling, emulati
 * Bugs that I don't know about yet
 * Rewinding while waiting for key input (ld reg, k) causes odd behavior
 * Pre-Proc does not remove extra whitespace due to removing 'junk' lines
+* No 'real' gui.
 
 ## Setup
 
-Setup is strait forward, two dependencies are used for the text based gui (platter), Simple Audio and Curses, the later of which is discussed below on specifc OSes
+Setup is strait forward, two dependencies are used for the text based gui (platter), Simple Audio and Curses, the later of which is discussed below on specifc OSes. Scripts can, of course, be run directly from package without install. If you are on a system that doesn't support symbolic links (read: windows) you'll need to copy the scripts up a level to the root of the pacakge so they can see the inner tortilla8 folder.
 
 ```
-# Navigate to the root of the package
 # If you haven't installed pip, do that
 python -m pip install -U pip setuptools
+# Navigate to the root of the package
 # Install tortiall8
 pip install .
 # Install Simple Audio (optional)
 pip install simpleaudio
 ```
+
+## Demo
+
+After insallation you can pre-processes, assemble, and emulate the any of the provided ROMs (or your own) by...
+```
+t8-preproc roms/vertical_stripes.asm
+t8-assemble roms/vertical_stripes_pp.asm -o roms/demo
+t8-emulate roms/demo.ch8 -f 150
+```
+
+![tortillas are made into chips, get it?](https://github.com/aanunez/tortilla8/raw/master/docs/platter_demo1.png "Platter running vertical_stripes.ch8")
 
 ## Scripts
 
@@ -211,16 +223,6 @@ Text based GUI for Guacamole that requires curses and simpleaudio, see below for
 ### Nachos
 
 Kivy based gui intended to be highly portable. No work has started yet.
-
-## Demo
-
-After insallation you can pre-processes, assemble, and emulate the provided ROM by navigating to the package's root directory and...
-```
-# Pre-Proc and Assemble, then Emulate at 250Hz
-t8-preproc roms/vertical_stripes.asm
-t8-assemble roms/vertical_stripes_pp.asm -o roms/demo
-t8-emulate roms/demo.ch8 -f 150
-```
 
 ## Platter Compatability (Curses)
 
