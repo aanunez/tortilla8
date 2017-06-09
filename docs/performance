@@ -1,0 +1,16 @@
+Hello World
+	Command being timed: "./foo"
+	Maximum resident set size (kbytes): 8800
+
+Vertical Stripes
+	Command being timed: "./scripts/t8-assemble ./roms/vertical_stripes_pp.asm"
+	Maximum resident set size (kbytes): 16768
+
+Assemble Empty Rom
+	Command being timed: "./scripts/t8-assemble ./roms/empty.asm"
+	Maximum resident set size (kbytes): 10668
+
+Empty Rom
+	Command being timed: "./scripts/t8-emulate ./roms/empty.ch8"
+	Maximum resident set size (kbytes): 14100
+

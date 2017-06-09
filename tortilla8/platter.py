@@ -32,6 +32,8 @@ from tortilla8.guacamole import guacamole
 from tortilla8.emulation_error import Emulation_Error
 from .constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS
 from .constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_WIDTH
+from resource import getrusage, RUSAGE_SELF
+
 
 # TODO Prevent menu from drawing when screen is small
 # TODO Allow editing controls
@@ -136,6 +138,9 @@ class platter:
                     if key == KEY_ARROW:
                         key = KEY_ARROW_MAP[self.w_console.getch()]
                     flush_key_buffer()
+
+                if key == 122:
+                    self.console_print("Mem: " + str(getrusage(RUSAGE_SELF).ru_maxrss/1000) + " MB")
 
                 # Freq modifications
                 if key == 'up':
