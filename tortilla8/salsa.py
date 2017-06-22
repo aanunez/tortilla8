@@ -4,7 +4,7 @@ import re
 from collections import namedtuple
 from .constants.opcodes import OP_REG, OP_ARGS, OP_CODES, UNOFFICIAL_OP_CODES
 
-salsa_data = namedtuple('salsa_data', 'hex_instruction is_valid mnemonic\
+asm_data = namedtuple('asm_data', 'hex_instruction is_valid mnemonic\
     mnemonic_arg_types disassembled_line unoffical_op')
 
 def salsa(byte_list):
@@ -35,7 +35,7 @@ def salsa(byte_list):
     # If not a valid instruction, assume data
     if not is_valid:
         disassembled_line = hex_instruction
-        return salsa_data(hex_instruction, is_valid, mnemonic,
+        return asm_data(hex_instruction, is_valid, mnemonic,
             mnemonic_arg_types, disassembled_line, unoffical_op)
 
     # If unoffical, flag it.
@@ -45,7 +45,7 @@ def salsa(byte_list):
     # No args to parse
     if mnemonic_arg_types is None:
         disassembled_line = mnemonic
-        return salsa_data(hex_instruction, is_valid, mnemonic,
+        return asm_data(hex_instruction, is_valid, mnemonic,
             mnemonic_arg_types, disassembled_line, unoffical_op)
 
     # Parse Args
@@ -66,6 +66,6 @@ def salsa(byte_list):
         reg_numb = 2
 
     disassembled_line = (mnemonic.ljust(5) + disassembled_line[:-1]).rstrip()
-    return salsa_data(hex_instruction, is_valid, mnemonic,
+    return asm_data(hex_instruction, is_valid, mnemonic,
         mnemonic_arg_types, disassembled_line, unoffical_op)
 

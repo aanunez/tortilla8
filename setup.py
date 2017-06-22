@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
 	name = 'tortilla8',
-	version = '0.1',
+	version = '0.2',
 	description = 'A collection of Chip8 tools for pre-processing, assembling, emulating, disassembling, and visualizing Chip8 ROMs.',
 	author = 'Adam Nunez',
 	author_email = 'adam.a.nunez@gmail.com',

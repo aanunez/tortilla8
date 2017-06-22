@@ -1,4 +1,7 @@
 # Exclude dir
+docs/sphinx/_build/*
+docs/sphinx/_static/*
+docs/sphinx/_templates/*
 exclude/
 foo
 *.lst

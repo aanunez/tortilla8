@@ -34,7 +34,6 @@ from .constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS
 from .constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_WIDTH
 from resource import getrusage, RUSAGE_SELF
 
-
 # TODO Prevent menu from drawing when screen is small
 # TODO Allow editing controls
 # TODO Improve input.

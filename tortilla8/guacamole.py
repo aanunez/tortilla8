@@ -17,10 +17,10 @@ rewind_data = namedtuple('rewind_data', 'gfx_buffer register index_register ' + 
     'dis_ins stack stack_pointer draw_flag waiting_for_key spinning')
 
 class guacamole:
-    """
+    '''
     Guacamole is an emulator class that will happily emulate a Chip-8 ROM
     at a select frequency with various other options available.
-    """
+    '''
     def __init__(self, rom=None, cpuhz=200, audiohz=60, delayhz=60,
                  init_ram=False, legacy_shift=False, err_unoffical="None",
                  rewind_depth=1000):
@@ -262,9 +262,16 @@ class guacamole:
     # Helpers for Load Key ( Private )
 
     def decode_keypad(self):
+        '''
+        Helper method to decode the current keypad into a binary string
+        '''
         return int(''.join(['1' if x else '0' for x in self.keypad]),2)
 
     def handle_load_key(self):
+        '''
+        Helper method to check if keys have changed and, if so, load the
+        key per the ld reg,k instruction.
+        '''
         k = self.decode_keypad()
         nk = bin( (k ^ self.prev_keypad) & k )[2:].zfill(16).find('1')
         if nk != -1:
