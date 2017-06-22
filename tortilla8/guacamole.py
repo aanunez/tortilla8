@@ -10,7 +10,6 @@ from .constants.reg_rom_stack import BYTES_OF_RAM, PROGRAM_BEGIN_ADDRESS, \
                                      NUMB_OF_REGS, MAX_ROM_SIZE
 from .constants.graphics import GFX_FONT, GFX_FONT_ADDRESS, GFX_RESOLUTION, GFX_ADDRESS
 
-# TODO Update reset
 # TODO Rewind bug when waiting for keypress
 
 rewind_data = namedtuple('rewind_data', 'gfx_buffer register index_register ' + \
@@ -125,7 +124,9 @@ class guacamole:
                 [int.from_bytes(fh.read(1), 'big') for i in range(file_size)]
             self.log("Rom file loaded" , Emulation_Error._Information)
 
-    def reset(self, rom=None, cpuhz=None, audiohz=None, delayhz=None, init_ram=None):
+    def reset(self, rom=None, cpuhz=None, audiohz=None, delayhz=None,
+              init_ram=None, legacy_shift=None, err_unoffical="None",
+              rewind_depth=1000):
         '''
         Resets the emulator to run another game. By default all frequencies
         and the init_ram flag are preserved.
@@ -134,7 +135,13 @@ class guacamole:
         if audiohz is None: audiohz = self.audio_hz
         if delayhz is None: delayhz = self.delay_hz
         if init_ram is None: init_ram = True if self.ram[0] == 0 else False
-        self.__init__(rom, cpuhz, audiohz, delayhz, init_ram)
+        if legacy_shift is None: legacy_shift = self.legacy_shift
+        if err_unoffical is None: err_unoffical = "None"
+        if rewind_frames is None: rewind_frames = 0
+
+        self.__init__(rom, cpuhz, audiohz, delayhz,
+                      init_ram, legacy_shift, err_unoffical,
+                      rewind_frames)
 
     def run(self):
         '''
