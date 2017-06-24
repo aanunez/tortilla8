@@ -31,9 +31,6 @@ Code
 .. automodule:: tortilla8.jalapeno
    :members:
 
-.. automodule:: tortilla8.emulation_error
-   :members:
-
 .. toctree::
    :hidden:
    :maxdepth: 2
