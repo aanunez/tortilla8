@@ -51,13 +51,11 @@ for item in BANNED_OP_CODES:
     if item.find('.') == -1:
         BANNED_OP_CODES_EXPLODED.append(item)
     else:
-        upper = 256 if item[2:] == '..' else 16
-        repl  = '..' if upper == 256 else '.'
+        upper,repl,fill = 16,'.',1
+        if item[2:] == '..':
+            upper,repl,fill = 256,'..',2
         for i in range(0, upper):
-            BANNED_OP_CODES_EXPLODED.append(item.replace(repl, hex(i)[2:]))
-
-
-
+            BANNED_OP_CODES_EXPLODED.append(item.replace(repl, hex(i)[2:].zfill(fill)))
 
 
 
