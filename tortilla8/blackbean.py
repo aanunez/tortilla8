@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 
-import warnings
-from tortilla8.cilantro import cilantro
+from . import export
+from warnings import warn
+from .cilantro import Cilantro
 from .constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, ARG_SUB, OVERFLOW_ADDRESS, REGISTERS
 from .constants.opcodes import OP_CODES, OP_CODE_SIZE, OP_ARGS, OP_HEX, BANNED_OP_CODES_EXPLODED
 from .constants.symbols import BEGIN_COMMENT, HEX_ESC, BIN_ESC
+
 
 #Opcode reminders: SHR, SHL, XOR, and SUBN/SM are NOT offically supported by original spec
 #                  SHR and SHL may or may not move Y (Shifted) into X or just shift X.
 #                  Enforce flag can be used to prevent using them.
 
-class blackbean:
+@export
+class Blackbean:
     """
     Blackbean is an assembler class that can take file handlers,
     assemble the contents, and return a stripped (comment free),
@@ -40,7 +43,7 @@ class blackbean:
         """
         # Pass One, Tokenize and Address
         for i,line in enumerate(file_handler):
-            t = cilantro(line, i)
+            t = Cilantro(line, i)
             self.collection.append(t)
             if t.is_empty: continue
             self.calc_mem_address(t)
@@ -61,7 +64,7 @@ class blackbean:
         for all other assembler instructions.
         """
         if not self.collection:
-            warnings.warn("No file has been assembled. Nothing to print.")
+            warn("No file has been assembled. Nothing to print.")
             return
 
         for line in self.collection:
@@ -86,7 +89,7 @@ class blackbean:
         space lines removed. Useful for CHIP 8 interpreters.
         """
         if not self.collection:
-            warnings.warn("No file has been assembled. Nothing to print.")
+            warn("No file has been assembled. Nothing to print.")
             return
 
         for line in self.collection:
@@ -102,7 +105,7 @@ class blackbean:
         Writes the assembled file to a binary blob.
         """
         if not self.collection:
-            warnings.warn("No file has been assembled. Nothing to print.")
+            warn("No file has been assembled. Nothing to print.")
             return
 
         for line in self.collection:
@@ -151,7 +154,7 @@ class blackbean:
             if working_hex:
                 tl.instruction_int = int(working_hex, 16)
                 if working_hex in BANNED_OP_CODES_EXPLODED:
-                    warnings.warn("Instruction that modifies F register on line " + str(tl.line_numb))
+                    warn("Instruction that modifies F register on line " + str(tl.line_numb))
                 break
 
         if not tl.instruction_int:
@@ -265,7 +268,7 @@ class blackbean:
             self.address += (len(tl.data_declarations) * tl.data_size)
 
         if self.address >= OVERFLOW_ADDRESS:
-            warnings.warn("Memory overflow as of line " + str(tl.line_numb))
+            warn("Memory overflow as of line " + str(tl.line_numb))
 
 ############################################################
 # Below are utility functions usefull if creating a class

@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 
-from tortilla8.cilantro import cilantro
+from . import export
+from .cilantro import Cilantro
 from .constants.symbols import BEGIN_COMMENT
 from .constants.preprocessor import MODE_MARKS, EQU_MARKS, ELSE_IF, END_MARKS
 
 #TODO Respect MODE_MARKS and add common directives to it.
 #TODO Remove excess whitespace when its around pre-proc directives
 
-class jalapeno:
+@export
+class Jalapeno:
     """
     Jalapeno is a pre-processor class that can take file handlers,
     process all common chip8 pre processor directives and return

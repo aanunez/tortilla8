@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 
-import re
+from . import export
+from re import match
 from collections import namedtuple
 from .constants.opcodes import OP_REG, OP_ARGS, OP_CODES, UNOFFICIAL_OP_CODES
 
-asm_data = namedtuple('asm_data', 'hex_instruction is_valid mnemonic\
-    mnemonic_arg_types disassembled_line unoffical_op')
+@export
+class ASMdata( namedtuple('ASMdata', 'hex_instruction is_valid mnemonic\
+    mnemonic_arg_types disassembled_line unoffical_op') ):
+    pass
 
-def salsa(byte_list):
+@export
+def Salsa(byte_list):
     '''
     Salsa is a one line (2 byte) dissassembler function for CHIP-8 Rom It
     returns a named tuple with various information on the line.
@@ -23,7 +27,7 @@ def salsa(byte_list):
     # Match the instruction via a regex index
     for mnemonic, reg_patterns in OP_CODES.items():
         for pattern_version in reg_patterns:
-            if not re.match(pattern_version[OP_REG], hex_instruction):
+            if not match(pattern_version[OP_REG], hex_instruction):
                 continue
             mnemonic = mnemonic
             mnemonic_arg_types = pattern_version[OP_ARGS]
@@ -35,7 +39,7 @@ def salsa(byte_list):
     # If not a valid instruction, assume data
     if not is_valid:
         disassembled_line = hex_instruction
-        return asm_data(hex_instruction, is_valid, mnemonic,
+        return ASMdata(hex_instruction, is_valid, mnemonic,
             mnemonic_arg_types, disassembled_line, unoffical_op)
 
     # If unoffical, flag it.
@@ -45,7 +49,7 @@ def salsa(byte_list):
     # No args to parse
     if mnemonic_arg_types is None:
         disassembled_line = mnemonic
-        return asm_data(hex_instruction, is_valid, mnemonic,
+        return ASMdata(hex_instruction, is_valid, mnemonic,
             mnemonic_arg_types, disassembled_line, unoffical_op)
 
     # Parse Args
@@ -66,6 +70,6 @@ def salsa(byte_list):
         reg_numb = 2
 
     disassembled_line = (mnemonic.ljust(5) + disassembled_line[:-1]).rstrip()
-    return asm_data(hex_instruction, is_valid, mnemonic,
+    return ASMdata(hex_instruction, is_valid, mnemonic,
         mnemonic_arg_types, disassembled_line, unoffical_op)
 

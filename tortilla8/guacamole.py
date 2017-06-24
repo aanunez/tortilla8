@@ -1,22 +1,26 @@
 #!/usr/bin/env python3
 
-import os       # Rom Loading
-import time     # CPU Frequency
-from tortilla8.salsa import salsa
+from . import export
+from . import Emulation_Error
+from os.path import getsize
+from time import time
+from .salsa import Salsa
 from collections import namedtuple, deque
-from tortilla8.emulation_error import Emulation_Error
-from tortilla8.instructions import *
+from .instructions import *
 from .constants.reg_rom_stack import BYTES_OF_RAM, PROGRAM_BEGIN_ADDRESS, \
                                      NUMB_OF_REGS, MAX_ROM_SIZE
 from .constants.graphics import GFX_FONT, GFX_FONT_ADDRESS, GFX_RESOLUTION, GFX_ADDRESS
 
 # TODO Rewind bug when waiting for keypress
 
-rewind_data = namedtuple('rewind_data', 'gfx_buffer register index_register ' + \
+@export
+class RewindData( namedtuple('RewindData', 'gfx_buffer register index_register ' + \
     'delay_timer_register sound_timer_register program_counter calling_pc ' + \
-    'dis_ins stack stack_pointer draw_flag waiting_for_key spinning')
+    'dis_ins stack stack_pointer draw_flag waiting_for_key spinning') ):
+    pass
 
-class guacamole:
+@export
+class Guacamole:
     '''
     Guacamole is an emulator class that will happily emulate a Chip-8 ROM
     at a select frequency with various other options available.
@@ -73,7 +77,7 @@ class guacamole:
         self.rewind_frames = None if rewind_depth == 0 else deque(maxlen=rewind_depth)
 
         # # # # # # # # # # # # # # # # # # # # # # # #
-        # Private
+        # Private (ish)
 
         # Warning control
         self.debug = False
@@ -114,7 +118,7 @@ class guacamole:
         '''
         Loads a Chip-8 ROM from a file into the RAM.
         '''
-        file_size = os.path.getsize(file_path)
+        file_size = getsize(file_path)
         if file_size > MAX_ROM_SIZE:
             self.log("Rom file exceeds maximum rom size of " + str(MAX_ROM_SIZE) + \
                 " bytes" , Emulation_Error._Warning)
@@ -149,16 +153,16 @@ class guacamole:
         of the main loop, it insures that the CPU and timers execute at the
         target frequency.
         '''
-        if self.cpu_wait <= (time.time() - self.cpu_time):
-            self.cpu_time = time.time()
+        if self.cpu_wait <= (time() - self.cpu_time):
+            self.cpu_time = time()
             self.cpu_tick()
 
-        if self.audio_wait <= (time.time() - self.audio_time):
-            self.audio_time = time.time()
+        if self.audio_wait <= (time() - self.audio_time):
+            self.audio_time = time()
             self.sound_timer_register -= 1 if self.sound_timer_register != 0 else 0
 
-        if self.delay_wait <= (time.time() - self.delay_time):
-            self.delay_time = time.time()
+        if self.delay_wait <= (time() - self.delay_time):
+            self.delay_time = time()
             self.delay_timer_register -= 1 if self.delay_timer_register != 0 else 0
 
     def cpu_tick(self):
@@ -179,7 +183,7 @@ class guacamole:
         # Dissassemble next instruction
         self.dis_ins = None
         try:
-            self.dis_ins = salsa(self.ram[self.program_counter:self.program_counter+2])
+            self.dis_ins = Salsa(self.ram[self.program_counter:self.program_counter+2])
         except TypeError:
             self.log("No instruction found at " + hex(self.program_counter), Emulation_Error._Fatal)
             return
@@ -206,9 +210,9 @@ class guacamole:
 
         # Increment the PC, Store Rewind Data
         self.program_counter += 2
-        self.store_rewind_data()
+        self.store_RewindData()
 
-    def store_rewind_data(self):
+    def store_RewindData(self):
         '''
         Save the current state of the emulator.
         Without rewind guac/platter use 7.6 megs of RAM. Using rewind uses
@@ -217,7 +221,7 @@ class guacamole:
         if self.rewind_frames is None:
             return
         gfx_buffer = self.ram[GFX_ADDRESS:GFX_ADDRESS + GFX_RESOLUTION]
-        self.rewind_frames.append( rewind_data(gfx_buffer, self.register.copy(), self.index_register,
+        self.rewind_frames.append( RewindData(gfx_buffer, self.register.copy(), self.index_register,
             self.delay_timer_register, self.sound_timer_register, self.program_counter, self.calling_pc,
             self.dis_ins + (), self.stack.copy(), self.stack_pointer, self.draw_flag, self.waiting_for_key,
             self.spinning ) )

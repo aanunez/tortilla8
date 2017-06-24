@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
+from . import export
 from .constants.preprocessor import END_MEM_TAG, PRE_PROC, DATA_DECLARE
 from .constants.symbols import BEGIN_COMMENT
 from .constants.opcodes import OP_CODES
 
-class cilantro:
+@export
+class Cilantro:
     '''
     Lexer/tokenizer for Chip 8 instructions. Used by Blackbean (assembler)
     and Jalapeno (pre-processor).

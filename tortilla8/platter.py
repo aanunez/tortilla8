@@ -28,8 +28,8 @@ from textwrap import wrap
 from time import time, sleep
 from collections import deque
 from .constants.curses import *
-from tortilla8.guacamole import guacamole
-from tortilla8.emulation_error import Emulation_Error
+from .guacamole import Guacamole
+from .guacamole import Emulation_Error
 from .constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS
 from .constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_WIDTH
 from resource import getrusage, RUSAGE_SELF
@@ -40,7 +40,7 @@ from resource import getrusage, RUSAGE_SELF
 # TODO double the resolution if window is large enough
 # TODO add Keypad display?
 
-class platter:
+class Platter:
 
     def __init__(self, rom, cpuhz, audiohz, delayhz,
                  init_ram, legacy_shift, enforce_ins,
@@ -95,7 +95,7 @@ class platter:
                     "Unable to load default 'play.wav' from sound directory.")
 
         # Init the emulator
-        self.emu = guacamole(rom, cpuhz, audiohz, delayhz, init_ram, legacy_shift, enforce_ins, rewind_depth)
+        self.emu = Guacamole(rom, cpuhz, audiohz, delayhz, init_ram, legacy_shift, enforce_ins, rewind_depth)
         self.check_log()
         self.init_emu_status()
         self.rewind_size = 5
