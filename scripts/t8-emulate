@@ -3,7 +3,7 @@
 from os import path
 from sys import platform
 from argparse import ArgumentParser
-from tortilla8.platter import platter
+from tortilla8.platter import Platter
 
 def pos_int(value):
     ivalue = int(value)
@@ -57,7 +57,7 @@ if opts.unicode:
         else:
             raise IOError("Unknown value following the '--unicode' flag.")
 
-disp = platter( opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer,
+disp = Platter( opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer,
                 opts.initram, opts.legacy_shift, opts.enforce_instructions,
                 opts.rewind_depth, opts.drawfix, screen_unicode, menu_unicode,
                 opts.audio )

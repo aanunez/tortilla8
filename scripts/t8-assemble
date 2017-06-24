@@ -6,7 +6,7 @@ import select
 import argparse
 import contextlib
 
-from tortilla8.blackbean import blackbean
+from tortilla8.blackbean import Blackbean
 
 parser = argparse.ArgumentParser(description=\
 '''
@@ -28,7 +28,7 @@ if not os.path.isfile(opts.input):
 if not opts.output:
     opts.output  = '.'.join(opts.input.split('.')[0:-1]) if opts.input.find('.') != -1 else opts.input
 
-bb = blackbean()
+bb = Blackbean()
 with open(opts.input) as fh:
     bb.assemble(fh)
 

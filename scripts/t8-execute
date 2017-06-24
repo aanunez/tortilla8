@@ -3,7 +3,7 @@
 import os
 import argparse
 from time import sleep
-from tortilla8.guacamole import guacamole
+from tortilla8.guacamole import Guacamole
 
 def pos_int(value):
     ivalue = int(value)
@@ -30,7 +30,7 @@ opts = parser.parse_args()
 if not os.path.isfile(opts.rom):
     raise OSError("File '" + opts.rom + "' does not exist.")
 
-guac = guacamole(opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer, opts.initram, opts.legacy_shift, opts.enforce_instructions)
+guac = Guacamole(opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer, opts.initram, opts.legacy_shift, opts.enforce_instructions)
 guac.log_to_screen = True
 sleep_time = (1/opts.frequency)*.98
 try:

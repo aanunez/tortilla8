@@ -2,14 +2,14 @@
 
 import os
 import argparse
-from tortilla8.salsa import salsa
+from tortilla8.salsa import Salsa
 
 def dissassemble_file(in_handler, out_handler):
     byte_list = []
     file_size = os.path.getsize(input_path)
     for _ in range(int(file_size/2)):
         byte_list[0:2] = [int.from_bytes(in_handler.read(1), 'big') for _ in range(2)]
-        dis_inis = salsa(byte_list)
+        dis_inis = Salsa(byte_list)
         out_handler.write(dis_inis.disassembled_line + '\n')
     if file_size % 2 == 1:
         out_handler.write(hex(int.from_bytes(in_handler.read(1), 'big'))[2:].zfill(2) + '\n')
