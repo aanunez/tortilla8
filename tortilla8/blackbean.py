@@ -6,7 +6,7 @@ from .cilantro import Cilantro
 from .constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, ARG_SUB, OVERFLOW_ADDRESS, REGISTERS
 from .constants.opcodes import OP_CODES, OP_CODE_SIZE, OP_ARGS, OP_HEX, BANNED_OP_CODES_EXPLODED
 from .constants.symbols import BEGIN_COMMENT, HEX_ESC, BIN_ESC
-
+__all__ = []
 
 #Opcode reminders: SHR, SHL, XOR, and SUBN/SM are NOT offically supported by original spec
 #                  SHR and SHL may or may not move Y (Shifted) into X or just shift X.

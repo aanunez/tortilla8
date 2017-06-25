@@ -4,6 +4,7 @@ from . import export
 from .cilantro import Cilantro
 from .constants.symbols import BEGIN_COMMENT
 from .constants.preprocessor import MODE_MARKS, EQU_MARKS, ELSE_IF, END_MARKS
+__all__ = []
 
 #TODO Respect MODE_MARKS and add common directives to it.
 #TODO Remove excess whitespace when its around pre-proc directives

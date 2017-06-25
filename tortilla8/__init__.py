@@ -8,9 +8,15 @@
 
 __all__ = []
 
+from sys import modules
 def export(defn):
-    globals()[defn.__name__] = defn
-    __all__.append(defn.__name__)
+    mod = modules[defn.__module__]
+    if hasattr(mod, '__all__'):
+        name, all_ = defn.__name__, mod.__all__
+        if name not in __all__:
+            all_.append(name)
+    else:
+        mod.__all__ = [defn.__name__]
     return defn
 
 from enum import Enum

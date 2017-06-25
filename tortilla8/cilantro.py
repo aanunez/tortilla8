@@ -4,6 +4,7 @@ from . import export
 from .constants.preprocessor import END_MEM_TAG, PRE_PROC, DATA_DECLARE
 from .constants.symbols import BEGIN_COMMENT
 from .constants.opcodes import OP_CODES
+__all__ = []
 
 @export
 class Cilantro:

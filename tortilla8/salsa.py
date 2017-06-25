@@ -4,6 +4,7 @@ from . import export
 from re import match
 from collections import namedtuple
 from .constants.opcodes import OP_REG, OP_ARGS, OP_CODES, UNOFFICIAL_OP_CODES
+__all__ = []
 
 @export
 class ASMdata( namedtuple('ASMdata', 'hex_instruction is_valid mnemonic\

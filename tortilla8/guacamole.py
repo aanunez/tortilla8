@@ -10,6 +10,7 @@ from .instructions import *
 from .constants.reg_rom_stack import BYTES_OF_RAM, PROGRAM_BEGIN_ADDRESS, \
                                      NUMB_OF_REGS, MAX_ROM_SIZE
 from .constants.graphics import GFX_FONT, GFX_FONT_ADDRESS, GFX_RESOLUTION, GFX_ADDRESS
+__all__ = []
 
 # TODO Rewind bug when waiting for keypress
 
