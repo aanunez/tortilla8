@@ -141,8 +141,9 @@ class Guacamole:
         if delayhz is None: delayhz = self.delay_hz
         if init_ram is None: init_ram = True if self.ram[0] == 0 else False
         if legacy_shift is None: legacy_shift = self.legacy_shift
-        if err_unoffical is None: err_unoffical = "None"
-        if rewind_frames is None: rewind_frames = 0
+        if err_unoffical is None: err_unoffical = str(self.warn_exotic_ins)
+        if rewind_frames is None:
+            rewind_frames =  0 if self.rewind_frames == None else self.rewind_frames.maxlen
 
         self.__init__(rom, cpuhz, audiohz, delayhz,
                       init_ram, legacy_shift, err_unoffical,
