@@ -24,7 +24,7 @@ setup(
 	#	    'scripts/t8-preproc',
 	#	    'scripts/t8-emulate'
 	#	   ],
-	include_package_data = True
+	include_package_data = True,
     entry_points={
         'console_scripts': [
             'tortilla8 = tortilla8.__main__:main'

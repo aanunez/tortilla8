@@ -8,9 +8,9 @@ Tortilla8 is a collection of Chip8 tools for per-processing, assembling, emulati
 
 ## Known Issues
 
+* No docs for modules
 * Keypad input could be better
 * Controls can't be edited
-* Bugs that I don't know about yet
 * Rewinding while waiting for key input (ld reg, k) causes odd behavior
 * Pre-Proc does not remove extra whitespace due to removing 'junk' lines
 * No 'real' gui.
@@ -33,165 +33,52 @@ pip install simpleaudio
 
 After insallation you can pre-processes, assemble, and emulate the any of the provided ROMs (or your own) by...
 ```
-t8-preproc roms/vertical_stripes.asm
-t8-assemble roms/vertical_stripes_pp.asm -o roms/demo
-t8-emulate roms/demo.ch8 -f 150
+tortilla8 pre-process roms/vertical_stripes.asm
+tortilla8 assemble roms/vertical_stripes_pp.asm -o roms/demo
+tortilla8 emulate roms/demo.ch8 -f 150
 ```
 
 ![tortillas are made into chips, get it?](https://github.com/aanunez/tortilla8/raw/master/docs/platter_demo1.png "Platter running vertical_stripes.ch8")
 
-## Scripts
+## Usage
 
-Scripts exist that wrap the below modules to enable easy action for the user.
+The main entry point after install is `tortilla8`, which has five options: assemble, disassemble, pre-process, execute, and emulate. More information for each can be found via tortilla8's help menus.
 
-### t8-preproc
 ```
-usage: t8-preproc [-h] [-d DEFINE [DEFINE ...]] [-o OUTPUT] input
+usage: tortilla8 [-h] {pre-process,assemble,disassemble,execute,emulate} ...
 
-Scan your CHIP-8 source code for pre-processor directives, apply them as
-needed, and produce a flattend source file. Respected Directives are: 'ifdef',
-'ifndef', 'elif', 'elseif', 'elifdef','elseifdef', 'endif', 'else', 'equ',
-'='. Currently, no mode modifers ('option', 'align' etc) are respected.
+A collection of Chip8 tools for pre-processing, assembling, emulating,
+disassembling, and visualizing Chip8 ROMs.
 
 positional arguments:
-  input                 File to assemble.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -d DEFINE [DEFINE ...], --define DEFINE [DEFINE ...]
-                        Strings to define as true for evaluation of pre-
-                        processor directives.
-  -o OUTPUT, --output OUTPUT
-                        File to store processed source to, by default
-                        INPUT_pp.asm is used.
-```
-
-### t8-assemble
-```
-usage: t8-assemble [-h] [-o OUTPUT] [-l] [-s] [-e] [input]
-
-Assemble your CHIP-8 programs to executable machine code. Listing files and
-comment-striped files can also be generated. Arguments to mnemonics must be
-either be integers in decimal or hex using '#' as a prefix. Data declares may
-also be prefixed with '$' to denote binary (i.e. '$11001100' or '$11..11..').
-
-positional arguments:
-  input                 File to assemble.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -o OUTPUT, --output OUTPUT
-                        Name of every generated file, will have either
-                        "strip", "lst", or "ch8" appended.
-  -l, --list            Generate listing file and store to OUTPUT.lst file.
-  -s, --strip           Strip comments and store to OUTPUT.strip file.
-  -e, --enforce         Force original Chip-8 specification and do not allow
-                        SHR, SHL, XOR, or SUBN instructions.
-```
-
-### t8-disassemble
-```
-usage: t8-disassemble [-h] [-o OUTPUT] [rom]
-
-Dissassemble a Chip8 ROM, any byte pair that is not an instruction is assumed
-to be a data declaration. No checks are performed to insure the program is
-valid.
-
-positional arguments:
-  rom                   File to disassemble.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -o OUTPUT, --output OUTPUT
-                        File to write to.
-```
-
-### t8-execute
-```
-usage: t8-execute [-h] [-f FREQUENCY] [-st SOUNDTIMER] [-dt DELAYTIMER] [-i]
-                  [-ls] [-e ENFORCE_INSTRUCTIONS]
-                  rom
-
-Execute a rom to quickly check for errors. The program counter, hex
-instruction (the two bytes that make up the opcode), and mnemonic are printed
-to the screen immediately after the execution of that operation code. All
-errors (info, warning, and fatal) are printed to screen.
-
-positional arguments:
-  rom                   ROM to load and play.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -f FREQUENCY, --frequency FREQUENCY
-                        Frequency (in Hz) to target for CPU.
-  -st SOUNDTIMER, --soundtimer SOUNDTIMER
-                        Frequency (in Hz) to target for the audio timmer.
-  -dt DELAYTIMER, --delaytimer DELAYTIMER
-                        Frequency (in Hz) to target for the delay timmer.
-  -i, --initram         Initialize RAM to all zero values.
-  -ls, --legacy_shift   Use the legacy shift method of bit shift Y and storing
-                        to X.
-  -e ENFORCE_INSTRUCTIONS, --enforce_instructions ENFORCE_INSTRUCTIONS
-                        Warning to log if an unoffical instruction is
-                        executed. Options: None Info Warning Fatal
-```
-
-### t8-emulate
-```
-usage: t8-emulate [-h] [-f FREQUENCY | -s] [-d] [-i] [-a AUDIO]
-                  [-st SOUNDTIMER] [-dt DELAYTIMER] [-ls]
-                  [-e ENFORCE_INSTRUCTIONS] [-r REWIND_DEPTH]
-                  [-u [UNICODE [UNICODE ...]]]
-                  rom
-
-Start a text (unicode) based Chip8 emulator which disaplys a game screen, all
-registers, the stack, recently processed instructions, and a console to log
-any issues that occur.
-
-positional arguments:
-  rom                   ROM to load and play.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -f FREQUENCY, --frequency FREQUENCY
-                        CPU frequency to target, minimum 1Hz. 10Hz by default.
-                        CPU frequency can be adjusted in platter.
-  -s, --step            Start the emulator in "step" mode. Allows for
-                        execution of a single instruction at a time.
-  -d, --drawfix         Enable anti-flicker, stops platter from drawing to the
-                        screen when sprites are only removed.
-  -i, --initram         Initialize RAM to all zero values. Needed to run some
-                        ROMs that assume untouched addresses to be zero. By
-                        default RAM address without values are not initalized,
-                        accessing them will cause an Emulation Error.
-  -a AUDIO, --audio AUDIO
-                        Path to audio to play for Sound Timer, or "off" to
-                        prevent sound from playing. By default a 440Hz square
-                        wave is used.
-  -st SOUNDTIMER, --soundtimer SOUNDTIMER
-                        Frequency to target for the audio timmer. 60Hz by
-                        default.
-  -dt DELAYTIMER, --delaytimer DELAYTIMER
-                        Frequency to target for the delay timmer. 60Hz by
-                        default.
-  -ls, --legacy_shift   Use the legacy shift method of bit shift Y and storing
-                        to X. By default the newer method is used where Y is
-                        ignored and X is bitshifted then stored to itself.
-  -e ENFORCE_INSTRUCTIONS, --enforce_instructions ENFORCE_INSTRUCTIONS
-                        Warning to log if an unoffical instruction is
-                        executed. By default, no errors are logged. Options:
-                        None Info Warning Fatal
-  -r REWIND_DEPTH, --rewind_depth REWIND_DEPTH
-                        Number of instructions back to be recorded to enable
-                        rewinding. To disable set to zero or "off". By default
-                        1000 instructions are recorded.
-  -u [UNICODE [UNICODE ...]], --unicode [UNICODE [UNICODE ...]]
-                        Forces unicode on or off for the menu and game screen.
-                        Valid values are: On, Off, Menu-On, Menu-Off, Game-On,
-                        Game-Off. By default, unicode support is determined by
-                        the OS. Mac displays a unicode game screen, Windows
-                        displays no unicode, and GNU/Linux displays both the
-                        game and menu in unicode.
+  {pre-process,assemble,disassemble,execute,emulate}
+                        Options for tortilla8...
+    pre-process         Scan your CHIP-8 source code for pre-processor
+                        directives, apply them as needed, and produce a
+                        flattend source file. Respected Directives are:
+                        'ifdef', 'ifndef', 'elif', 'elseif',
+                        'elifdef','elseifdef', 'endif', 'else', 'equ', '='.
+                        Currently, no mode modifers ('option', 'align' etc)
+                        are respected.
+    assemble            Assemble your CHIP-8 programs to executable machine
+                        code. Listing files and comment-striped files can also
+                        be generated. Arguments to mnemonics must be either be
+                        integers in decimal or hex using '#' as a prefix. Data
+                        declares may also be prefixed with '$' to denote
+                        binary (i.e. '$11001100' or '$11..11..').
+    disassemble         Dissassemble a Chip8 ROM, any byte pair that is not an
+                        instruction is assumed to be a data declaration. No
+                        checks are performed to insure the program is valid.
+    execute             Execute a rom to quickly check for errors. The program
+                        counter, hex instruction (the two bytes that make up
+                        the opcode), and mnemonic are printed to the screen
+                        immediately after the execution of that operation
+                        code. All errors (info, warning, and fatal) are
+                        printed to screen.
+    emulate             Start a text (unicode) based Chip8 emulator which
+                        disaplys a game screen, all registers, the stack,
+                        recently processed instructions, and a console to log
+                        any issues that occur.
 ```
 
 ## Modules
