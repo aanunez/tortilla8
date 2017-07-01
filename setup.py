@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# doc page:
+# https://docs.python.org/3.5/distutils/setupscript.html
 from setuptools import setup
 
 setup(
@@ -15,12 +17,26 @@ setup(
     extras_require = {
         'Emulation Sound':  ["simpleaudio"],
     },
-	scripts = [
-		    'scripts/t8-assemble',
-		    'scripts/t8-disassemble',
-		    'scripts/t8-execute',
-		    'scripts/t8-preproc',
-		    'scripts/t8-emulate'
-		   ],
+	#scripts = [
+	#	    'scripts/t8-assemble',
+	#	    'scripts/t8-disassemble',
+    #	    'scripts/t8-execute',
+	#	    'scripts/t8-preproc',
+	#	    'scripts/t8-emulate'
+	#	   ],
 	include_package_data = True
+    entry_points={
+        'console_scripts': [
+            'tortilla8 = tortilla8.__main__:main'
+        ]
+    },
+    classifiers=[
+        # List here: https://pypi.python.org/pypi?%3Aaction=browse
+        'Development Status :: 4 - Beta',
+        'Intended Audience :: Developers',
+        'Topic :: Software Development',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+        'Programming Language :: Python :: 3.5',
+    ],
+    keywords='emulation chip-8 chip8 rom emulator assembler disassembler'
 )
