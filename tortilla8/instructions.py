@@ -4,7 +4,8 @@ from random import randint
 from . import Emulation_Error
 from .constants.reg_rom_stack import STACK_ADDRESS, STACK_SIZE
 from .constants.graphics import GFX_FONT_ADDRESS, GFX_RESOLUTION, GFX_ADDRESS, \
-                                GFX_WIDTH, GFX_HEIGHT_PX, GFX_WIDTH_PX
+                                GFX_WIDTH, GFX_HEIGHT_PX, GFX_WIDTH_PX, \
+                                SET_VF_ON_GFX_OVERFLOW
 
 # Instructions - All 20 mnemonics, 35 total instructions
 # Add-3 SE-2 SNE-2 LD-11 JP-2 (mnemonics w/ extra instructions)
@@ -75,12 +76,12 @@ def i_xor(emu):
     emu.register[ get_reg1(emu) ] = get_reg1_val(emu) ^ get_reg2_val(emu)
 
 def i_sub(emu):
-    emu.register[0xF] = 0x01 if get_reg1_val(emu) > get_reg2_val(emu) else 0x00
+    emu.register[0xF] = 0x01 if get_reg1_val(emu) >= get_reg2_val(emu) else 0x00
     emu.register[ get_reg1(emu) ] = get_reg1_val(emu) - get_reg2_val(emu)
     emu.register[ get_reg1(emu) ] &= 0xFF
 
 def i_subn(emu):
-    emu.register[0xF] = 0x01 if get_reg2_val(emu) > get_reg1_val(emu) else 0x00
+    emu.register[0xF] = 0x01 if get_reg2_val(emu) >= get_reg1_val(emu) else 0x00
     emu.register[ get_reg1(emu) ] = get_reg2_val(emu) - get_reg1_val(emu)
     emu.register[ get_reg1(emu) ] &= 0xFF
 
@@ -121,6 +122,8 @@ def i_add(emu):
 
     elif 'i' in arg1 and 'register' is arg2:
         emu.index_register += get_reg1_val(emu)
+        if emu.index_register > 0xFF && SET_VF_ON_GFX_OVERFLOW:
+            emu.register[0xF] = 0x01
         emu.index_register &= 0xFFF
 
     else:

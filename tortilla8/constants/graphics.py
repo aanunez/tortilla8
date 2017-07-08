@@ -6,6 +6,9 @@ GFX_WIDTH_PX   = 64
 GFX_WIDTH      = int(GFX_WIDTH_PX/8)
 GFX_RESOLUTION = int(GFX_WIDTH*GFX_HEIGHT_PX) #In bytes
 
+SET_VF_ON_GFX_OVERFLOW = False # Undocumented 'feature'. When 'Add I, VX' overflows 'I'
+                               # VF is set to one when this is True. The insturction does
+                               # not set VF low. Used by Spacefight 2019.
 # Fonts (80 bytes)
 GFX_FONT_ADDRESS = 0x050
 GFX_FONT = (
