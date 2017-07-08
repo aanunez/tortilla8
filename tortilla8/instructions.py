@@ -108,15 +108,14 @@ def i_add(emu):
     if 'register' is arg1:
 
         if 'byte' is arg2:
-            emu.register[ get_reg1(emu) ] += get_lower_byte(emu)
+            emu.register[ get_reg1(emu) ] = get_reg1_val(emu) + get_lower_byte(emu)
             emu.register[ get_reg1(emu) ] &= 0xFF
         elif 'register' is arg2:
-            emu.register[ get_reg1(emu) ] += get_reg2_val(emu)
-            emu.register[ get_reg1(emu) ] &= 0xFF
+            emu.register[ get_reg1(emu) ] = get_reg1_val(emu) + get_reg2_val(emu)
             emu.register[0xF] = 0x00
-            if  get_reg1_val(emu) + get_reg2_val(emu) > 0xFF:
-                emu.register[ get_reg1(emu) ] &= 0xFF
+            if  emu.register[ get_reg1(emu) ] > 0xFF:
                 emu.register[0xF] = 0x01
+                emu.register[ get_reg1(emu) ] &= 0xFF
         else:
             emu.log("Unknown argument at address " + hex(emu.program_counter), Emulation_Error._Fatal)
 
@@ -139,7 +138,7 @@ def i_ld(emu):
             emu.waiting_for_key = True
             emu.program_counter -= 2
         elif '[i]' == arg2:
-            for i in range( get_reg1(emu) ):
+            for i in range( get_reg1(emu) + 1 ):
                 emu.register[i] = emu.ram[emu.index_register + i]
 
         else:
@@ -156,7 +155,7 @@ def i_ld(emu):
                 emu.ram[emu.index_register + i] = int(bcd[i])
 
         elif '[i]' == arg1:
-            for i in range( get_reg1(emu)):
+            for i in range( get_reg1(emu) + 1 ):
                 emu.ram[emu.index_register + i] = emu.register[i]
 
         else:
@@ -217,10 +216,10 @@ def get_reg2(emu):
     return int(emu.dis_ins.hex_instruction[2],16)
 
 def get_reg1_val(emu):
-    return emu.register[int(emu.dis_ins.hex_instruction[1],16) ]
+    return emu.register[int(emu.dis_ins.hex_instruction[1],16)]
 
 def get_reg2_val(emu):
-    return emu.register[int(emu.dis_ins.hex_instruction[2],16) ]
+    return emu.register[int(emu.dis_ins.hex_instruction[2],16)]
 
 def get_lower_byte(emu):
     return int(emu.dis_ins.hex_instruction[2:4], 16)
