@@ -21,7 +21,7 @@ def export(defn):
 
 from enum import Enum
 @export
-class Emulation_Error(Enum):
+class EmulationError(Enum):
     _Information = 1
     _Warning     = 2
     _Fatal       = 3

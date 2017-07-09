@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from . import export
-from . import Emulation_Error
+from . import EmulationError
 from os.path import getsize
 from time import time
 from .salsa import Salsa
@@ -72,7 +72,7 @@ class Guacamole:
 
         # Instruction modification settings
         self.legacy_shift = legacy_shift
-        self.warn_exotic_ins = Emulation_Error.from_string(err_unoffical)
+        self.warn_exotic_ins = EmulationError.from_string(err_unoffical)
 
         # Rewind Info
         self.rewind_frames = None if rewind_depth == 0 else deque(maxlen=rewind_depth)
@@ -100,8 +100,8 @@ class Guacamole:
         self.ram[GFX_ADDRESS:GFX_ADDRESS + GFX_RESOLUTION] = [0x00] * GFX_RESOLUTION
 
         # Notification
-        self.log("Initializing emulator at " + str(cpuhz) + " hz" ,Emulation_Error._Information)
-        self.log("Max Rewind of " + str(rewind_depth) + " instructions" ,Emulation_Error._Information)
+        self.log("Initializing emulator at " + str(cpuhz) + " hz" ,EmulationError._Information)
+        self.log("Max Rewind of " + str(rewind_depth) + " instructions" ,EmulationError._Information)
 
         # Load Rom
         if rom is not None:
@@ -122,12 +122,12 @@ class Guacamole:
         file_size = getsize(file_path)
         if file_size > MAX_ROM_SIZE:
             self.log("Rom file exceeds maximum rom size of " + str(MAX_ROM_SIZE) + \
-                " bytes" , Emulation_Error._Warning)
+                " bytes" , EmulationError._Warning)
 
         with open(file_path, "rb") as fh:
             self.ram[PROGRAM_BEGIN_ADDRESS:PROGRAM_BEGIN_ADDRESS + file_size] = \
                 [int.from_bytes(fh.read(1), 'big') for i in range(file_size)]
-            self.log("Rom file loaded" , Emulation_Error._Information)
+            self.log("Rom file loaded" , EmulationError._Information)
 
     def reset(self, rom=None, cpuhz=None, audiohz=None, delayhz=None,
               init_ram=None, legacy_shift=None, err_unoffical="None",
@@ -187,7 +187,7 @@ class Guacamole:
         try:
             self.dis_ins = Salsa(self.ram[self.program_counter:self.program_counter+2])
         except TypeError:
-            self.log("No instruction found at " + hex(self.program_counter), Emulation_Error._Fatal)
+            self.log("No instruction found at " + hex(self.program_counter), EmulationError._Fatal)
             return
 
         # Execute instruction
@@ -203,7 +203,7 @@ class Guacamole:
         # Error out. NOTE: to add new instruction update OP_CODES and self.ins_tbl
         else:
             self.log("Unknown instruction " + self.dis_ins.hex_instruction + " at " + \
-                hex(self.program_counter), Emulation_Error._Fatal)
+                hex(self.program_counter), EmulationError._Fatal)
 
         # Print what was processed to screen
         if self.debug:
@@ -254,12 +254,12 @@ class Guacamole:
 
     def log(self, message, error_type):
         '''
-        Logs an Emulation_Error that can be latter addressed by the instantiator
+        Logs an EmulationError that can be latter addressed by the instantiator
         or prints it to screen if called from command line.
         '''
         if self.debug:
             print(str(error_type) + ": " + message)
-            if error_type is Emulation_Error._Fatal:
+            if error_type is EmulationError._Fatal:
                 print("Fatal error has occured, please reset.")
         else:
             self.error_log.append( (error_type, message) )

@@ -5,7 +5,7 @@ OP_REG  = 0
 OP_ARGS = 1
 OP_HEX  = 2
 OP_CODE_SIZE = 2
-OP_CODES = {
+OP_CODES = {                                 # X and Y in the right most indicates if it is for the 1st or 2nd arg
     'cls' :[['00e0',[],'00E0']],
     'ret' :[['00ee',[],'00EE']],
     'sys' :[['0[^0]..',['address'],'0xxx']], # prevent match to cls or ret

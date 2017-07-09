@@ -29,7 +29,7 @@ from time import time, sleep
 from collections import deque
 from .constants.curses import *
 from .guacamole import Guacamole
-from .guacamole import Emulation_Error
+from .guacamole import EmulationError
 from .constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS
 from .constants.graphics import GFX_RESOLUTION, GFX_ADDRESS, GFX_HEIGHT_PX, GFX_WIDTH
 from resource import getrusage, RUSAGE_SELF
@@ -261,7 +261,7 @@ class Platter:
         # Print all logged errors in the emu
         for err in reversed(self.emu.error_log):
             self.console_print( str(err[0]) + ": " + err[1] )
-            if err[0] is Emulation_Error._Fatal:
+            if err[0] is EmulationError._Fatal:
                 self.halt = True
                 self.console_print( "Fatal error has occured. Press '" + \
                     chr(KEY_RESET).upper() + "' to reset" )
