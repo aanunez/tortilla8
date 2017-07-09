@@ -172,11 +172,11 @@ class Blackbean:
         if arg_type == arg_value:
             return hex_template
 
-        if arg_type is 'register':
+        if arg_type is 'reg':
             if arg_value in REGISTERS:
                 return hex_template.replace(sub_string, arg_value[1])
 
-        elif arg_type is 'address':
+        elif arg_type is 'addr':
             if arg_value[0] is HEX_ESC:
                 arg_value = arg_value[1:]
                 if len(arg_value) == 3:

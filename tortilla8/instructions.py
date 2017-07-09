@@ -106,19 +106,19 @@ def i_add(emu):
     arg1 = emu.dis_ins.mnemonic_arg_types[0]
     arg2 = emu.dis_ins.mnemonic_arg_types[1]
 
-    if 'register' is arg1:
+    if 'reg' is arg1:
 
         if 'byte' is arg2:
             emu.register[ get_reg1(emu) ] = get_reg1_val(emu) + get_lower_byte(emu)
             emu.register[ get_reg1(emu) ] &= 0xFF
-        elif 'register' is arg2:
+        elif 'reg' is arg2:
             emu.register[ get_reg1(emu) ] = get_reg1_val(emu) + get_reg2_val(emu)
             emu.register[0xF] = 0x01 if emu.register[ get_reg1(emu) ] > 0xFF else 0x00
             emu.register[ get_reg1(emu) ] &= 0xFF
         else:
             emu.log("Unknown argument at address " + hex(emu.program_counter), EmulationError._Fatal)
 
-    elif 'i' in arg1 and 'register' is arg2:
+    elif 'i' in arg1 and 'reg' is arg2:
         emu.index_register += get_reg1_val(emu)
         if (emu.index_register > 0xFF) and SET_VF_ON_GFX_OVERFLOW:
             emu.register[0xF] = 0x01
@@ -131,10 +131,10 @@ def i_ld(emu):
     arg1 = emu.dis_ins.mnemonic_arg_types[0]
     arg2 = emu.dis_ins.mnemonic_arg_types[1]
 
-    if 'register' is arg1:
+    if 'reg' is arg1:
         if   'byte'     is arg2:
             emu.register[ get_reg1(emu) ] = get_lower_byte(emu)
-        elif 'register' is arg2:
+        elif 'reg' is arg2:
             emu.register[ get_reg1(emu) ] = get_reg2_val(emu)
         elif 'dt'       is arg2:
             emu.register[ get_reg1(emu) ] = emu.delay_timer_register
@@ -147,7 +147,7 @@ def i_ld(emu):
             emu.log("Loads with second argument type '" + arg2 + \
                 "' are not supported.", EmulationError._Fatal)
 
-    elif 'register' is arg2:
+    elif 'reg' is arg2:
         if   'dt' is arg1:
             emu.delay_timer_register =  get_reg1_val(emu)
         elif 'st' is arg1:
@@ -162,7 +162,7 @@ def i_ld(emu):
         else:
             emu.log("Unknown argument at address " + hex(emu.program_counter), EmulationError._Fatal)
 
-    elif 'i' is arg1 and 'address' is arg2:
+    elif 'i' is arg1 and 'addr' is arg2:
         emu.index_register =  get_address(emu)
 
     else:

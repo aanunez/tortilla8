@@ -60,11 +60,11 @@ def Salsa(byte_list):
     tmp = ''
     reg_numb = 1
     for arg_type in mnemonic_arg_types:
-        if arg_type is 'register':
+        if arg_type is 'reg':
             tmp = 'v'+hex_instruction[reg_numb]
         elif arg_type is 'byte':
             tmp = '#'+hex_instruction[2:]
-        elif arg_type is 'address':
+        elif arg_type is 'addr':
             tmp = '#'+hex_instruction[1:]
         elif arg_type is 'nibble':
             tmp = '#'+hex_instruction[3]
