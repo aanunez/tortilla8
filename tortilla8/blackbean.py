@@ -4,7 +4,7 @@ from . import export
 from warnings import warn
 from .cilantro import Cilantro
 from .constants.reg_rom_stack import PROGRAM_BEGIN_ADDRESS, ARG_SUB, OVERFLOW_ADDRESS, REGISTERS
-from .constants.opcodes import OP_CODES, OP_CODE_SIZE, OP_ARGS, OP_HEX, BANNED_OP_CODES_EXPLODED
+from .constants.opcodes import OP_CODES, OP_CODE_SIZE, BANNED_OP_CODES_EXPLODED
 from .constants.symbols import BEGIN_COMMENT, HEX_ESC, BIN_ESC
 __all__ = []
 
@@ -131,21 +131,23 @@ class Blackbean:
             raise RuntimeError("Restricted instruction on line " + \
                 str(tl.line_numb) + "\n" + tl.original )
 
-        for ver in OP_CODES[tl.instruction]:
+        # If not stored as tuple, just add to a length 1 tuple
+        loop = OP_CODES[tl.instruction] if type(OP_CODES[tl.instruction]) is tuple else (OP_CODES[tl.instruction],)
+        for ver in loop:
             issue = False
 
             # Skips versions of the OPCODE that can't work
-            if len(ver[OP_ARGS]) != len(tl.arguments):
+            if len(ver.args) != len(tl.arguments):
                 continue
 
             # Easy matches
-            if len(ver[OP_ARGS]) == 0:
-                tl.instruction_int = int(ver[OP_HEX], 16)
+            if len(ver.args) == 0:
+                tl.instruction_int = int(ver.hex, 16)
                 break
 
             # Validate every argument provided to the instruction
-            working_hex = ver[OP_HEX]
-            for i, arg_type in enumerate(ver[OP_ARGS]):
+            working_hex = ver.hex
+            for i, arg_type in enumerate(ver.args):
                 working_hex = self.is_valid_instruction_arg(arg_type, tl.arguments[i], working_hex, ARG_SUB[i])
                 if not working_hex:
                     break

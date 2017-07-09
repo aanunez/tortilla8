@@ -3,7 +3,7 @@
 from . import export
 from re import match
 from collections import namedtuple
-from .constants.opcodes import OP_REG, OP_ARGS, OP_CODES, UNOFFICIAL_OP_CODES
+from .constants.opcodes import OP_CODES, UNOFFICIAL_OP_CODES
 __all__ = []
 
 @export
@@ -27,11 +27,14 @@ def Salsa(byte_list):
 
     # Match the instruction via a regex index
     for mnemonic, reg_patterns in OP_CODES.items():
+
+        if type(reg_patterns) is not tuple:
+            reg_patterns = (reg_patterns,)
         for pattern_version in reg_patterns:
-            if not match(pattern_version[OP_REG], hex_instruction):
+            if not match(pattern_version.regular, hex_instruction):
                 continue
             mnemonic = mnemonic
-            mnemonic_arg_types = pattern_version[OP_ARGS]
+            mnemonic_arg_types = pattern_version.args
             is_valid = True
             break
         if is_valid:
