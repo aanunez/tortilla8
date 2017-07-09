@@ -13,6 +13,7 @@ from .constants.graphics import GFX_FONT, GFX_FONT_ADDRESS, GFX_RESOLUTION, GFX_
 __all__ = []
 
 # TODO Rewind bug when waiting for keypress
+# TODO Rewind isn't storing all of RAM, so ld [i], reg will break rewind
 
 @export
 class RewindData( namedtuple('RewindData', 'gfx_buffer register index_register ' + \
@@ -192,13 +193,10 @@ class Guacamole:
 
         # Execute instruction
         if self.dis_ins.is_valid:
-            try:
-                self.ins_tbl[self.dis_ins.mnemonic](self)
-            except:
-                raise # Python error happened.
             if self.warn_exotic_ins and self.dis_ins.unoffical_op:
                 self.log("Unoffical instruction '" + self.dis_ins.mnemonic + \
                     "' executed at " + hex(self.program_counter), self.warn_exotic_ins)
+            self.ins_tbl[self.dis_ins.mnemonic](self)
 
         # Error out. NOTE: to add new instruction update OP_CODES and self.ins_tbl
         else:

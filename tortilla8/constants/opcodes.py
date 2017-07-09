@@ -1,5 +1,19 @@
 #!/usr/bin/env python3
 
+# Used to explode opcodes that are not used (below)
+def explode_op_codes( op_code_list ):
+    exploded_list = []
+    for item in op_code_list:
+        if item.find('.') == -1:
+            exploded_list.append(item)
+        else:
+            upper,repl,fill = 16,'.',1
+            if item[2:] == '..':
+                upper,repl,fill = 256,'..',2
+            for i in range(0, upper):
+                exploded_list.append(item.replace(repl, hex(i)[2:].zfill(fill)))
+    return exploded_list
+
 # OP CODES
 OP_REG  = 0
 OP_ARGS = 1
@@ -44,18 +58,13 @@ OP_CODES = {                                 # X and Y in the right most indicat
             ['f.55',['[i]','register'],'Fy55']],
     'drw' :[['d...',['register','register','nibble'],'Dxyz']]
     }
-UNOFFICIAL_OP_CODES = ('xor','shr','shl','subn')
+UNOFFICIAL_OP_CODES = ('xor','shr','shl','subn') # But still supported
 BANNED_OP_CODES = ('7f..','8f.4','8f.6','8f.e','cf..','6f..','8f.0','ff07','ff0a','ff65') # Ins that modify VF: add, shr, shl, rnd, ld
-BANNED_OP_CODES_EXPLODED = []
-for item in BANNED_OP_CODES:
-    if item.find('.') == -1:
-        BANNED_OP_CODES_EXPLODED.append(item)
-    else:
-        upper,repl,fill = 16,'.',1
-        if item[2:] == '..':
-            upper,repl,fill = 256,'..',2
-        for i in range(0, upper):
-            BANNED_OP_CODES_EXPLODED.append(item.replace(repl, hex(i)[2:].zfill(fill)))
+SUPER_CHIP_OP_CODES = ('00C.','00FB','00FC','00FD','00FE','00FF','D..0','F.30','F.75','F.85') # Super chip-8, not supported
+BANNED_OP_CODES_EXPLODED = explode_op_codes(BANNED_OP_CODES)
+SUPER_CHIP_OP_CODES_EXPLODED = explode_op_codes(SUPER_CHIP_OP_CODES)
+
+
 
 
 

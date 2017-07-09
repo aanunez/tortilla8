@@ -120,7 +120,7 @@ def i_add(emu):
 
     elif 'i' in arg1 and 'register' is arg2:
         emu.index_register += get_reg1_val(emu)
-        if emu.index_register > 0xFF && SET_VF_ON_GFX_OVERFLOW:
+        if (emu.index_register > 0xFF) and SET_VF_ON_GFX_OVERFLOW:
             emu.register[0xF] = 0x01
         emu.index_register &= 0xFFF
 
