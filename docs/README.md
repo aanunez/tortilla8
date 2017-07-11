@@ -4,7 +4,6 @@ The included docs, plus maybe bugging people on /r/emudev should be more than en
 Things I got stuck on:
 * Setting VF high means setting it to exectly one.
 * The 'add i, reg' instruction has undocumented behavior where an overflow of I causes the VF flag to be set, but the instruction never sets VF low. This is accounted for via a constant 'SET_VF_ON_GFX_OVERFLOW' in tortilla8 and is off by default.
-*
 
 Included
 --------

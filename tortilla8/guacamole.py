@@ -199,6 +199,12 @@ class Guacamole:
             self.ins_tbl[self.dis_ins.mnemonic](self)
 
         # Error out. NOTE: to add new instruction update OP_CODES and self.ins_tbl
+        elif self.dis_ins.is_super8:
+            self.log("Super8 instruction " + self.dis_ins.hex_instruction + " at " + \
+                hex(self.program_counter), EmulationError._Fatal)
+        elif self.dis_ins.is_banned:
+            self.log("Banned instruction (makes a modification to VF)" + self.dis_ins.hex_instruction + \
+                " at " + hex(self.program_counter), EmulationError._Fatal)
         else:
             self.log("Unknown instruction " + self.dis_ins.hex_instruction + " at " + \
                 hex(self.program_counter), EmulationError._Fatal)

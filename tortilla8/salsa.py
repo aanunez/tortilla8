@@ -24,6 +24,16 @@ def Salsa(byte_list):
     mnemonic_arg_types = None
     disassembled_line = ""
     unoffical_op = False
+    is_banned = False
+    is_super8 = False
+
+    # Check if the Op-Code is banned, or a Super-8 instruction
+    if hex_instruction in BANNED_OP_CODES_EXPLODED:
+        is_banned = True
+        return
+    if hex_instruction in SUPER_CHIP_OP_CODES_EXPLODED:
+        is_super8 = True
+        return
 
     # Match the instruction via a regex index
     for mnemonic, reg_patterns in OP_CODES.items():
