@@ -261,7 +261,7 @@ class Guacamole:
         Generator that returns true/false if the nth pixel is set.
         '''
         for i in self.ram[GFX_ADDRESS:GFX_ADDRESS + GFX_RESOLUTION]:
-            for j in bin(i):
+            for j in bin(i)[2:].zfill(8):
                 yield j=='1'
 
     def log(self, message, error_type):
