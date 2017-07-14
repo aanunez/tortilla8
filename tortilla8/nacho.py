@@ -6,6 +6,14 @@ from os import environ
 from tkinter import *
 import pygame
 
+# TODO Preserve aspect ratio (hard)
+# TODO All gui options
+
+#def graphics(self):
+#   for i in self.ram[GFX_ADDRESS:GFX_ADDRESS + GFX_RESOLUTION]:
+#      for j in bin(i):
+#         yield j=='1'
+
 class Nacho(Frame):
 
     WAIT_TIME = 50
@@ -70,5 +78,24 @@ class Nacho(Frame):
         self.screen.fill( self.background_color )
         pygame.display.update()
 
+    def load(self):
+        #file_path = tk.filedialog.askopenfilename()
+        #self.emu = Guacamole(rom=None, cpuhz=2000, audiohz=60, delayhz=60,
+        #           init_ram=True, legacy_shift=False, err_unoffical="None",
+        #           rewind_depth=0)
+        pass
 
+    def export(self):
+        # Save game state?
+        pass
+
+    def donothing(self):
+        filewin = Toplevel(self.root)
+        button = Button(filewin, text="Do nothing button")
+        button.pack()
+
+    def on_closing(self):
+        pygame.quit()
+        self.root.quit()
+        self.root.destroy()
 
