@@ -75,8 +75,8 @@ class Nacho(Frame):
 
     def load(self):
         #file_path = tk.filedialog.askopenfilename()
-        file_path = '/home/adam/git/tortilla8/exclude/zero.ch8'
-        self.emu = Guacamole(rom=file_path, cpuhz=2000, audiohz=60, delayhz=60,
+        file_path = '' #TODO Grap real file
+        self.emu = Guacamole(rom=file_path, cpuhz=10, audiohz=60, delayhz=60,
                    init_ram=True, legacy_shift=False, err_unoffical="None",
                    rewind_depth=0)
 
@@ -104,7 +104,7 @@ class Nacho(Frame):
         if self.emu is not None:
             self.emu.run()
 
-            for i,pix in enumerate(self.emu.graphics_iter):
+            for i,pix in enumerate(self.emu.graphics()):
                 if pix:
                     self.screen.blit(self.img, ( self.scale*(i%Nacho.X_SIZE), self.scale*(i//Nacho.X_SIZE) ) )
 

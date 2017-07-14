@@ -3,7 +3,8 @@
 from . import export
 from re import match
 from collections import namedtuple
-from .constants.opcodes import OP_CODES, UNOFFICIAL_OP_CODES
+from .constants.opcodes import OP_CODES, UNOFFICIAL_OP_CODES, \
+                               BANNED_OP_CODES_EXPLODED, SUPER_CHIP_OP_CODES_EXPLODED
 __all__ = []
 
 @export
