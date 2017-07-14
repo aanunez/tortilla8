@@ -3,15 +3,20 @@
 from tortilla8 import Guacamole
 from pygame.locals import *
 from os import environ
+from tkinter import filedialog
 from tkinter import *
 import pygame
+import webbrowser
 
-# TODO Preserve aspect ratio (hard)
+# TODO Preserve aspect ratio, enable resize (hard)
 # TODO All gui options
+# TODO CPU freq is hard locked to 1khz
+# TODO Audio
+# TODO Keys
 
 class Nacho(Frame):
 
-    WAIT_TIME = 50
+    WAIT_TIME = 1 # Limits emu freq.
     Y_SIZE = 32
     X_SIZE = 64
 
@@ -23,10 +28,12 @@ class Nacho(Frame):
         self.scale = 18
         self.tile_size = (self.scale, self.scale)
         self.emu = None
+        self.prev_screen = 0
         # root, screen, img
 
         # Init tk
         self.root = Tk()
+        self.root.wm_title("Tortilla8 - A Chip8 Emulator")
         Frame.__init__(self, self.root)
         embed = Frame(self.root, width=Nacho.X_SIZE*self.scale, height=Nacho.Y_SIZE*self.scale)
         embed.pack()
@@ -56,7 +63,7 @@ class Nacho(Frame):
         # Populate the 'Help' section
         helpmenu = Menu(menubar, tearoff=0)
         helpmenu.add_command(label="PyPi Index", command=self.donothing)
-        helpmenu.add_command(label="Source Code", command=self.donothing)
+        helpmenu.add_command(label="Source Code", command=lambda:webbrowser.open("https://github.com/aanunez/tortilla8"))
         helpmenu.add_command(label="About", command=self.donothing)
         menubar.add_cascade(label="Help", menu=helpmenu)
 
@@ -74,13 +81,14 @@ class Nacho(Frame):
         pygame.display.update()
 
     def load(self):
-        #file_path = tk.filedialog.askopenfilename()
-        file_path = '' #TODO Grap real file
-        self.emu = Guacamole(rom=file_path, cpuhz=2000, audiohz=60, delayhz=60,
-                   init_ram=True, legacy_shift=False, err_unoffical="None",
-                   rewind_depth=0)
+        #file_path = filedialog.askopenfilename()
+        file_path = '/home/adam/git/tortilla8/exclude/zero.ch8'
+        if file_path:
+            self.emu = Guacamole(rom=file_path, cpuhz=1000, audiohz=60, delayhz=60,
+                       init_ram=True, legacy_shift=False, err_unoffical="None",
+                       rewind_depth=0)
 
-    def export(self):
+    def save(self):
         # Save game state?
         pass
 
@@ -94,24 +102,35 @@ class Nacho(Frame):
         self.root.quit()
         self.root.destroy()
 
+    def draw(self):
+        if not self.emu.draw_flag:
+            return
+        self.emu.draw_flag = False
+
+        cur_screen = ''
+        for i,pix in enumerate(self.emu.graphics()):
+            cur_screen += '1' if pix else '0'
+        cur_screen = int(cur_screen,2)
+
+        if ( ( self.prev_screen ^ cur_screen ) & self.prev_screen ) != ( self.prev_screen ^ cur_screen ):
+            self.screen.fill( self.background_color )
+            for i,pix in enumerate(self.emu.graphics()):
+                if pix:
+                    self.screen.blit(self.img, ( self.scale*(i%Nacho.X_SIZE), self.scale*(i//Nacho.X_SIZE) ) )
+
+        self.prev_screen = cur_screen
+        pygame.display.update()
+
     def run(self):
         for event in pygame.event.get():
             if event.type == KEYDOWN:
                 print(event.key) # TODO Actually capture keys
 
-        self.screen.fill( self.background_color )
-
         if self.emu is not None:
             self.emu.run()
-
-            for i,pix in enumerate(self.emu.graphics()):
-                if pix:
-                    self.screen.blit(self.img, ( self.scale*(i%Nacho.X_SIZE), self.scale*(i//Nacho.X_SIZE) ) )
-
+            self.draw()
             if self.emu.sound_timer_register != 0:
                 pass # TODO Play sound
-
-            pygame.display.update()
 
         self.root.after(Nacho.WAIT_TIME, self.run)
 
