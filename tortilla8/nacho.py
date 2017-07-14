@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 
-from tortilla8 import Guacamole
+from tortilla8 import Guacamole, EmulationError
 from pygame.locals import *
 from os import environ
 from tkinter import filedialog
 from tkinter import *
 import pygame
 import webbrowser
+from array import array
+from pygame.mixer import Sound, get_init
 
 # TODO Preserve aspect ratio, enable resize (hard)
 # TODO All gui options - Pall, Emulation, Audio, About, PyPi, Save, Save as
 # TODO CPU freq is hard locked to 1khz
-# TODO default Audio
 # TODO default Keys
 
 class Nacho(Frame):
@@ -29,7 +30,7 @@ class Nacho(Frame):
         self.tile_size = (self.scale, self.scale)
         self.emu = None
         self.prev_screen = 0
-        # root, screen, img
+        # root, screen, img, sound
 
         # Init tk
         self.root = Tk()
@@ -42,36 +43,36 @@ class Nacho(Frame):
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         # Make the tk Menu bar
-        menubar = Menu(self.root)
+        self.menubar = Menu(self.root)
 
         # Populate the 'File' section
-        filemenu = Menu(menubar, tearoff=0)
+        filemenu = Menu(self.menubar, tearoff=0)
         filemenu.add_command(label="Load Rom", command=self.load)
         filemenu.add_command(label="Save", command=self.donothing)
         filemenu.add_command(label="Save as...", command=self.donothing)
         filemenu.add_separator()
         filemenu.add_command(label="Exit", command=self.on_closing)
-        menubar.add_cascade(label="File", menu=filemenu)
+        self.menubar.add_cascade(label="File", menu=filemenu)
 
         # Populate the 'Edit' section
         self.antiflicker = BooleanVar()
         self.antiflicker.set(True)
-        setmenu = Menu(menubar, tearoff=0)
+        setmenu = Menu(self.menubar, tearoff=0)
         setmenu.add_command(label="Palette", command=self.donothing)
         setmenu.add_command(label="Emulation", command=self.donothing)
         setmenu.add_command(label="Audio", command=self.donothing)
         setmenu.add_checkbutton(label="Anti-Flicker", onvalue=True, offvalue=False, variable=self.antiflicker)
-        menubar.add_cascade(label="Settings", menu=setmenu)
+        self.menubar.add_cascade(label="Settings", menu=setmenu)
 
         # Populate the 'Help' section
-        helpmenu = Menu(menubar, tearoff=0)
+        helpmenu = Menu(self.menubar, tearoff=0)
         helpmenu.add_command(label="PyPi Index", command=self.donothing)
         helpmenu.add_command(label="Source Code", command=lambda:webbrowser.open("https://github.com/aanunez/tortilla8"))
         helpmenu.add_command(label="About", command=self.donothing)
-        menubar.add_cascade(label="Help", menu=helpmenu)
+        self.menubar.add_cascade(label="Help", menu=helpmenu)
 
-        # Add menubar to window, set the rest of the winndow to SDL's output
-        self.root.config(menu=menubar)
+        # Add self.menubar to window, set the rest of the winndow to SDL's output
+        self.root.config(menu=self.menubar)
         environ['SDL_WINDOWID'] = str(embed.winfo_id())
         self.root.update()
 
@@ -82,10 +83,10 @@ class Nacho(Frame):
         self.screen = pygame.display.set_mode((Nacho.X_SIZE*self.scale, Nacho.Y_SIZE*self.scale));
         self.screen.fill( self.background_color )
         pygame.display.update()
+        self.sound = Note(440)
 
     def load(self):
-        #file_path = filedialog.askopenfilename()
-        file_path = '/home/adam/git/tortilla8/exclude/zero.ch8'
+        file_path = filedialog.askopenfilename()
         if file_path:
             self.emu = Guacamole(rom=file_path, cpuhz=1000, audiohz=60, delayhz=60,
                        init_ram=True, legacy_shift=False, err_unoffical="None",
@@ -132,18 +133,48 @@ class Nacho(Frame):
             if pix:
                 self.screen.blit(self.img, ( self.scale*(i%Nacho.X_SIZE), self.scale*(i//Nacho.X_SIZE) ) )
 
+    def halt(self):
+        self.fatal = True
+        self.menubar.add_separator()
+        haltmenu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Fatal Error has occured!", menu=haltmenu)
+
     def run(self):
         for event in pygame.event.get():
             if event.type == KEYDOWN:
                 print(event.key) # TODO Actually capture keys
 
-        if self.emu is not None:
+        if (self.emu is not None) and (self.fatal is False):
             self.emu.run()
+            for e in self.emu.error_log:
+                if e[0] is EmulationError._Fatal:
+                    self.fatal = True
+
             self.draw()
             if self.emu.sound_timer_register != 0:
-                pass # TODO Play sound
+                self.sound.play(-1)
+            else:
+                self.sound.stop()
 
         self.root.after(Nacho.WAIT_TIME, self.run)
+
+class Note(Sound):
+
+    def __init__(self, frequency, volume=.1):
+        self.frequency = frequency
+        Sound.__init__(self, self.build_samples())
+        self.set_volume(volume)
+
+    def build_samples(self):
+        period = int(round(get_init()[0] / self.frequency))
+        samples = array("h", [0] * period)
+        amplitude = 2 ** (abs(get_init()[1]) - 1) - 1
+        for time in range(period):
+            if time < period / 2:
+                samples[time] = amplitude
+            else:
+                samples[time] = -amplitude
+        return samples
 
 if __name__ == "__main__":
     chip8 = Nacho()

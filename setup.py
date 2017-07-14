@@ -15,7 +15,8 @@ setup(
 	packages = ['tortilla8'],
 	#install_requires = [], #Curses and SimpleAudio are optional
     extras_require = {
-        'Emulation Sound':  ["simpleaudio"],
+        'Sound':  ['simpleaudio'],
+        'GUI': ['pygame'],
     },
 	#scripts = [
 	#	    'scripts/t8-assemble',

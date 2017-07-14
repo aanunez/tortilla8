@@ -123,7 +123,8 @@ class Guacamole:
         file_size = getsize(file_path)
         if file_size > MAX_ROM_SIZE:
             self.log("Rom file exceeds maximum rom size of " + str(MAX_ROM_SIZE) + \
-                " bytes" , EmulationError._Warning)
+                " bytes" , EmulationError._Fatal)
+            return
 
         with open(file_path, "rb") as fh:
             self.ram[PROGRAM_BEGIN_ADDRESS:PROGRAM_BEGIN_ADDRESS + file_size] = \
