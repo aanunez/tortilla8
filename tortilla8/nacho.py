@@ -14,9 +14,11 @@ from pygame.mixer import Sound, get_init
 # TODO All gui options - Pall, Emulation, Audio, About, PyPi, Save, Save as
 # TODO CPU freq is hard locked to 1khz
 # TODO default Keys
+# TODO better error display
 
 class Nacho(Frame):
 
+    DEFAULT_FREQ = 1000 # Limited
     WAIT_TIME = 1 # Limits emu freq.
     Y_SIZE = 32
     X_SIZE = 64
@@ -30,6 +32,7 @@ class Nacho(Frame):
         self.tile_size = (self.scale, self.scale)
         self.emu = None
         self.prev_screen = 0
+        self.fatal = False
         # root, screen, img, sound
 
         # Init tk
@@ -88,7 +91,7 @@ class Nacho(Frame):
     def load(self):
         file_path = filedialog.askopenfilename()
         if file_path:
-            self.emu = Guacamole(rom=file_path, cpuhz=1000, audiohz=60, delayhz=60,
+            self.emu = Guacamole(rom=file_path, cpuhz=DEFAULT_FREQ, audiohz=60, delayhz=60,
                        init_ram=True, legacy_shift=False, err_unoffical="None",
                        rewind_depth=0)
 
@@ -102,8 +105,8 @@ class Nacho(Frame):
         button.pack()
 
     def on_closing(self):
-        pygame.quit()
-        self.root.quit()
+        #pygame.quit() Both of these waste too much time.
+        #self.root.quit()
         self.root.destroy()
 
     def draw(self):
@@ -135,9 +138,9 @@ class Nacho(Frame):
 
     def halt(self):
         self.fatal = True
-        self.menubar.add_separator()
         haltmenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Fatal Error has occured!", menu=haltmenu)
+        self.sound.stop()
 
     def run(self):
         for event in pygame.event.get():
@@ -146,10 +149,8 @@ class Nacho(Frame):
 
         if (self.emu is not None) and (self.fatal is False):
             self.emu.run()
-            for e in self.emu.error_log:
-                if e[0] is EmulationError._Fatal:
-                    self.fatal = True
-
+            if any(e[0] is EmulationError._Fatal for e in self.emu.error_log):
+                self.halt()
             self.draw()
             if self.emu.sound_timer_register != 0:
                 self.sound.play(-1)
