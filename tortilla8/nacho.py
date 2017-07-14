@@ -99,3 +99,29 @@ class Nacho(Frame):
         self.root.quit()
         self.root.destroy()
 
+    def run(self):
+        for event in pygame.event.get():
+            if event.type == KEYDOWN:
+                print(event.key) # TODO Actually capture keys
+
+        self.screen.fill( self.background_color )
+
+        if self.emu is not None:
+            self.emu.run()
+
+            for i,pix in enumerate(self.emu.graphics_iter):
+                if pix:
+                    self.screen.blit(self.img, ( self.scale*(i%Game.X_SIZE), self.scale*(i//Game.X_SIZE) ) )
+
+            if self.emu.sound_timer_register != 0:
+                pass # TODO Play sound
+
+            pygame.display.update()
+
+        self.root.after(Game.WAIT_TIME, self.run)
+
+if __name__ == "__main__":
+    chip8 = Nacho()
+    chip8.run()
+    chip8.mainloop()
+
