@@ -9,10 +9,10 @@ import pygame
 import webbrowser
 
 # TODO Preserve aspect ratio, enable resize (hard)
-# TODO All gui options
+# TODO All gui options - Pall, Emulation, Audio, About, PyPi, Save, Save as
 # TODO CPU freq is hard locked to 1khz
-# TODO Audio
-# TODO Keys
+# TODO default Audio
+# TODO default Keys
 
 class Nacho(Frame):
 
@@ -54,10 +54,13 @@ class Nacho(Frame):
         menubar.add_cascade(label="File", menu=filemenu)
 
         # Populate the 'Edit' section
+        self.antiflicker = BooleanVar()
+        self.antiflicker.set(True)
         setmenu = Menu(menubar, tearoff=0)
         setmenu.add_command(label="Palette", command=self.donothing)
         setmenu.add_command(label="Emulation", command=self.donothing)
         setmenu.add_command(label="Audio", command=self.donothing)
+        setmenu.add_checkbutton(label="Anti-Flicker", onvalue=True, offvalue=False, variable=self.antiflicker)
         menubar.add_cascade(label="Settings", menu=setmenu)
 
         # Populate the 'Help' section
@@ -107,19 +110,27 @@ class Nacho(Frame):
             return
         self.emu.draw_flag = False
 
-        cur_screen = ''
-        for i,pix in enumerate(self.emu.graphics()):
-            cur_screen += '1' if pix else '0'
-        cur_screen = int(cur_screen,2)
-
-        if ( ( self.prev_screen ^ cur_screen ) & self.prev_screen ) != ( self.prev_screen ^ cur_screen ):
-            self.screen.fill( self.background_color )
+        if self.antiflicker.get():
+            cur_screen = ''
             for i,pix in enumerate(self.emu.graphics()):
-                if pix:
-                    self.screen.blit(self.img, ( self.scale*(i%Nacho.X_SIZE), self.scale*(i//Nacho.X_SIZE) ) )
+                cur_screen += '1' if pix else '0'
+            cur_screen = int(cur_screen,2)
 
-        self.prev_screen = cur_screen
+            if ( ( self.prev_screen ^ cur_screen ) & self.prev_screen ) != ( self.prev_screen ^ cur_screen ):
+                self._draw()
+
+            self.prev_screen = cur_screen
+
+        else:
+            self._draw()
+
         pygame.display.update()
+
+    def _draw(self):
+        self.screen.fill( self.background_color )
+        for i,pix in enumerate(self.emu.graphics()):
+            if pix:
+                self.screen.blit(self.img, ( self.scale*(i%Nacho.X_SIZE), self.scale*(i//Nacho.X_SIZE) ) )
 
     def run(self):
         for event in pygame.event.get():
