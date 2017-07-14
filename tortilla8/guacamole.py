@@ -256,6 +256,14 @@ class Guacamole:
         self.draw_flag, self.waiting_for_key, self.spinning = \
             frame.draw_flag, frame.waiting_for_key, frame.spinning
 
+    def graphics(self):
+        '''
+        Generator that returns true/false if the nth pixel is set.
+        '''
+        for i in self.ram[GFX_ADDRESS:GFX_ADDRESS + GFX_RESOLUTION]:
+            for j in bin(i):
+                yield j=='1'
+
     def log(self, message, error_type):
         '''
         Logs an EmulationError that can be latter addressed by the instantiator

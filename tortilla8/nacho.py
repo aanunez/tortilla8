@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from . import Guacamole
+from tortilla8 import Guacamole
 from pygame.locals import *
 from os import environ
 from tkinter import *
@@ -8,11 +8,6 @@ import pygame
 
 # TODO Preserve aspect ratio (hard)
 # TODO All gui options
-
-#def graphics(self):
-#   for i in self.ram[GFX_ADDRESS:GFX_ADDRESS + GFX_RESOLUTION]:
-#      for j in bin(i):
-#         yield j=='1'
 
 class Nacho(Frame):
 
@@ -33,7 +28,7 @@ class Nacho(Frame):
         # Init tk
         self.root = Tk()
         Frame.__init__(self, self.root)
-        embed = Frame(self.root, width=Game.X_SIZE*self.scale, height=Game.Y_SIZE*self.scale)
+        embed = Frame(self.root, width=Nacho.X_SIZE*self.scale, height=Nacho.Y_SIZE*self.scale)
         embed.pack()
         self.root.resizable(width=False, height=False)
 
@@ -74,16 +69,16 @@ class Nacho(Frame):
         pygame.init()
         self.img = pygame.Surface( self.tile_size );
         self.img.fill( self.foreground_color );
-        self.screen = pygame.display.set_mode((Game.X_SIZE*self.scale, Game.Y_SIZE*self.scale));
+        self.screen = pygame.display.set_mode((Nacho.X_SIZE*self.scale, Nacho.Y_SIZE*self.scale));
         self.screen.fill( self.background_color )
         pygame.display.update()
 
     def load(self):
         #file_path = tk.filedialog.askopenfilename()
-        #self.emu = Guacamole(rom=None, cpuhz=2000, audiohz=60, delayhz=60,
-        #           init_ram=True, legacy_shift=False, err_unoffical="None",
-        #           rewind_depth=0)
-        pass
+        file_path = '/home/adam/git/tortilla8/exclude/zero.ch8'
+        self.emu = Guacamole(rom=file_path, cpuhz=2000, audiohz=60, delayhz=60,
+                   init_ram=True, legacy_shift=False, err_unoffical="None",
+                   rewind_depth=0)
 
     def export(self):
         # Save game state?
@@ -111,14 +106,14 @@ class Nacho(Frame):
 
             for i,pix in enumerate(self.emu.graphics_iter):
                 if pix:
-                    self.screen.blit(self.img, ( self.scale*(i%Game.X_SIZE), self.scale*(i//Game.X_SIZE) ) )
+                    self.screen.blit(self.img, ( self.scale*(i%Nacho.X_SIZE), self.scale*(i//Nacho.X_SIZE) ) )
 
             if self.emu.sound_timer_register != 0:
                 pass # TODO Play sound
 
             pygame.display.update()
 
-        self.root.after(Game.WAIT_TIME, self.run)
+        self.root.after(Nacho.WAIT_TIME, self.run)
 
 if __name__ == "__main__":
     chip8 = Nacho()
