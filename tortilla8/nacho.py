@@ -5,10 +5,8 @@ from pygame.locals import *
 from os import environ
 from tkinter import filedialog
 from tkinter import *
-import pygame
 import webbrowser
 from array import array
-from pygame.mixer import Sound, get_init
 
 # TODO Preserve aspect ratio, enable resize (hard)
 # TODO All gui options - Pall, Emulation, Audio, About, PyPi, Save, Save as
@@ -16,7 +14,7 @@ from pygame.mixer import Sound, get_init
 # TODO default Keys
 # TODO better error display
 # TODO ocationally crashes on windows for no damn reason
-# TODO Limit how often pygame runs, too much CPU is being used right now
+# TODO SOUND!
 
 class Nacho(Frame):
 
@@ -39,29 +37,20 @@ class Nacho(Frame):
         self.run_time = 1000 # 1000/this = Freq
         # root, screen, img, sound
 
-        # Init tk
+        # Init tk and canvas
         self.root = Tk()
         self.root.wm_title("Tortilla8 - A Chip8 Emulator")
-        self.root.resizable(width=False, height=False)
+        #self.root.resizable(width=False, height=False)
         Frame.__init__(self, self.root)
         self.menubar = Menu(self.root)
         self.root.config(menu=self.menubar)
-        embed = Frame(self.root, width=Nacho.X_SIZE*self.scale, height=Nacho.Y_SIZE*self.scale)
-        embed.pack()
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.root.update()
-        environ['SDL_WINDOWID'] = str(embed.winfo_id())
+        self.screen = Canvas(self.root, width=Nacho.X_SIZE*self.scale, height=Nacho.Y_SIZE*self.scale)
+        self.screen.create_rectangle( 0, 0, Nacho.X_SIZE*self.scale, Nacho.Y_SIZE*self.scale, fill="black" )
+        self.screen.pack()
 
-        # Init Py Game
-        pygame.init()
-        self.img = pygame.Surface( self.tile_size );
-        self.img.fill( self.foreground_color );
-        self.screen = pygame.display.set_mode((Nacho.X_SIZE*self.scale, Nacho.Y_SIZE*self.scale));
-        self.screen.fill( self.background_color )
-        #self.clock = pygame.time.Clock()
-        #self.clock.tick(30)
-        pygame.display.update()
-        self.sound = Note(440)
+        #self.sound = Note(440) #TODO
 
         # Populate the 'File' section
         filemenu = Menu(self.menubar, tearoff=0)
@@ -109,28 +98,29 @@ class Nacho(Frame):
         button.pack()
 
     def on_closing(self):
-        #pygame.quit() Both of these waste too much time.
-        #self.root.quit()
         self.root.destroy()
 
     def draw(self):
-        self.screen.fill( self.background_color )
+        self.screen.delete("all")
+        self.screen.create_rectangle( 0, 0, Nacho.X_SIZE*self.scale, Nacho.Y_SIZE*self.scale, fill="black" )
         for i,pix in enumerate(self.emu.graphics()):
             if pix:
-                self.screen.blit(self.img, ( self.scale*(i%Nacho.X_SIZE), self.scale*(i//Nacho.X_SIZE) ) )
+                x = self.scale*(i%Nacho.X_SIZE)
+                y = self.scale*(i//Nacho.X_SIZE)
+                self.screen.create_rectangle( x, y, x+self.scale, y+self.scale, fill="white" )
 
     def halt(self):
         self.fatal = True
         haltmenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Fatal Error has occured!", menu=haltmenu)
-        self.sound.stop()
+        #self.sound.stop()
 
     def timers_event(self):
         if (self.emu is not None) and (self.fatal is False):
             if self.emu.sound_timer_register != 0:
-                self.sound.play(-1)
+                pass #self.sound.play(-1)
             else:
-                self.sound.stop()
+                pass #self.sound.stop()
 
             self.emu.sound_timer_register -= 1 if self.emu.sound_timer_register != 0 else 0
             self.emu.delay_timer_register -= 1 if self.emu.delay_timer_register != 0 else 0
@@ -158,32 +148,11 @@ class Nacho(Frame):
                         self.draw()
                     self.prev_screen = cur_screen
 
-                pygame.display.update()
         self.root.after(self.run_time, self.emu_event)
 
     def input_event(self):
-        for event in pygame.event.get():
-            if event.type == KEYDOWN:
-                print(event.key) # TODO Actually capture keys
+        # TODO Capture key press here
         self.root.after(Nacho.INPUT_REFRESH, self.input_event)
-
-class Note(Sound):
-
-    def __init__(self, frequency, volume=.1):
-        self.frequency = frequency
-        Sound.__init__(self, self.build_samples())
-        self.set_volume(volume)
-
-    def build_samples(self):
-        period = int(round(get_init()[0] / self.frequency))
-        samples = array("h", [0] * period)
-        amplitude = 2 ** (abs(get_init()[1]) - 1) - 1
-        for time in range(period):
-            if time < period / 2:
-                samples[time] = amplitude
-            else:
-                samples[time] = -amplitude
-        return samples
 
 if __name__ == "__main__":
     chip8 = Nacho()
