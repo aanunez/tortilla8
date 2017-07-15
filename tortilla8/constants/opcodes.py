@@ -47,7 +47,7 @@ OP_CODES = {                                 # X and Y in the right most indicat
 
 UNOFFICIAL_OP_CODES = ('xor','shr','shl','subn') # But still supported
 BANNED_OP_CODES = ('7f..','8f.4','8f.6','8f.e','cf..','6f..','8f.0','ff07','ff0a','ff65') # Ins that modify VF: add, shr, shl, rnd, ld
-SUPER_CHIP_OP_CODES = ('00C.','00FB','00FC','00FD','00FE','00FF','D..0','F.30','F.75','F.85') # Super chip-8, not supported
+SUPER_CHIP_OP_CODES = ('00c.','00fb','00fc','00fd','00fe','00ff','d..0','f.30','f.75','f.85') # Super chip-8, not supported
 
 # Used to explode opcodes that are not used (below)
 def explode_op_codes( op_code_list ):

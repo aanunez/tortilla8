@@ -189,6 +189,7 @@ class Guacamole:
         try:
             self.dis_ins = Salsa(self.ram[self.program_counter:self.program_counter+2])
         except TypeError:
+            raise
             self.log("No instruction found at " + hex(self.program_counter), EmulationError._Fatal)
             return
 
