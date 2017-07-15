@@ -16,9 +16,12 @@ from pygame.mixer import Sound, get_init
 # TODO default Keys
 # TODO better error display
 # TODO ocationally crashes on windows for no damn reason
+# TODO Limit how often pygame runs, too much CPU is being used right now
 
 class Nacho(Frame):
 
+    TIMER_REFRESH = 17  # 17ms = 60hz
+    INPUT_REFRESH = 200 # 200ms = 5 Hz
     DEFAULT_FREQ = 1000 # Limiting Freq
     Y_SIZE = 32
     X_SIZE = 64
@@ -55,6 +58,8 @@ class Nacho(Frame):
         self.img.fill( self.foreground_color );
         self.screen = pygame.display.set_mode((Nacho.X_SIZE*self.scale, Nacho.Y_SIZE*self.scale));
         self.screen.fill( self.background_color )
+        #self.clock = pygame.time.Clock()
+        #self.clock.tick(30)
         pygame.display.update()
         self.sound = Note(440)
 
@@ -87,13 +92,12 @@ class Nacho(Frame):
     def load(self):
         file_path = filedialog.askopenfilename()
         if file_path:
-            self.emu = Guacamole(rom=file_path, cpuhz=DEFAULT_FREQ, audiohz=60, delayhz=60,
+            self.emu = Guacamole(rom=file_path, cpuhz=Nacho.DEFAULT_FREQ, audiohz=60, delayhz=60,
                        init_ram=True, legacy_shift=False, err_unoffical="None",
                        rewind_depth=0)
             self.run_time = 1 # 1khz
             self.emu_event()
             self.timers_event()
-            self.display_event()
 
     def save(self):
         # Save game state?
@@ -131,15 +135,20 @@ class Nacho(Frame):
             self.emu.sound_timer_register -= 1 if self.emu.sound_timer_register != 0 else 0
             self.emu.delay_timer_register -= 1 if self.emu.delay_timer_register != 0 else 0
 
-        self.root.after(17, self.run_event) #16.66 ms = 60Hz
+        self.root.after(Nacho.TIMER_REFRESH, self.timers_event)
 
-    def display_event(self):
+    def emu_event(self):
+        self.emu.cpu_tick()
+        if any(e[0] is EmulationError._Fatal for e in self.emu.error_log):
+            self.halt()
+
         if (self.emu is not None) and (self.fatal is False):
-
             if self.emu.draw_flag:
                 self.emu.draw_flag = False
 
-                if self.antiflicker.get():
+                if not self.antiflicker.get():
+                    self.draw()
+                else:
                     cur_screen = ''
                     for i,pix in enumerate(self.emu.graphics()):
                         cur_screen += '1' if pix else '0'
@@ -147,27 +156,16 @@ class Nacho(Frame):
 
                     if ( ( self.prev_screen ^ cur_screen ) & self.prev_screen ) != ( self.prev_screen ^ cur_screen ):
                         self.draw()
-
                     self.prev_screen = cur_screen
 
-                else:
-                    self.draw()
-
-            pygame.display.update()
-
-        self.root.after(17, self.display_event) #16.66 ms = 60Hz
-
-    def emu_event(self):
-        self.emu.cpu_tick()
-        if any(e[0] is EmulationError._Fatal for e in self.emu.error_log):
-            self.halt()
-        self.root.after(self.run_time, self.run_event)
+                pygame.display.update()
+        self.root.after(self.run_time, self.emu_event)
 
     def input_event(self):
         for event in pygame.event.get():
             if event.type == KEYDOWN:
                 print(event.key) # TODO Actually capture keys
-        self.root.after(self.run_time, self.run_event)
+        self.root.after(Nacho.INPUT_REFRESH, self.input_event)
 
 class Note(Sound):
 
@@ -189,7 +187,6 @@ class Note(Sound):
 
 if __name__ == "__main__":
     chip8 = Nacho()
-    #chip8.input_event()
     chip8.mainloop()
 
 
