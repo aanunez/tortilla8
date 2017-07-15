@@ -15,11 +15,11 @@ from pygame.mixer import Sound, get_init
 # TODO CPU freq is hard locked to 1khz
 # TODO default Keys
 # TODO better error display
+# TODO ocationally crashes on windows for no damn reason
 
 class Nacho(Frame):
 
-    DEFAULT_FREQ = 1000 # Limited
-    WAIT_TIME = 1 # Limits emu freq.
+    DEFAULT_FREQ = 1000 # Limiting Freq
     Y_SIZE = 32
     X_SIZE = 64
 
@@ -33,20 +33,30 @@ class Nacho(Frame):
         self.emu = None
         self.prev_screen = 0
         self.fatal = False
+        self.run_time = 1000 # 1000/this = Freq
         # root, screen, img, sound
 
         # Init tk
         self.root = Tk()
         self.root.wm_title("Tortilla8 - A Chip8 Emulator")
+        self.root.resizable(width=False, height=False)
         Frame.__init__(self, self.root)
+        self.menubar = Menu(self.root)
+        self.root.config(menu=self.menubar)
         embed = Frame(self.root, width=Nacho.X_SIZE*self.scale, height=Nacho.Y_SIZE*self.scale)
         embed.pack()
-        self.root.resizable(width=False, height=False)
-
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.root.update()
+        environ['SDL_WINDOWID'] = str(embed.winfo_id())
 
-        # Make the tk Menu bar
-        self.menubar = Menu(self.root)
+        # Init Py Game
+        pygame.init()
+        self.img = pygame.Surface( self.tile_size );
+        self.img.fill( self.foreground_color );
+        self.screen = pygame.display.set_mode((Nacho.X_SIZE*self.scale, Nacho.Y_SIZE*self.scale));
+        self.screen.fill( self.background_color )
+        pygame.display.update()
+        self.sound = Note(440)
 
         # Populate the 'File' section
         filemenu = Menu(self.menubar, tearoff=0)
@@ -74,26 +84,16 @@ class Nacho(Frame):
         helpmenu.add_command(label="About", command=self.donothing)
         self.menubar.add_cascade(label="Help", menu=helpmenu)
 
-        # Add self.menubar to window, set the rest of the winndow to SDL's output
-        self.root.config(menu=self.menubar)
-        environ['SDL_WINDOWID'] = str(embed.winfo_id())
-        self.root.update()
-
-        # Init Py Game
-        pygame.init()
-        self.img = pygame.Surface( self.tile_size );
-        self.img.fill( self.foreground_color );
-        self.screen = pygame.display.set_mode((Nacho.X_SIZE*self.scale, Nacho.Y_SIZE*self.scale));
-        self.screen.fill( self.background_color )
-        pygame.display.update()
-        self.sound = Note(440)
-
     def load(self):
         file_path = filedialog.askopenfilename()
         if file_path:
             self.emu = Guacamole(rom=file_path, cpuhz=DEFAULT_FREQ, audiohz=60, delayhz=60,
                        init_ram=True, legacy_shift=False, err_unoffical="None",
                        rewind_depth=0)
+            self.run_time = 1 # 1khz
+            self.emu_event()
+            self.timers_event()
+            self.display_event()
 
     def save(self):
         # Save game state?
@@ -110,27 +110,6 @@ class Nacho(Frame):
         self.root.destroy()
 
     def draw(self):
-        if not self.emu.draw_flag:
-            return
-        self.emu.draw_flag = False
-
-        if self.antiflicker.get():
-            cur_screen = ''
-            for i,pix in enumerate(self.emu.graphics()):
-                cur_screen += '1' if pix else '0'
-            cur_screen = int(cur_screen,2)
-
-            if ( ( self.prev_screen ^ cur_screen ) & self.prev_screen ) != ( self.prev_screen ^ cur_screen ):
-                self._draw()
-
-            self.prev_screen = cur_screen
-
-        else:
-            self._draw()
-
-        pygame.display.update()
-
-    def _draw(self):
         self.screen.fill( self.background_color )
         for i,pix in enumerate(self.emu.graphics()):
             if pix:
@@ -142,22 +121,53 @@ class Nacho(Frame):
         self.menubar.add_cascade(label="Fatal Error has occured!", menu=haltmenu)
         self.sound.stop()
 
-    def run(self):
-        for event in pygame.event.get():
-            if event.type == KEYDOWN:
-                print(event.key) # TODO Actually capture keys
-
+    def timers_event(self):
         if (self.emu is not None) and (self.fatal is False):
-            self.emu.run()
-            if any(e[0] is EmulationError._Fatal for e in self.emu.error_log):
-                self.halt()
-            self.draw()
             if self.emu.sound_timer_register != 0:
                 self.sound.play(-1)
             else:
                 self.sound.stop()
 
-        self.root.after(Nacho.WAIT_TIME, self.run)
+            self.emu.sound_timer_register -= 1 if self.emu.sound_timer_register != 0 else 0
+            self.emu.delay_timer_register -= 1 if self.emu.delay_timer_register != 0 else 0
+
+        self.root.after(17, self.run_event) #16.66 ms = 60Hz
+
+    def display_event(self):
+        if (self.emu is not None) and (self.fatal is False):
+
+            if self.emu.draw_flag:
+                self.emu.draw_flag = False
+
+                if self.antiflicker.get():
+                    cur_screen = ''
+                    for i,pix in enumerate(self.emu.graphics()):
+                        cur_screen += '1' if pix else '0'
+                    cur_screen = int(cur_screen,2)
+
+                    if ( ( self.prev_screen ^ cur_screen ) & self.prev_screen ) != ( self.prev_screen ^ cur_screen ):
+                        self.draw()
+
+                    self.prev_screen = cur_screen
+
+                else:
+                    self.draw()
+
+            pygame.display.update()
+
+        self.root.after(17, self.display_event) #16.66 ms = 60Hz
+
+    def emu_event(self):
+        self.emu.cpu_tick()
+        if any(e[0] is EmulationError._Fatal for e in self.emu.error_log):
+            self.halt()
+        self.root.after(self.run_time, self.run_event)
+
+    def input_event(self):
+        for event in pygame.event.get():
+            if event.type == KEYDOWN:
+                print(event.key) # TODO Actually capture keys
+        self.root.after(self.run_time, self.run_event)
 
 class Note(Sound):
 
@@ -179,6 +189,7 @@ class Note(Sound):
 
 if __name__ == "__main__":
     chip8 = Nacho()
-    chip8.run()
+    #chip8.input_event()
     chip8.mainloop()
+
 
