@@ -8,12 +8,31 @@ from tkinter import *
 import webbrowser
 from array import array
 
-# TODO Preserve aspect ratio, enable resize (hard)
-# TODO All gui options - Pall, Emulation, Audio, About, PyPi, Save, Save as
-# TODO CPU freq is hard locked to 1khz
+# TODO settings menu
+# Display Settings
+    # Scale edit
+    # Unlock aspect ratio or w/e
+    # Outline Color
+    # Fill Color
+    # Background Color
+# Emulation Settings
+    # Control Edit
+    # CPU Freq edit
+    # various handles for weird "features"
+# Audio
+    # Choose freq
+    # Custom file
+
+# TODO Help Menu
+# About
+# PyPi link
+
+# TODO File
+# Save/ Saveas
+
 # TODO default Keys
 # TODO better error display
-# TODO ocationally crashes on windows for no damn reason
+# TODO ocationally crashes on windows for no damn reason (fixed?)
 # TODO SOUND!
 
 class Nacho(Frame):
@@ -107,7 +126,7 @@ class Nacho(Frame):
             if pix:
                 x = self.scale*(i%Nacho.X_SIZE)
                 y = self.scale*(i//Nacho.X_SIZE)
-                self.screen.create_rectangle( x, y, x+self.scale, y+self.scale, fill="white" )
+                self.screen.create_rectangle( x, y, x+self.scale, y+self.scale, fill="white", outline='white' )
 
     def halt(self):
         self.fatal = True
@@ -129,24 +148,23 @@ class Nacho(Frame):
 
     def emu_event(self):
         self.emu.cpu_tick()
-        if any(e[0] is EmulationError._Fatal for e in self.emu.error_log):
+        if (not self.fatal) and any(e[0] is EmulationError._Fatal for e in self.emu.error_log):
             self.halt()
 
-        if (self.emu is not None) and (self.fatal is False):
-            if self.emu.draw_flag:
-                self.emu.draw_flag = False
+        if (self.emu is not None) and (self.emu.draw_flag) and (not self.fatal):
+            self.emu.draw_flag = False
 
-                if not self.antiflicker.get():
+            if not self.antiflicker.get():
+                self.draw()
+            else:
+                cur_screen = ''
+                for i,pix in enumerate(self.emu.graphics()):
+                    cur_screen += '1' if pix else '0'
+                cur_screen = int(cur_screen,2)
+
+                if ( ( self.prev_screen ^ cur_screen ) & self.prev_screen ) != ( self.prev_screen ^ cur_screen ):
                     self.draw()
-                else:
-                    cur_screen = ''
-                    for i,pix in enumerate(self.emu.graphics()):
-                        cur_screen += '1' if pix else '0'
-                    cur_screen = int(cur_screen,2)
-
-                    if ( ( self.prev_screen ^ cur_screen ) & self.prev_screen ) != ( self.prev_screen ^ cur_screen ):
-                        self.draw()
-                    self.prev_screen = cur_screen
+                self.prev_screen = cur_screen
 
         self.root.after(self.run_time, self.emu_event)
 
