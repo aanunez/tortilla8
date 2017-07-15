@@ -29,7 +29,7 @@ class Guacamole:
     '''
     def __init__(self, rom=None, cpuhz=200, audiohz=60, delayhz=60,
                  init_ram=False, legacy_shift=False, err_unoffical="None",
-                 rewind_depth=1000):
+                 rewind_frames=1000):
         '''
         Init the RAM, registers, instruction information, IO, load the ROM etc. ROM
         is a path to a chip-8 rom, *hz is the frequency to target for for the cpu,
@@ -76,7 +76,7 @@ class Guacamole:
         self.warn_exotic_ins = EmulationError.from_string(err_unoffical)
 
         # Rewind Info
-        self.rewind_frames = None if rewind_depth == 0 else deque(maxlen=rewind_depth)
+        self.rewind_frames = None if rewind_frames == 0 else deque(maxlen=rewind_frames)
 
         # # # # # # # # # # # # # # # # # # # # # # # #
         # Private (ish)
@@ -102,7 +102,7 @@ class Guacamole:
 
         # Notification
         self.log("Initializing emulator at " + str(cpuhz) + " hz" ,EmulationError._Information)
-        self.log("Max Rewind of " + str(rewind_depth) + " instructions" ,EmulationError._Information)
+        self.log("Max Rewind of " + str(rewind_frames) + " instructions" ,EmulationError._Information)
 
         # Load Rom
         if rom is not None:
@@ -133,7 +133,7 @@ class Guacamole:
 
     def reset(self, rom=None, cpuhz=None, audiohz=None, delayhz=None,
               init_ram=None, legacy_shift=None, err_unoffical="None",
-              rewind_depth=1000):
+              rewind_frames=1000):
         '''
         Resets the emulator to run another game. By default all frequencies
         and the init_ram flag are preserved.
