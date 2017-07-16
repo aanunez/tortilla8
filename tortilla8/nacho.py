@@ -23,13 +23,6 @@ from array import array
     # Choose freq
     # Custom file
 
-# TODO Help Menu
-# About
-# PyPi link
-
-# TODO File
-# Save/ Saveas
-
 # TODO better error display
 # TODO ocationally crashes on windows for no damn reason (fixed?)
 # TODO SOUND!
@@ -41,6 +34,13 @@ class Nacho(Frame):
     DEFAULT_FREQ = 1000 # Limiting Freq
     Y_SIZE = 32
     X_SIZE = 64
+    ABOUT ='''
+           Tortilla8 is a collection of Chip8 tools tools for per-processing,
+           assembling, emulating, disassembling, and visualizing Chip8 ROMs
+           written by Adam Nunez. This software is free, like free speach,
+           and is licensed under the GPLv3. Feel free to share this program,
+           make modifications, or suggest fixes via github.
+           '''
 
     def __init__(self):
 
@@ -79,17 +79,14 @@ class Nacho(Frame):
         # Populate the 'File' section
         filemenu = Menu(self.menubar, tearoff=0)
         filemenu.add_command(label="Load Rom", command=self.load)
-        filemenu.add_command(label="Save", command=self.donothing)
-        filemenu.add_command(label="Save as...", command=self.donothing)
-        filemenu.add_separator()
         filemenu.add_command(label="Exit", command=self.on_closing)
         self.menubar.add_cascade(label="File", menu=filemenu)
 
-        # Populate the 'Edit' section
+        # Populate the 'Settings' section
         self.antiflicker = BooleanVar()
         self.antiflicker.set(True)
         setmenu = Menu(self.menubar, tearoff=0)
-        setmenu.add_command(label="Palette", command=self.donothing)
+        setmenu.add_command(label="Display", command=self.donothing)
         setmenu.add_command(label="Emulation", command=self.donothing)
         setmenu.add_command(label="Audio", command=self.donothing)
         setmenu.add_checkbutton(label="Anti-Flicker", onvalue=True, offvalue=False, variable=self.antiflicker)
@@ -97,9 +94,9 @@ class Nacho(Frame):
 
         # Populate the 'Help' section
         helpmenu = Menu(self.menubar, tearoff=0)
-        helpmenu.add_command(label="PyPi Index", command=self.donothing)
+        helpmenu.add_command(label="PyPi Index", command=lambda:webbrowser.open("https://pypi.org/project/tortilla8"))
         helpmenu.add_command(label="Source Code", command=lambda:webbrowser.open("https://github.com/aanunez/tortilla8"))
-        helpmenu.add_command(label="About", command=self.donothing)
+        helpmenu.add_command(label="About", command=self.about_window)
         self.menubar.add_cascade(label="Help", menu=helpmenu)
 
     def load(self):
@@ -112,14 +109,22 @@ class Nacho(Frame):
             self.emu_event()
             self.timers_event()
 
-    def save(self):
-        # Save game state?
-        pass
+    def set_controls(self, *controls):
+        tmp = {}
+        for i, key in enumerate(controls):
+            tmp[key] = i
+        self.controls = tmp
 
     def donothing(self):
         filewin = Toplevel(self.root)
         button = Button(filewin, text="Do nothing button")
         button.pack()
+
+    def about_window(self):
+        window = Toplevel(self)
+        window.resizable(width=False, height=False)
+        label = Label(window, text=' '.join(Nacho.ABOUT.split(' '*11)))
+        label.pack(side="top", fill="both", padx=10, pady=10)
 
     def on_closing(self):
         self.root.destroy()
@@ -188,9 +193,4 @@ class Nacho(Frame):
                 self.prev_screen = cur_screen
 
         self.root.after(self.run_time, self.emu_event)
-
-if __name__ == "__main__":
-    chip8 = Nacho()
-    chip8.mainloop()
-
 
