@@ -30,7 +30,6 @@ from array import array
 # TODO File
 # Save/ Saveas
 
-# TODO default Keys
 # TODO better error display
 # TODO ocationally crashes on windows for no damn reason (fixed?)
 # TODO SOUND!
@@ -54,22 +53,28 @@ class Nacho(Frame):
         self.prev_screen = 0
         self.fatal = False
         self.run_time = 1000 # 1000/this = Freq
-        # root, screen, img, sound
+        self.controls ={
+            48:0x0, 49:0x1, 50:0x2, 51:0x3, # 0 1 2 3
+            52:0x4, 53:0x5, 54:0x6, 55:0x7, # 4 5 6 7
+            56:0x8, 57:0x9, 47:0xA, 42:0xB, # 8 9 / *
+            45:0xC, 43:0xD, 10:0xE, 46:0xF} # - + E .
 
         # Init tk and canvas
         self.root = Tk()
         self.root.wm_title("Tortilla8 - A Chip8 Emulator")
-        #self.root.resizable(width=False, height=False)
+        self.root.resizable(width=False, height=False)
         Frame.__init__(self, self.root)
         self.menubar = Menu(self.root)
         self.root.config(menu=self.menubar)
-        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.root.update()
         self.screen = Canvas(self.root, width=Nacho.X_SIZE*self.scale, height=Nacho.Y_SIZE*self.scale)
         self.screen.create_rectangle( 0, 0, Nacho.X_SIZE*self.scale, Nacho.Y_SIZE*self.scale, fill="black" )
         self.screen.pack()
 
-        #self.sound = Note(440) #TODO
+        # Bind some functions
+        self.root.bind("<KeyPress>", self.key_down)
+        self.root.bind("<KeyRelease>", self.key_up)
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         # Populate the 'File' section
         filemenu = Menu(self.menubar, tearoff=0)
@@ -102,7 +107,7 @@ class Nacho(Frame):
         if file_path:
             self.emu = Guacamole(rom=file_path, cpuhz=Nacho.DEFAULT_FREQ, audiohz=60, delayhz=60,
                        init_ram=True, legacy_shift=False, err_unoffical="None",
-                       rewind_depth=0)
+                       rewind_frames=0)
             self.run_time = 1 # 1khz
             self.emu_event()
             self.timers_event()
@@ -118,6 +123,18 @@ class Nacho(Frame):
 
     def on_closing(self):
         self.root.destroy()
+
+    def key_down(self, key):
+        if (len(key.char) != 0) and (self.emu is not None):
+            val = self.controls.get(ord(key.char))
+            if val:
+                self.emu.keypad[val] = True
+
+    def key_up(self, key):
+        if (len(key.char) != 0) and (self.emu is not None):
+            val = self.controls.get(ord(key.char))
+            if val:
+                self.emu.keypad[val] = False
 
     def draw(self):
         self.screen.delete("all")
