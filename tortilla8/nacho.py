@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from tortilla8 import Guacamole, EmulationError
+from . import Guacamole, EmulationError
 from pygame.locals import *
 from os import environ
 from tkinter import filedialog
@@ -145,12 +145,6 @@ class Nacho(Frame):
                 y = self.scale*(i//Nacho.X_SIZE)
                 self.screen.create_rectangle( x, y, x+self.scale, y+self.scale, fill="white", outline='white' )
 
-    def halt(self):
-        self.fatal = True
-        haltmenu = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Fatal Error has occured!", menu=haltmenu)
-        #self.sound.stop()
-
     def timers_event(self):
         if (self.emu is not None) and (self.fatal is False):
             if self.emu.sound_timer_register != 0:
@@ -164,11 +158,21 @@ class Nacho(Frame):
         self.root.after(Nacho.TIMER_REFRESH, self.timers_event)
 
     def emu_event(self):
-        self.emu.cpu_tick()
-        if (not self.fatal) and any(e[0] is EmulationError._Fatal for e in self.emu.error_log):
-            self.halt()
+        if self.fatal:
+            haltmenu = Menu(self.menubar, tearoff=0)
+            self.menubar.add_cascade(label="Fatal Error has occured!", menu=haltmenu)
+            # Turn off sound
+            return
 
-        if (self.emu is not None) and (self.emu.draw_flag) and (not self.fatal):
+        self.emu.cpu_tick()
+
+        for err in self.emu.error_log:
+            print( str(err[0]) + ": " + err[1] )
+            if err[0] is EmulationError._Fatal:
+                self.fatal = True
+            self.emu.error_log = []
+
+        if self.emu.draw_flag:
             self.emu.draw_flag = False
 
             if not self.antiflicker.get():
@@ -184,10 +188,6 @@ class Nacho(Frame):
                 self.prev_screen = cur_screen
 
         self.root.after(self.run_time, self.emu_event)
-
-    def input_event(self):
-        # TODO Capture key press here
-        self.root.after(Nacho.INPUT_REFRESH, self.input_event)
 
 if __name__ == "__main__":
     chip8 = Nacho()

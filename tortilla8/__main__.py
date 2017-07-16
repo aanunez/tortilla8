@@ -11,6 +11,7 @@ from .blackbean import Blackbean
 from .salsa import Salsa
 from .guacamole import Guacamole
 from .platter import Platter
+from .nacho import Nacho
 
 def pos_int(value):
     ivalue = int(value)
@@ -32,7 +33,8 @@ def parse_args():
     parser = ArgumentParser(description=
         '''
         A collection of Chip8 tools for pre-processing, assembling,
-        emulating, disassembling, and visualizing Chip8 ROMs.
+        emulating, disassembling, and visualizing Chip8 ROMs. Call with
+        no arguments to start the tortilla8 GUI, Nacho!
         ''')
     subparsers = parser.add_subparsers(dest='option', help=
         'Options for tortilla8...')
@@ -146,7 +148,10 @@ def parse_args():
 
 def main():
     if len(argv) == 1:
-        argv.append('-h')
+        chip8 = Nacho()
+        chip8.mainloop()
+        return
+
     opts = parse_args()
 
     if opts.option == 'pre-process':
