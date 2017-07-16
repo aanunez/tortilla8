@@ -16,7 +16,6 @@ setup(
 	#install_requires = [], #Curses and SimpleAudio are optional
     extras_require = {
         'Sound':  ['simpleaudio'],
-        'GUI': ['pygame'],
     },
 	#scripts = [
 	#	    'scripts/t8-assemble',
