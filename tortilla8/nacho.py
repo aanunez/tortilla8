@@ -1,28 +1,13 @@
 #!/usr/bin/env python3
 
 from . import Guacamole, EmulationError
-from pygame.locals import *
 from os import environ
 from tkinter import filedialog
 from tkinter import *
 import webbrowser
 from array import array
 
-# TODO settings menu
-# Display Settings
-    # Scale edit
-    # Unlock aspect ratio or w/e
-    # Outline Color
-    # Fill Color
-    # Background Color
-# Emulation Settings
-    # Control Edit
-    # CPU Freq edit
-    # various handles for weird "features"
-# Audio
-    # Choose freq
-    # Custom file
-
+# TODO Settings windows below
 # TODO better error display
 # TODO ocationally crashes on windows for no damn reason (fixed?)
 # TODO SOUND!
@@ -53,11 +38,14 @@ class Nacho(Frame):
         self.prev_screen = 0
         self.fatal = False
         self.run_time = 1000 # 1000/this = Freq
+        self.color_border = "white"
+        self.color_fill = "white"
+        self.color_back = "black"
         self.controls ={
-            48:0x0, 49:0x1, 50:0x2, 51:0x3, # 0 1 2 3
-            52:0x4, 53:0x5, 54:0x6, 55:0x7, # 4 5 6 7
-            56:0x8, 57:0x9, 47:0xA, 42:0xB, # 8 9 / *
-            45:0xC, 43:0xD, 10:0xE, 46:0xF} # - + E .
+            'KP_0':0x0, 'KP_1':0x1, 'KP_2':0x2, 'KP_3':0x3, # 0 1 2 3
+            'KP_4':0x4, 'KP_5':0x5, 'KP_6':0x6, 'KP_7':0x7, # 4 5 6 7
+            'KP_8':0x8, 'KP_9':0x9, 'KP_Divide':0xA, 'KP_Multiply':0xB, # 8 9 / *
+            'KP_Subtract':0xC, 'KP_Add':0xD, 'KP_Enter':0xE, 'KP_Decimal':0xF} # - + E .
 
         # Init tk and canvas
         self.root = Tk()
@@ -68,7 +56,7 @@ class Nacho(Frame):
         self.root.config(menu=self.menubar)
         self.root.update()
         self.screen = Canvas(self.root, width=Nacho.X_SIZE*self.scale, height=Nacho.Y_SIZE*self.scale)
-        self.screen.create_rectangle( 0, 0, Nacho.X_SIZE*self.scale, Nacho.Y_SIZE*self.scale, fill="black" )
+        self.screen.create_rectangle( 0, 0, Nacho.X_SIZE*self.scale, Nacho.Y_SIZE*self.scale, fill=self.color_back )
         self.screen.pack()
 
         # Bind some functions
@@ -86,17 +74,19 @@ class Nacho(Frame):
         self.antiflicker = BooleanVar()
         self.antiflicker.set(True)
         setmenu = Menu(self.menubar, tearoff=0)
-        setmenu.add_command(label="Display", command=self.donothing)
-        setmenu.add_command(label="Emulation", command=self.donothing)
-        setmenu.add_command(label="Audio", command=self.donothing)
+        setmenu.add_command(label="Display", command=self.win_display_settings)
+        setmenu.add_command(label="Emulation", command=self.win_emu_settings)
+        setmenu.add_command(label="Audio", command=self.win_audio_settings)
         setmenu.add_checkbutton(label="Anti-Flicker", onvalue=True, offvalue=False, variable=self.antiflicker)
         self.menubar.add_cascade(label="Settings", menu=setmenu)
 
         # Populate the 'Help' section
         helpmenu = Menu(self.menubar, tearoff=0)
-        helpmenu.add_command(label="PyPi Index", command=lambda:webbrowser.open("https://pypi.org/project/tortilla8"))
-        helpmenu.add_command(label="Source Code", command=lambda:webbrowser.open("https://github.com/aanunez/tortilla8"))
-        helpmenu.add_command(label="About", command=self.about_window)
+        helpmenu.add_command(label="PyPi Index",
+            command=lambda:webbrowser.open("https://pypi.org/project/tortilla8"))
+        helpmenu.add_command(label="Source Code",
+            command=lambda:webbrowser.open("https://github.com/aanunez/tortilla8"))
+        helpmenu.add_command(label="About", command=self.window_about)
         self.menubar.add_cascade(label="Help", menu=helpmenu)
 
     def load(self):
@@ -115,12 +105,39 @@ class Nacho(Frame):
             tmp[key] = i
         self.controls = tmp
 
-    def donothing(self):
-        filewin = Toplevel(self.root)
-        button = Button(filewin, text="Do nothing button")
-        button.pack()
+    def win_display_settings(self):
+        # Display Settings TODO
+        # Scale edit
+        # Unlock aspect ratio or w/e
+        # Outline Color
+        # Fill Color
+        # Background Color
+        window = Toplevel(self)
+        window.resizable(width=False, height=False)
+        label = Label(window, text="temp")
+        label.pack(side="top", fill="both", padx=10, pady=10)
 
-    def about_window(self):
+    def win_emu_settings(self):
+        # Emulation Settings TODO
+        # Controls Edit
+        # CPU Freq edit
+        # various handles for weird "features"
+        window = Toplevel(self)
+        window.resizable(width=False, height=False)
+        label = Label(window, text="temp")
+        label.pack(side="top", fill="both", padx=10, pady=10)
+
+    def win_audio_settings(self):
+        # Audio TODO
+        # Choose freq
+        # Custom file
+        # mute?
+        window = Toplevel(self)
+        window.resizable(width=False, height=False)
+        label = Label(window, text="temp")
+        label.pack(side="top", fill="both", padx=10, pady=10)
+
+    def window_about(self):
         window = Toplevel(self)
         window.resizable(width=False, height=False)
         label = Label(window, text=' '.join(Nacho.ABOUT.split(' '*11)))
@@ -130,25 +147,27 @@ class Nacho(Frame):
         self.root.destroy()
 
     def key_down(self, key):
-        if (len(key.char) != 0) and (self.emu is not None):
-            val = self.controls.get(ord(key.char))
+        if self.emu is not None:
+            val = self.controls.get(key.keysym)
             if val:
                 self.emu.keypad[val] = True
 
     def key_up(self, key):
-        if (len(key.char) != 0) and (self.emu is not None):
-            val = self.controls.get(ord(key.char))
+        if self.emu is not None:
+            val = self.controls.get(key.keysym)
             if val:
                 self.emu.keypad[val] = False
 
     def draw(self):
         self.screen.delete("all")
-        self.screen.create_rectangle( 0, 0, Nacho.X_SIZE*self.scale, Nacho.Y_SIZE*self.scale, fill="black" )
+        self.screen.create_rectangle( 0, 0, Nacho.X_SIZE*self.scale,
+            Nacho.Y_SIZE*self.scale, fill=self.color_back )
         for i,pix in enumerate(self.emu.graphics()):
             if pix:
                 x = self.scale*(i%Nacho.X_SIZE)
                 y = self.scale*(i//Nacho.X_SIZE)
-                self.screen.create_rectangle( x, y, x+self.scale, y+self.scale, fill="white", outline='white' )
+                self.screen.create_rectangle( x, y, x+self.scale, y+self.scale,
+                    fill=self.color_fill, outline=self.color_border )
 
     def timers_event(self):
         if (self.emu is not None) and (self.fatal is False):
