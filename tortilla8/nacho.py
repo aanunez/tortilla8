@@ -42,10 +42,10 @@ class Nacho(Frame):
         self.color_fill = "white"
         self.color_back = "black"
         self.controls ={
-            'KP_0':0x0, 'KP_1':0x1, 'KP_2':0x2, 'KP_3':0x3, # 0 1 2 3
-            'KP_4':0x4, 'KP_5':0x5, 'KP_6':0x6, 'KP_7':0x7, # 4 5 6 7
-            'KP_8':0x8, 'KP_9':0x9, 'KP_Divide':0xA, 'KP_Multiply':0xB, # 8 9 / *
-            'KP_Subtract':0xC, 'KP_Add':0xD, 'KP_Enter':0xE, 'KP_Decimal':0xF} # - + E .
+            'KP_0':0x0, 'KP_1':0x1, 'KP_2':0x2, 'KP_3':0x3,
+            'KP_4':0x4, 'KP_5':0x5, 'KP_6':0x6, 'KP_7':0x7,
+            'KP_8':0x8, 'KP_9':0x9, 'KP_Divide':0xA, 'KP_Multiply':0xB,
+            'KP_Subtract':0xC, 'KP_Add':0xD, 'KP_Enter':0xE, 'KP_Decimal':0xF}
 
         # Init tk and canvas
         self.root = Tk()
