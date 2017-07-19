@@ -9,15 +9,15 @@ Tortilla8 is a collection of Chip8 tools for per-processing, assembling, emulati
 ## Known Issues
 
 * No docs for modules
-* Keypad input could be better
-* Controls can't be edited
-* Rewinding while waiting for key input (ld reg, k) causes odd behavior
-* Pre-Proc does not remove extra whitespace due to removing 'junk' lines
-* No 'real' gui.
+* Platter: keypad input could be better
+* Platter: controls can't be edited
+* Platter: rewinding while waiting for key input (ld reg, k) causes odd behavior
+* Jalapeno: does not remove extra whitespace due to removing 'junk' lines
+* Nacho: still under development
 
 ## Setup
 
-Setup is strait forward, two dependencies are used for the text based gui (platter), Simple Audio and Curses, the later of which is discussed below on specifc OSes. Scripts can, of course, be run directly from package without install. If you are on a system that doesn't support symbolic links (read: windows) you'll need to copy the scripts up a level to the root of the pacakge so they can see the inner tortilla8 folder.
+Setup is strait forward, two dependencies are used for the text based gui (platter), Simple Audio and Curses, the later of which is discussed in detail below for specifc OSes.
 
 ```
 # If you haven't installed pip, do that
@@ -40,6 +40,10 @@ tortilla8 emulate roms/demo.ch8 -f 150
 
 ![tortillas are made into chips, get it?](https://github.com/aanunez/tortilla8/raw/master/docs/platter_demo1.png "Platter running vertical_stripes.ch8")
 
+You can also start Nacho (the tkinter based GUI) by invoking `tortilla8` without arguments.
+
+![Super cool GUI](https://github.com/aanunez/tortilla8/raw/master/docs/nacho_demo1.png "Nacho running a UFO game.")
+
 ## Usage
 
 The main entry point after install is `tortilla8`, which has five options: assemble, disassemble, pre-process, execute, and emulate. More information for each can be found via tortilla8's help menus.
@@ -48,7 +52,8 @@ The main entry point after install is `tortilla8`, which has five options: assem
 usage: tortilla8 [-h] {pre-process,assemble,disassemble,execute,emulate} ...
 
 A collection of Chip8 tools for pre-processing, assembling, emulating,
-disassembling, and visualizing Chip8 ROMs.
+disassembling, and visualizing Chip8 ROMs. Call with no arguments to start the
+tortilla8 GUI, Nacho!
 
 positional arguments:
   {pre-process,assemble,disassemble,execute,emulate}
@@ -79,6 +84,9 @@ positional arguments:
                         disaplys a game screen, all registers, the stack,
                         recently processed instructions, and a console to log
                         any issues that occur.
+
+optional arguments:
+  -h, --help            show this help message and exit
 ```
 
 ## Modules
@@ -107,9 +115,9 @@ Emulator for the Chip8 language/system. The emulator has no display, for that yo
 
 Text based GUI for Guacamole that requires curses and simpleaudio, see below for any issues with your OS. Display information, warnings, and fatal errors reported by the emulator along with all registers, the stack, and recently executed instructions. Detects when the emulator enters a "spin" state and gives the option of reseting. Press the underlined (on GNU/Linux) or uppercase (Mac/Windows) to perform the menu actions (i.e. Stepping through the program, exiting) and use the arrow keys to control the rewind size (Left/Right) and emulation target frequency (Up/Down).
 
-### Nachos
+### Nacho
 
-Kivy based gui intended to be highly portable. No work has started yet.
+Tkinter based GUI for easily playing Chip8
 
 ## Platter Compatability (Curses)
 
@@ -128,19 +136,7 @@ python -m pip install curses-2.2-cp34-none-win32.whl
 ```
 Unfortunately the windows version of curses doesn't support unicode, so the game display in Platter is 'unique'.
 
-The below is only included as an infromational.
-Additonally, there is [PDCurses](https://pdcurses.sourceforge.io/), with the popular python library being [UniCurses](https://pdcurses.sourceforge.io/). Instructions on installing follow, but **support is not included** as the syntax differs for UniCurses accross platforms.
-```
-:: Use pip to install UniCurses
-pip install https://sourceforge.net/projects/pyunicurses/files/latest/download?source=typ_redirect
-```
-You will also need the dlls for both PDCurses and SDL; both are included in the win32 directory. Alternativly, [PDCurses](https://pdcurses.sourceforge.io/) distributes both source, pre-built dlls, and cofig files. Similarly, [SDL](https://www.libsdl.org/download-1.2.php) pre-built dlls, source, and configs can be easily found. SDL 1.2 is the recomended version for UniCurses 1.2, the latests avaialbe version as of writing, and was used for testing.
-
 ### Running on Mac OS X
 
 The Curses module ships with your python install, however the mac default terminal does not correctly display unicode underline characters. Instead a version is shown where the uppercase letters are the hot-keys to perform the action.
-
-## License
-
-All source code is licensed under GPLv3, including the asm for the Chip8 roms. Win32 DLLs include their licenses.
 

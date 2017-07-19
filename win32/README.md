@@ -1,1 +1,0 @@
-These files are only needed if PDCurses is being used on a Win32 platform. PDCurses support is **NOT** currently included in platter/tortilla8, so using these files would mean you've made modifications to platter.

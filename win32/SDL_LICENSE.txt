@@ -1,5 +1,0 @@
-SDL 1.2 is licensed under the LGPL version 2.1
-No modifications have been made to the included dll
-
-The full text can be found here...
-https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html
