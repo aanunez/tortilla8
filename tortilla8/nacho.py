@@ -2,15 +2,19 @@
 
 from . import Guacamole, EmulationError
 from os import environ
+from os.path import join as pathjoin
 from tkinter import filedialog
 from tkinter import *
-import webbrowser
+from webbrowser import open as openweb
 from array import array
+
+# Import Sound (optional)
+try: import simpleaudio as sa
+except ImportError:
+    sa = None
 
 # TODO Settings windows below
 # TODO better error display
-# TODO ocationally crashes on windows for no damn reason (fixed?)
-# TODO SOUND!
 
 class Nacho(Frame):
 
@@ -30,8 +34,6 @@ class Nacho(Frame):
     def __init__(self):
 
         # Defaults
-        self.foreground_color = (255,255,255)
-        self.background_color = (0,0,0)
         self.scale = 18
         self.tile_size = (self.scale, self.scale)
         self.emu = None
@@ -83,18 +85,35 @@ class Nacho(Frame):
         # Populate the 'Help' section
         helpmenu = Menu(self.menubar, tearoff=0)
         helpmenu.add_command(label="PyPi Index",
-            command=lambda:webbrowser.open("https://pypi.org/project/tortilla8"))
+            command=lambda:openweb("https://pypi.org/project/tortilla8"))
         helpmenu.add_command(label="Source Code",
-            command=lambda:webbrowser.open("https://github.com/aanunez/tortilla8"))
+            command=lambda:openweb("https://github.com/aanunez/tortilla8"))
         helpmenu.add_command(label="About", command=self.window_about)
         self.menubar.add_cascade(label="Help", menu=helpmenu)
+
+        # Setup audio
+        self.wave_file = pathjoin('tortilla8','sound','play.wav')
+        self.audio_on = False
+        if sa is None:
+            print("SimpleAudio is missing from your system. You can install it via 'pip install simpleaudio'. " + \
+                "Audio has been disabled.")
+        elif wave_file.lower() != 'off':
+            try:
+                self.wave_obj = sa.WaveObject.from_wave_file(wave_file)
+                self.play_obj = None
+                self.audio_playing = False
+                self.audio_on = True
+            except FileNotFoundError:
+                print("An error occured while initalizing audo. Audio has been disabled.")
+        else:
+            print("Audio has been disabled.")
+
 
     def load(self):
         file_path = filedialog.askopenfilename()
         if file_path:
             self.emu = Guacamole(rom=file_path, cpuhz=Nacho.DEFAULT_FREQ, audiohz=60, delayhz=60,
-                       init_ram=True, legacy_shift=False, err_unoffical="None",
-                       rewind_frames=0)
+                       init_ram=True, legacy_shift=False, err_unoffical="None", rewind_frames=0)
             self.run_time = 1 # 1khz
             self.emu_event()
             self.timers_event()
@@ -171,10 +190,11 @@ class Nacho(Frame):
 
     def timers_event(self):
         if (self.emu is not None) and (self.fatal is False):
-            if self.emu.sound_timer_register != 0:
-                pass #self.sound.play(-1)
-            else:
-                pass #self.sound.stop()
+            if self.audio_on:
+                if self.emu.sound_timer_register != 0:
+                    self.wave_obj.play()
+                else:
+                    sa.stop_all()
 
             self.emu.sound_timer_register -= 1 if self.emu.sound_timer_register != 0 else 0
             self.emu.delay_timer_register -= 1 if self.emu.delay_timer_register != 0 else 0
@@ -185,7 +205,7 @@ class Nacho(Frame):
         if self.fatal:
             haltmenu = Menu(self.menubar, tearoff=0)
             self.menubar.add_cascade(label="Fatal Error has occured!", menu=haltmenu)
-            # Turn off sound
+            sa.stop_all()
             return
 
         self.emu.cpu_tick()
