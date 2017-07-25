@@ -3,8 +3,8 @@
 from . import Guacamole, EmulationError
 from os import environ
 from os.path import join as pathjoin
-from tkinter import filedialog
 from tkinter import *
+from tkinter import filedialog
 from webbrowser import open as openweb
 from array import array
 
@@ -49,7 +49,22 @@ class Nacho(Frame):
             'KP_8':0x8, 'KP_9':0x9, 'KP_Divide':0xA, 'KP_Multiply':0xB,
             'KP_Subtract':0xC, 'KP_Add':0xD, 'KP_Enter':0xE, 'KP_Decimal':0xF}
 
-        # Init tk and canvas
+        # Setup audio
+        self.wave_file = pathjoin('tortilla8','sound','play.wav')
+        self.audio_on = False
+        if sa is None:
+            print("SimpleAudio is missing from your system. You can install it " + \
+                "via 'pip install simpleaudio'. Audio has been disabled.")
+        else:
+            try:
+                self.wave_obj = sa.WaveObject.from_wave_file(wave_file)
+                self.play_obj = None
+                self.audio_playing = False
+                self.audio_on = True
+            except FileNotFoundError:
+                print("An error occured while initalizing audo. Audio has been disabled.")
+
+        # Init TK and canvas
         self.root = Tk()
         self.root.wm_title("Tortilla8 - A Chip8 Emulator")
         self.root.resizable(width=False, height=False)
@@ -60,6 +75,12 @@ class Nacho(Frame):
         self.screen = Canvas(self.root, width=Nacho.X_SIZE*self.scale, height=Nacho.Y_SIZE*self.scale)
         self.screen.create_rectangle( 0, 0, Nacho.X_SIZE*self.scale, Nacho.Y_SIZE*self.scale, fill=self.color_back )
         self.screen.pack()
+
+        # Init TK Vars
+        self.antiflicker = BooleanVar()
+        self.antiflicker.set(True)
+        self.lock_aspect = BooleanVar()
+        self.lock_aspect.set(True)
 
         # Bind some functions
         self.root.bind("<KeyPress>", self.key_down)
@@ -73,12 +94,13 @@ class Nacho(Frame):
         self.menubar.add_cascade(label="File", menu=filemenu)
 
         # Populate the 'Settings' section
-        self.antiflicker = BooleanVar()
-        self.antiflicker.set(True)
         setmenu = Menu(self.menubar, tearoff=0)
         setmenu.add_command(label="Display", command=self.win_display_settings)
         setmenu.add_command(label="Emulation", command=self.win_emu_settings)
-        setmenu.add_command(label="Audio", command=self.win_audio_settings)
+        if self.audio_on:
+            setmenu.add_command(label="Audio", command=self.win_audio_settings)
+        else:
+            setmenu.add_command(label="Audio", command=self.win_audio_settings, state='disable')
         setmenu.add_checkbutton(label="Anti-Flicker", onvalue=True, offvalue=False, variable=self.antiflicker)
         self.menubar.add_cascade(label="Settings", menu=setmenu)
 
@@ -90,24 +112,6 @@ class Nacho(Frame):
             command=lambda:openweb("https://github.com/aanunez/tortilla8"))
         helpmenu.add_command(label="About", command=self.window_about)
         self.menubar.add_cascade(label="Help", menu=helpmenu)
-
-        # Setup audio
-        self.wave_file = pathjoin('tortilla8','sound','play.wav')
-        self.audio_on = False
-        if sa is None:
-            print("SimpleAudio is missing from your system. You can install it via 'pip install simpleaudio'. " + \
-                "Audio has been disabled.")
-        elif wave_file.lower() != 'off':
-            try:
-                self.wave_obj = sa.WaveObject.from_wave_file(wave_file)
-                self.play_obj = None
-                self.audio_playing = False
-                self.audio_on = True
-            except FileNotFoundError:
-                print("An error occured while initalizing audo. Audio has been disabled.")
-        else:
-            print("Audio has been disabled.")
-
 
     def load(self):
         file_path = filedialog.askopenfilename()
@@ -127,14 +131,22 @@ class Nacho(Frame):
     def win_display_settings(self):
         # Display Settings TODO
         # Scale edit
-        # Unlock aspect ratio or w/e
+        # Unlock aspect ratio
         # Outline Color
         # Fill Color
         # Background Color
         window = Toplevel(self)
+        window.wm_title("Display Settings")
+        window.minsize(width=264, height=190)
         window.resizable(width=False, height=False)
-        label = Label(window, text="temp")
-        label.pack(side="top", fill="both", padx=10, pady=10)
+        Checkbutton(window, text="Lock Aspect Ratio", variable=self.lock_aspect).place(x=10, y=15)
+        Label(window, text="Scale: ").place(x=160, y=16)
+        e = Entry(window)
+        e.insert(0, str(self.scale))
+        e.place(x=210, y=16, width=40)
+        Label(window, text="Background").place(x=14, y=65)
+        Label(window, text="Foreground").place(x=14, y=105)
+        Label(window, text="Border").place(x=14, y=145)
 
     def win_emu_settings(self):
         # Emulation Settings TODO
