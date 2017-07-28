@@ -14,7 +14,9 @@ except ImportError:
     sa = None
 
 # TODO Settings windows below
-# TODO better error display
+# TODO better error display.
+#    Display error?
+#    Doesn't remove itself after error
 
 class Nacho(Frame):
 
@@ -217,7 +219,8 @@ class Nacho(Frame):
         if self.fatal:
             haltmenu = Menu(self.menubar, tearoff=0)
             self.menubar.add_cascade(label="Fatal Error has occured!", menu=haltmenu)
-            sa.stop_all()
+            if self.audio_on:
+                sa.stop_all()
             return
 
         self.emu.cpu_tick()
