@@ -177,32 +177,23 @@ def i_drw(emu):
 
     emu.register[0xF] = 0x00
     for y in range(height):
-        sprite =  bin(emu.ram[ emu.index_register + y ])[2:].zfill(8)
-        for x in range(2):
-            if shift_amount == 0 and x == 1:
-                continue
+        sprite =  '0'*shift_amount + bin(emu.ram[ emu.index_register + y ])[2:].zfill(8) + '0'*(8-shift_amount)
 
-            x_offset = x if x_origin_byte + x != GFX_WIDTH else 1-GFX_WIDTH
-            working_byte = GFX_ADDRESS + (( x_origin_byte + y_origin_byte + \
-                (y * GFX_WIDTH) + x_offset ) % GFX_RESOLUTION)
+        next_byte_offset = 1 if x_origin_byte + 1 != GFX_WIDTH else 1-GFX_WIDTH
+        working_bytes = (
+            GFX_ADDRESS + (( x_origin_byte + y_origin_byte + (y * GFX_WIDTH) ) % GFX_RESOLUTION) ,
+            GFX_ADDRESS + (( x_origin_byte + y_origin_byte + (y * GFX_WIDTH) + next_byte_offset ) % GFX_RESOLUTION)
+        )
 
-            original = emu.ram[ working_byte ]
-            b_list = bin(original)[2:].zfill(8)
-            if x == 0:
-                untouched_chunk = b_list[:shift_amount]
-                original_chunk  = b_list[shift_amount:]
-                sprite_chunk    = sprite[:8-shift_amount]
-            if x == 1:
-                untouched_chunk = b_list[shift_amount:]
-                original_chunk  = b_list[:shift_amount]
-                sprite_chunk    = sprite[8-shift_amount:]
+        original = ( emu.ram[ working_bytes[0] ], emu.ram[ working_bytes[1] ] )
+        b_list = bin(original[0])[2:].zfill(8) + bin(original[1])[2:].zfill(8)
 
-            xor_chunk = bin(int(original_chunk,2) ^ int(sprite_chunk,2))[2:].zfill(len(original_chunk))
-            emu.ram[ working_byte ] = \
-                int(untouched_chunk + xor_chunk,2) if x == 0 else int(xor_chunk + untouched_chunk,2)
+        xor_string = bin(int(b_list,2) ^ int(sprite,2))[2:].zfill(16)
+        emu.ram[ working_bytes[0] ], emu.ram[ working_bytes[1] ] = int(xor_string[:8], 2), int(xor_string[8:16], 2)
 
-            if bin( ( emu.ram[ working_byte ] ^ original ) & original ).find('1') != -1:
-                emu.register[0xF] = 0x01
+        if (bin( ( emu.ram[ working_bytes[0] ] ^ original[0] ) & original[0] ) + \
+            bin( ( emu.ram[ working_bytes[1] ] ^ original[1] ) & original[1] )).find('1') != -1:
+            emu.register[0xF] = 0x01
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Hex Extraction
