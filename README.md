@@ -117,7 +117,13 @@ Text based GUI for Guacamole that requires curses and simpleaudio, see below for
 
 ### Nacho
 
-Tkinter based GUI for easily playing Chip8
+Tkinter based GUI for easily playing Chip8 that is still being developed. If you have an issue using sound in Nacho on GNU/Linux, speciffically with installing SimpleAudio, please try to install both the python3 dev tools and the libasound dev libraray.
+
+```
+apt install python3-dev
+apt install libasound2-dev
+
+```
 
 ## Platter Compatability (Curses)
 

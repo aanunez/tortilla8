@@ -57,7 +57,7 @@ class Nacho(Frame):
                 "via 'pip install simpleaudio'. Audio has been disabled.")
         else:
             try:
-                self.wave_obj = sa.WaveObject.from_wave_file(wave_file)
+                self.wave_obj = sa.WaveObject.from_wave_file(self.wave_file)
                 self.play_obj = None
                 self.audio_playing = False
                 self.audio_on = True
