@@ -174,22 +174,20 @@ def i_drw(emu):
     x_origin_byte = int( get_reg1_val(emu) / 8 ) % GFX_WIDTH
     y_origin_byte = (get_reg2_val(emu) % GFX_HEIGHT_PX) * GFX_WIDTH
     shift_amount = get_reg1_val(emu) % GFX_WIDTH_PX % 8
+    next_byte_offset = 1 if x_origin_byte + 1 != GFX_WIDTH else 1-GFX_WIDTH
 
     emu.register[0xF] = 0x00
     for y in range(height):
-        sprite =  '0'*shift_amount + bin(emu.ram[ emu.index_register + y ])[2:].zfill(8) + '0'*(8-shift_amount)
+        sprite =  emu.ram[ emu.index_register + y ] << (8-shift_amount)
 
-        next_byte_offset = 1 if x_origin_byte + 1 != GFX_WIDTH else 1-GFX_WIDTH
         working_bytes = (
             GFX_ADDRESS + (( x_origin_byte + y_origin_byte + (y * GFX_WIDTH) ) % GFX_RESOLUTION) ,
             GFX_ADDRESS + (( x_origin_byte + y_origin_byte + (y * GFX_WIDTH) + next_byte_offset ) % GFX_RESOLUTION)
         )
 
         original = ( emu.ram[ working_bytes[0] ], emu.ram[ working_bytes[1] ] )
-        b_list = bin(original[0])[2:].zfill(8) + bin(original[1])[2:].zfill(8)
-
-        xor_string = bin(int(b_list,2) ^ int(sprite,2))[2:].zfill(16)
-        emu.ram[ working_bytes[0] ], emu.ram[ working_bytes[1] ] = int(xor_string[:8], 2), int(xor_string[8:16], 2)
+        xor = (original[0]*256 + original[1]) ^ sprite
+        emu.ram[ working_bytes[0] ], emu.ram[ working_bytes[1] ] = xor >> 8, xor & 0x00FF
 
         if (bin( ( emu.ram[ working_bytes[0] ] ^ original[0] ) & original[0] ) + \
             bin( ( emu.ram[ working_bytes[1] ] ^ original[1] ) & original[1] )).find('1') != -1:
