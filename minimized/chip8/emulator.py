@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
 
+from re import match
 from random import randint
 from os.path import getsize
 from time import time
 from collections import namedtuple
-from .constants import BYTES_OF_RAM, PROGRAM_BEGIN_ADDRESS, NUMB_OF_REGS, MAX_ROM_SIZE, \
-                       GFX_FONT, GFX_FONT_ADDRESS, GFX_RESOLUTION, GFX_ADDRESS, \
-                       GFX_WIDTH, GFX_HEIGHT_PX, GFX_WIDTH_PX, ENABLE_LEGACY_SHIFT, \
-                       SET_VF_ON_GFX_OVERFLOW, STACK_ADDRESS, STACK_SIZE, \
-                       OP_CODES, UNOFFICIAL_OP_CODES, \
-                       BANNED_OP_CODES_EXPLODED, SUPER_CHIP_OP_CODES_EXPLODED
+from .constants import OP_CODES, UNOFFICIAL_OP_CODES, BANNED_OP_CODES_EXPLODED, SUPER_CHIP_OP_CODES_EXPLODED
 
 class ASMdata( namedtuple('ASMdata', 'hex_instruction valid mnemonic\
     mnemonic_arg_types disassembled_line unoffical_op banned super8') ):
@@ -20,13 +16,44 @@ class EarlyExit(Exception):
 
 class Emulator:
 
+    SET_VF_ON_GFX_OVERFLOW = False # Undocumented 'feature'. When 'Add I, VX' overflows 'I'
+                                   # VF is set to one when this is True. The insturction does
+                                   # not set VF low. Used by Spacefight 2019.
+    ENABLE_LEGACY_SHIFT = False
+
+    NUMB_OF_REGS = 16
+    BYTES_OF_RAM = 4096
+    MAX_ROM_SIZE = 3232
+    PROGRAM_BEGIN_ADDRESS = 0x200 # Some use 0x600 
+
+    STACK_SIZE    = 12
+    STACK_ADDRESS = None
+
+    GFX_ADDRESS    = 0xF00
+    GFX_HEIGHT_PX  = 32
+    GFX_WIDTH_PX   = 64
+    GFX_WIDTH      = 8
+    GFX_RESOLUTION = 8*32 #In bytes
+
+    GFX_FONT_ADDRESS = 0x050
+    GFX_FONT = (
+        0xF0, 0x90, 0x90, 0x90, 0xF0, 0x20, 0x60, 0x20, 0x20, 0x70, # 0 1
+        0xF0, 0x10, 0xF0, 0x80, 0xF0, 0xF0, 0x10, 0xF0, 0x10, 0xF0, # 2 3
+        0x90, 0x90, 0xF0, 0x10, 0x10, 0xF0, 0x80, 0xF0, 0x10, 0xF0, # 4 5
+        0xF0, 0x80, 0xF0, 0x90, 0xF0, 0xF0, 0x10, 0x20, 0x40, 0x40, # 6 7
+        0xF0, 0x90, 0xF0, 0x90, 0xF0, 0xF0, 0x90, 0xF0, 0x10, 0xF0, # 8 9
+        0xF0, 0x90, 0xF0, 0x90, 0x90, 0xE0, 0x90, 0xE0, 0x90, 0xE0, # A B
+        0xF0, 0x80, 0x80, 0x80, 0xF0, 0xE0, 0x90, 0x90, 0x90, 0xE0, # C D
+        0xF0, 0x80, 0xF0, 0x80, 0xF0, 0xF0, 0x80, 0xF0, 0x80, 0x80  # E F
+        )
+
     def __init__(self, rom=None, cpuhz=200, audiohz=60, delayhz=60):
 
         # RAM
-        self.ram = [0x00] * BYTES_OF_RAM
+        self.ram = [0x00] * Emulator.BYTES_OF_RAM
 
         # Registers
-        self.register = [0x00] * NUMB_OF_REGS
+        self.register = [0x00] * Emulator.NUMB_OF_REGS
         self.index_register = 0x000
         self.delay_timer_register = 0x00
         self.sound_timer_register = 0x00
@@ -35,8 +62,8 @@ class Emulator:
         self.dis_ins = None
 
         # Program Counter
-        self.program_counter = PROGRAM_BEGIN_ADDRESS
-        self.calling_pc      = PROGRAM_BEGIN_ADDRESS
+        self.program_counter = Emulator.PROGRAM_BEGIN_ADDRESS
+        self.calling_pc      = Emulator.PROGRAM_BEGIN_ADDRESS
 
         # I/O
         self.keypad      = [False] * 16
@@ -53,10 +80,13 @@ class Emulator:
         self.cpu_wait   = 1/cpuhz
         self.audio_wait = 1/audiohz
         self.delay_wait = 1/delayhz
+        self._cpu_time = 0
+        self._audio_time = 0
+        self._delay_time = 0
 
         # Load Font, clear screen
-        self.ram[GFX_FONT_ADDRESS:GFX_FONT_ADDRESS + len(GFX_FONT)] = GFX_FONT
-        self.ram[GFX_ADDRESS:GFX_ADDRESS + GFX_RESOLUTION] = [0x00] * GFX_RESOLUTION
+        self.ram[Emulator.GFX_FONT_ADDRESS:Emulator.GFX_FONT_ADDRESS + len(Emulator.GFX_FONT)] = Emulator.GFX_FONT
+        self.ram[Emulator.GFX_ADDRESS:Emulator.GFX_ADDRESS + Emulator.GFX_RESOLUTION] = [0x00] * Emulator.GFX_RESOLUTION
 
         # Load Rom
         if rom is not None:
@@ -75,13 +105,13 @@ class Emulator:
         Loads a Chip-8 ROM from a file into the RAM.
         '''
         file_size = getsize(file_path)
-        if file_size > MAX_ROM_SIZE:
-            self.log("Rom file exceeds maximum rom size of " + str(MAX_ROM_SIZE) + \
+        if file_size > Emulator.MAX_ROM_SIZE:
+            self.log("Rom file exceeds maximum rom size of " + str(EmulatorMAX_ROM_SIZE) + \
                 " bytes" , EmulationError._Fatal)
             return
 
         with open(file_path, "rb") as fh:
-            self.ram[PROGRAM_BEGIN_ADDRESS:PROGRAM_BEGIN_ADDRESS + file_size] = \
+            self.ram[Emulator.PROGRAM_BEGIN_ADDRESS:Emulator.PROGRAM_BEGIN_ADDRESS + file_size] = \
                 [int.from_bytes(fh.read(1), 'big') for i in range(file_size)]
 
     def run(self):
@@ -90,20 +120,18 @@ class Emulator:
         of the main loop, it insures that the CPU and timers execute at the
         target frequency.
         '''
-        if self.cpu_wait <= (time() - run.cpu_time):
-            self.cpu_time = time()
+        t = time()
+        if self.cpu_wait <= (t - self._cpu_time):
+            self.cpu_time = t
             self.cpu_tick()
 
-        if self.audio_wait <= (time() - run.audio_time):
-            self.audio_time = time()
+        if self.audio_wait <= (t - self._audio_time):
+            self.audio_time = t
             self.sound_timer_register -= 1 if self.sound_timer_register != 0 else 0
 
-        if self.delay_wait <= (time() - run.delay_time):
-            self.delay_time = time()
+        if self.delay_wait <= (t - self._delay_time):
+            self.delay_time = t
             self.delay_timer_register -= 1 if self.delay_timer_register != 0 else 0
-    run.cpu_time = 0
-    run.audio_time = 0
-    run.delay_time = 0
 
     def cpu_tick(self):
         '''
@@ -121,7 +149,7 @@ class Emulator:
         # Dissassemble next instruction
         self.dis_ins = None
         try:
-            self.dis_ins = disassemble(self.ram[self.program_counter:self.program_counter+2])
+            self.dis_ins = self.disassemble(self.ram[self.program_counter:self.program_counter+2])
         except:
             raise
 
@@ -129,7 +157,7 @@ class Emulator:
         if self.dis_ins.valid:
             self.ins_tbl[self.dis_ins.mnemonic](self)
         else:
-            print("Invalid instruction found.\n" + hex(self.program_counter) + "\n" + str(self.dis_ins))
+            print("instruction found.\n" + hex(self.program_counter) + "\n" + str(self.dis_ins))
             raise SystemExit
 
         # Increment the PC
@@ -159,6 +187,7 @@ class Emulator:
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Dissassembler
 
+    @staticmethod
     def disassemble(byte_list):
         '''
         A one line (2 byte) dissassembler function for CHIP-8 Rom It
@@ -246,7 +275,7 @@ class Emulator:
 # Add-3 SE-2 SNE-2 LD-11 JP-2 (mnemonics w/ extra instructions)
 
 def i_cls(emu):
-    emu.ram[GFX_ADDRESS:GFX_ADDRESS + GFX_RESOLUTION] = [0x00] * GFX_RESOLUTION
+    emu.ram[GFX_ADDRESS:GFX_ADDRESS + Emulator.GFX_RESOLUTION] = [0x00] * Emulator.GFX_RESOLUTION
     emu.draw_flag = True
 
 def i_ret(emu):
@@ -259,11 +288,11 @@ def i_sys(emu):
     emu.log("RCA 1802 call to " + hex( get_address(emu) ) + " was ignored.", EmulationError._Warning)
 
 def i_call(emu):
-    if STACK_ADDRESS:
+    if Emulator.STACK_ADDRESS:
         emu.ram[stack_pointer] = emu.program_counter
     emu.stack_pointer += 1
     emu.stack.append(emu.program_counter)
-    if emu.stack_pointer > STACK_SIZE:
+    if emu.stack_pointer > Emulator.STACK_SIZE:
         emu.log("Stack overflow. Stack is now size " + emu.stack_pointer, EmulationError._Warning)
     emu.program_counter = get_address(emu) - 2
 
@@ -355,7 +384,7 @@ def i_add(emu):
 
     elif 'i' in arg1 and 'reg' is arg2:
         emu.index_register += get_reg1_val(emu)
-        if (emu.index_register > 0xFF) and SET_VF_ON_GFX_OVERFLOW:
+        if (emu.index_register > 0xFF) and Emulator.SET_VF_ON_GFX_OVERFLOW:
             emu.register[0xF] = 0x01
         emu.index_register &= 0xFFF
 
@@ -388,7 +417,7 @@ def i_ld(emu):
         elif 'st' is arg1:
             emu.sound_timer_register =  get_reg1_val(emu)
         elif 'f'  is arg1:
-            emu.index_register = GFX_FONT_ADDRESS + ( 5 * get_reg1_val(emu) )
+            emu.index_register = Emulator.GFX_FONT_ADDRESS + ( 5 * get_reg1_val(emu) )
         elif 'b'  is arg1:
             bcd = [int(f) for f in list(str( get_reg1_val(emu) ).zfill(3))]
             emu.ram[ emu.index_register : emu.index_register + len(bcd)] = bcd
@@ -406,18 +435,18 @@ def i_ld(emu):
 def i_drw(emu):
     emu.draw_flag = True
     height = int(emu.dis_ins.hex_instruction[3],16)
-    x_origin_byte = int( get_reg1_val(emu) / 8 ) % GFX_WIDTH
-    y_origin_byte = (get_reg2_val(emu) % GFX_HEIGHT_PX) * GFX_WIDTH
-    shift_amount = get_reg1_val(emu) % GFX_WIDTH_PX % 8
-    next_byte_offset = 1 if x_origin_byte + 1 != GFX_WIDTH else 1-GFX_WIDTH
+    x_origin_byte = int( get_reg1_val(emu) / 8 ) % Emulator.GFX_WIDTH
+    y_origin_byte = (get_reg2_val(emu) % Emulator.GFX_HEIGHT_PX) * Emulator.GFX_WIDTH
+    shift_amount = get_reg1_val(emu) % Emulator.GFX_WIDTH_PX % 8
+    next_byte_offset = 1 if x_origin_byte + 1 != Emulator.GFX_WIDTH else 1-Emulator.GFX_WIDTH
 
     emu.register[0xF] = 0x00
     for y in range(height):
         sprite =  emu.ram[ emu.index_register + y ] << (8-shift_amount)
 
         working_bytes = (
-            GFX_ADDRESS + (( x_origin_byte + y_origin_byte + (y * GFX_WIDTH) ) % GFX_RESOLUTION) ,
-            GFX_ADDRESS + (( x_origin_byte + y_origin_byte + (y * GFX_WIDTH) + next_byte_offset ) % GFX_RESOLUTION)
+            Emulator.GFX_ADDRESS + (( x_origin_byte + y_origin_byte + (y * Emulator.GFX_WIDTH) ) % Emulator.GFX_RESOLUTION) ,
+            Emulator.GFX_ADDRESS + (( x_origin_byte + y_origin_byte + (y * Emulator.GFX_WIDTH) + next_byte_offset ) % Emulator.GFX_RESOLUTION)
         )
 
         original = ( emu.ram[ working_bytes[0] ], emu.ram[ working_bytes[1] ] )

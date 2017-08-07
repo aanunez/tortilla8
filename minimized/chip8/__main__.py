@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os
+from os.path import isfile
 from sys import platform, argv
 from argparse import ArgumentParser, ArgumentTypeError
 from .emulator import Emulator
@@ -42,13 +42,11 @@ def main():
         argv.append('-h')
 
     opts = parse_args()
-
-    if not os.path.isfile(opts.rom):
+    if not isfile(opts.rom):
         raise OSError("File '" + opts.rom + "' does not exist")
 
     screen_unicode = True if platform != 'win32' or opts.unicode else False
-
-    disp = Display( opts.rom, opts.frequency, opts.soundtimer, opts.delaytimer,
+    disp = Display( opts.rom, opts.frequency, 60, 60,
                     opts.drawfix, screen_unicode, opts.audio )
     disp.start()
 
