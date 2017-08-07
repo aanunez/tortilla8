@@ -5,14 +5,70 @@ from random import randint
 from os.path import getsize
 from time import time
 from collections import namedtuple
-from .constants import OP_CODES, UNOFFICIAL_OP_CODES, BANNED_OP_CODES_EXPLODED, SUPER_CHIP_OP_CODES_EXPLODED
+
+OpData = namedtuple('OpData', 'regular, args, hex')
+OP_CODES = {                                 # X and Y in the right most indicates if it is for the 1st or 2nd arg
+    'cls' : OpData('00e0',[],'00E0'),
+    'ret' : OpData('00ee',[],'00EE'),
+    'sys' : OpData('0(^0)..',['addr'],'0xxx'), # prevent match to cls or ret
+    'call': OpData('2...',['addr'],'2xxx'),
+    'skp' : OpData('e.9e',['reg'],'Ex9E'),
+    'sknp': OpData('e.a1',['reg'],'ExA1'),
+    'se'  :(OpData('5..0',['reg','reg'],'5xy0'),
+            OpData('3...',['reg','byte'],'3xyy')),
+    'sne' :(OpData('9..0',['reg','reg'],'9xy0'),
+            OpData('4...',['reg','byte'],'4xyy')),
+    'add' :(OpData('7...',['reg','byte'],'7xyy'),
+            OpData('8..4',['reg','reg'],'8xy4'),
+            OpData('f.1e',['i','reg'],'Fy1E')),
+    'or'  : OpData('8..1',['reg','reg'],'8xy1'),
+    'and' : OpData('8..2',['reg','reg'],'8xy2'),
+    'xor' : OpData('8..3',['reg','reg'],'8xy3'),
+    'sub' : OpData('8..5',['reg','reg'],'8xy5'),
+    'subn': OpData('8..7',['reg','reg'],'8xy7'),
+    'shr' :(OpData('8..6',['reg'],'8x06'),
+            OpData('    ',['reg','reg'],'8xy6')), # Blank regex, we never match, use Legacy_shift instead
+    'shl' :(OpData('8..e',['reg'],'8x0E'),
+            OpData('    ',['reg','reg'],'8xyE')), # as above
+    'rnd' : OpData('c...',['reg','byte'],'Cxyy'),
+    'jp'  :(OpData('b...',['v0','addr'],'Byyy'),
+            OpData('1...',['addr'],'1xxx')),
+    'ld'  :(OpData('6...',['reg','byte'],'6xyy'),
+            OpData('8..0',['reg','reg'],'8xy0'),
+            OpData('f.07',['reg','dt'],'Fx07'),
+            OpData('f.0a',['reg','k'],'Fx0A'),
+            OpData('f.65',['reg','[i]'],'Fx65'),
+            OpData('a...',['i','addr'],'Ayyy'),
+            OpData('f.15',['dt','reg'],'Fy15'),
+            OpData('f.18',['st','reg'],'Fy18'),
+            OpData('f.29',['f','reg'],'Fy29'),
+            OpData('f.33',['b','reg'],'Fy33'),
+            OpData('f.55',['[i]','reg'],'Fy55')),
+    'drw' : OpData('d...',['reg','reg','nibble'],'Dxyz')
+    }
 
 class ASMdata( namedtuple('ASMdata', 'hex_instruction valid mnemonic\
     mnemonic_arg_types disassembled_line unoffical_op banned super8') ):
     pass
 
-class EarlyExit(Exception):
-    pass
+def explode_op_codes( op_code_list ):
+    exploded_list = []
+    for item in op_code_list:
+        if item.find('.') == -1:
+            exploded_list.append(item)
+        else:
+            upper,repl,fill = 16,'.',1
+            if item[2:] == '..':
+                upper,repl,fill = 256,'..',2
+            for i in range(0, upper):
+                exploded_list.append(item.replace(repl, hex(i)[2:].zfill(fill)))
+    return exploded_list
+
+def RomLoadError(Exception): pass
+def StackUnderflowError(Exception): pass
+def StackOverflowError(Exception): pass
+def InvalidInstructionError(Exception): pass
+def DisassemblerError(Exception): pass
 
 class Emulator:
 
@@ -46,6 +102,13 @@ class Emulator:
         0xF0, 0x80, 0x80, 0x80, 0xF0, 0xE0, 0x90, 0x90, 0x90, 0xE0, # C D
         0xF0, 0x80, 0xF0, 0x80, 0xF0, 0xF0, 0x80, 0xF0, 0x80, 0x80  # E F
         )
+
+    OP_CODE_SIZE = 2
+    UNOFFICIAL_OP_CODES = ('xor','shr','shl','subn') # But still supported
+    BANNED_OP_CODES = ('7f..','8f.4','8f.6','8f.e','cf..','6f..','8f.0','ff07','ff0a','ff65') # Ins that modify VF: add, shr, shl, rnd, ld
+    SUPER_CHIP_OP_CODES = ('00c.','00fb','00fc','00fd','00fe','00ff','d..0','f.30','f.75','f.85') # Super chip-8, not supported
+    BANNED_OP_CODES_EXPLODED = explode_op_codes(BANNED_OP_CODES)
+    SUPER_CHIP_OP_CODES_EXPLODED = explode_op_codes(SUPER_CHIP_OP_CODES)
 
     def __init__(self, rom=None, cpuhz=200, audiohz=60, delayhz=60):
 
@@ -106,9 +169,7 @@ class Emulator:
         '''
         file_size = getsize(file_path)
         if file_size > Emulator.MAX_ROM_SIZE:
-            self.log("Rom file exceeds maximum rom size of " + str(EmulatorMAX_ROM_SIZE) + \
-                " bytes" , EmulationError._Fatal)
-            return
+            raise RomLoadError
 
         with open(file_path, "rb") as fh:
             self.ram[Emulator.PROGRAM_BEGIN_ADDRESS:Emulator.PROGRAM_BEGIN_ADDRESS + file_size] = \
@@ -146,19 +207,18 @@ class Emulator:
 
         self.calling_pc = self.program_counter
 
-        # Dissassemble next instruction
+        # Disassemble next instruction
         self.dis_ins = None
         try:
-            self.dis_ins = self.disassemble(self.ram[self.program_counter:self.program_counter+2])
+            self.dis_ins = self.disassemble(self.ram[self.program_counter:self.program_counter+Emulator.OP_CODE_SIZE])
         except:
-            raise
+            raise DisassemblerError
 
         # Execute instruction
         if self.dis_ins.valid:
             self.ins_tbl[self.dis_ins.mnemonic](self)
         else:
-            print("instruction found.\n" + hex(self.program_counter) + "\n" + str(self.dis_ins))
-            raise SystemExit
+            raise InvalidInstructionError
 
         # Increment the PC
         self.program_counter += 2
@@ -193,6 +253,10 @@ class Emulator:
         A one line (2 byte) dissassembler function for CHIP-8 Rom It
         returns a named tuple with various information on the line.
         '''
+
+        class EarlyExit(Exception):
+            pass
+
         hex_instruction =  hex( byte_list[0] )[2:].zfill(2)
         hex_instruction += hex( byte_list[1] )[2:].zfill(2)
         valid = False
@@ -205,7 +269,7 @@ class Emulator:
 
         try:
             # Check if the Op-Code a Super-8 instruction
-            if hex_instruction in SUPER_CHIP_OP_CODES_EXPLODED:
+            if hex_instruction in Emulator.SUPER_CHIP_OP_CODES_EXPLODED:
                 mnemonic = 'SPR'
                 super8 = True
                 raise EarlyExit
@@ -231,12 +295,12 @@ class Emulator:
                 raise EarlyExit
 
             # If banned, flag and exit.
-            if hex_instruction in BANNED_OP_CODES_EXPLODED:
+            if hex_instruction in Emulator.BANNED_OP_CODES_EXPLODED:
                 banned = True
                 raise EarlyExit
 
             # If unoffical, flag it.
-            if mnemonic in UNOFFICIAL_OP_CODES:
+            if mnemonic in Emulator.UNOFFICIAL_OP_CODES:
                 unoffical_op = True
 
             # No args to parse
@@ -281,11 +345,11 @@ def i_cls(emu):
 def i_ret(emu):
     emu.stack_pointer -= 1
     if emu.stack_pointer < 0:
-        emu.log("Stack underflow", EmulationError._Fatal)
+        raise StackUnderflowError
     emu.program_counter = emu.stack.pop()
 
 def i_sys(emu):
-    emu.log("RCA 1802 call to " + hex( get_address(emu) ) + " was ignored.", EmulationError._Warning)
+    pass
 
 def i_call(emu):
     if Emulator.STACK_ADDRESS:
@@ -293,7 +357,7 @@ def i_call(emu):
     emu.stack_pointer += 1
     emu.stack.append(emu.program_counter)
     if emu.stack_pointer > Emulator.STACK_SIZE:
-        emu.log("Stack overflow. Stack is now size " + emu.stack_pointer, EmulationError._Warning)
+        raise StackOverflowError
     emu.program_counter = get_address(emu) - 2
 
 def i_skp(emu):
@@ -357,8 +421,6 @@ def i_jp(emu):
         emu.program_counter = get_address(emu) + emu.register[0] - 2
     elif numb_args == 1:
         emu.program_counter = get_address(emu) - 2
-    else:
-        emu.log("Unknown argument at address " + hex(emu.program_counter), EmulationError._Fatal)
 
     if init_pc == emu.program_counter + 2:
         emu.spinning = True
@@ -379,17 +441,12 @@ def i_add(emu):
             emu.register[ get_reg1(emu) ] = get_reg1_val(emu) + get_reg2_val(emu)
             emu.register[0xF] = 0x01 if emu.register[ get_reg1(emu) ] > 0xFF else 0x00
             emu.register[ get_reg1(emu) ] &= 0xFF
-        else:
-            emu.log("Unknown argument at address " + hex(emu.program_counter), EmulationError._Fatal)
-
+        
     elif 'i' in arg1 and 'reg' is arg2:
         emu.index_register += get_reg1_val(emu)
         if (emu.index_register > 0xFF) and Emulator.SET_VF_ON_GFX_OVERFLOW:
             emu.register[0xF] = 0x01
         emu.index_register &= 0xFFF
-
-    else:
-        emu.log("Unknown argument at address " + hex(emu.program_counter), EmulationError._Fatal)
 
 def i_ld(emu):
     arg1 = emu.dis_ins.mnemonic_arg_types[0]
@@ -407,9 +464,6 @@ def i_ld(emu):
             emu.program_counter -= 2
         elif '[i]' == arg2:
             emu.register[0: get_reg1(emu) + 1] = emu.ram[ emu.index_register : emu.index_register + get_reg1(emu) + 1]
-        else:
-            emu.log("Loads with second argument type '" + arg2 + \
-                "' are not supported.", EmulationError._Fatal)
 
     elif 'reg' is arg2:
         if   'dt' is arg1:
@@ -423,14 +477,9 @@ def i_ld(emu):
             emu.ram[ emu.index_register : emu.index_register + len(bcd)] = bcd
         elif '[i]' == arg1:
             emu.ram[ emu.index_register : emu.index_register + get_reg1(emu) + 1] = emu.register[0: get_reg1(emu) + 1]
-        else:
-            emu.log("Unknown argument at address " + hex(emu.program_counter), EmulationError._Fatal)
 
     elif 'i' is arg1 and 'addr' is arg2:
         emu.index_register =  get_address(emu)
-
-    else:
-        emu.log("Unknown argument at address " + hex(emu.program_counter), EmulationError._Fatal)
 
 def i_drw(emu):
     emu.draw_flag = True

@@ -7,17 +7,7 @@ except ImportError:
 
 # Import Sound (optional)
 try: import simpleaudio as sa
-except ImportError:
-    sa = None
-
-# Import System to clear keybuffer
-try:
-    termios = True
-    from termios import tcflush, TCIOFLUSH
-    from sys import stdin
-except ImportError:
-    termios = None
-    from msvcrt import getch, kbhit
+except ImportError: sa = None
 
 # Everything else
 from os import path
@@ -35,14 +25,12 @@ class Display:
 
     KEY_EXIT  = 120 # X
     KEY_CONTROLS={
-        48:0x0, 49:0x1, 50:0x2, 51:0x3, # 0 1 2 3
-        52:0x4, 53:0x5, 54:0x6, 55:0x7, # 4 5 6 7
-        56:0x8, 57:0x9, 47:0xA, 42:0xB, # 8 9 / *
-        45:0xC, 43:0xD, 10:0xE, 46:0xF} # - + E .
+        120:0x0,  49:0x1,  50:0x2,  51:0x3, # 1 2 3 4
+        113:0x4, 119:0x5, 101:0x6,  97:0x7, # q w e r
+        115:0x8, 100:0x9,  52:0xA, 114:0xB, # a s d f
+        102:0xC, 118:0xD, 122:0xE,  99:0xF} # z x c v
 
-    def __init__(self, rom, cpuhz, audiohz, delayhz,
-                 drawfix, enable_unicode,
-                 wave_file=None):
+    def __init__(self, rom, cpuhz, audiohz, delayhz, drawfix, enable_unicode, wave_file=None):
 
         # Check if windows (no unicode in their Curses)
         self.screen_unicode = enable_unicode
@@ -142,7 +130,6 @@ class Display:
         except KeyboardInterrupt:
             return
         except:
-            print("Unhandled Error!")
             raise
         finally:
             curses.nocbreak()
@@ -176,11 +163,4 @@ class Display:
                     .replace('1', self.draw_char.upper ).replace('0', self.draw_char.empty )
                 self.window.addstr( 1+y, 1+x*8, total_chunk )
         self.window.noutrefresh()
-
-    def flush_key_buffer():
-        if termios:
-            tcflush(stdin, TCIOFLUSH)
-        else:
-            while kbhit():
-                getch()
 
