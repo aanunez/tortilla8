@@ -240,7 +240,7 @@ class Emulator:
         k = self.decode_keypad()
         nk = bin( (k ^ self.prev_keypad) & k )[2:].zfill(16).find('1')
         if nk != -1:
-            self.register[ self.get_reg1() ] = nk
+            self.register[ get_reg1(self) ] = nk
             self.program_counter += 2
             self.waiting_for_key = False
 
@@ -250,7 +250,7 @@ class Emulator:
     @staticmethod
     def disassemble(byte_list):
         '''
-        A one line (2 byte) dissassembler function for CHIP-8 Rom It
+        A one line (2 byte) dissassembler function for CHIP-8 Rom. It
         returns a named tuple with various information on the line.
         '''
 
@@ -339,7 +339,7 @@ class Emulator:
 # Add-3 SE-2 SNE-2 LD-11 JP-2 (mnemonics w/ extra instructions)
 
 def i_cls(emu):
-    emu.ram[GFX_ADDRESS:GFX_ADDRESS + Emulator.GFX_RESOLUTION] = [0x00] * Emulator.GFX_RESOLUTION
+    emu.ram[Emulator.GFX_ADDRESS:Emulator.GFX_ADDRESS + Emulator.GFX_RESOLUTION] = [0x00] * Emulator.GFX_RESOLUTION
     emu.draw_flag = True
 
 def i_ret(emu):
@@ -379,7 +379,7 @@ def i_sne(emu):
         emu.program_counter += 2
 
 def i_shl(emu):
-    if ENABLE_LEGACY_SHIFT:
+    if Emulator.ENABLE_LEGACY_SHIFT:
         emu.register[0xF] = 0x01 if get_reg2_val(emu) >= 0x80 else 0x0
         emu.register[ get_reg1(emu) ] = ( get_reg2_val(emu) << 1 ) & 0xFF
     else:
@@ -387,7 +387,7 @@ def i_shl(emu):
         emu.register[ get_reg1(emu) ] = ( get_reg1_val(emu) << 1 ) & 0xFF
 
 def i_shr(emu):
-    if ENABLE_LEGACY_SHIFT:
+    if Emulator.ENABLE_LEGACY_SHIFT:
         emu.register[0xF] = 0x01 if ( get_reg2_val(emu) % 2) == 1 else 0x0
         emu.register[ get_reg1(emu) ] = get_reg2_val(emu) >> 1
     else:

@@ -23,7 +23,7 @@ class Display:
     UNICODE_DRAW = CHAR_SET('▀','▄','█',' ')
     WIN_DRAW = CHAR_SET('*','o','8',' ')
 
-    KEY_EXIT  = 120 # X
+    KEY_EXIT  = 107 # k
     KEY_CONTROLS={
         120:0x0,  49:0x1,  50:0x2,  51:0x3, # 1 2 3 4
         113:0x4, 119:0x5, 101:0x6,  97:0x7, # q w e r
