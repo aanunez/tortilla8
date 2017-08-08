@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 
 from . import Guacamole, EmulationError
-from os import environ
 from os.path import join as pathjoin
 from tkinter import *
 from tkinter import filedialog
 from webbrowser import open as openweb
-from array import array
 
 # Import Sound (optional)
 try: import simpleaudio as sa
@@ -216,13 +214,6 @@ class Nacho(Frame):
         self.root.after(Nacho.TIMER_REFRESH, self.timers_event)
 
     def emu_event(self):
-        if self.fatal:
-            haltmenu = Menu(self.menubar, tearoff=0)
-            self.menubar.add_cascade(label="Fatal Error has occured!", menu=haltmenu)
-            if self.audio_on:
-                sa.stop_all()
-            return
-
         self.emu.cpu_tick()
 
         for err in self.emu.error_log:
@@ -246,5 +237,9 @@ class Nacho(Frame):
                     self.draw()
                 self.prev_screen = cur_screen
 
-        self.root.after(self.run_time, self.emu_event)
+        if not self.fatal:
+            self.root.after(self.run_time, self.emu_event)
+        else:
+            self.menubar.add_cascade(label="Fatal Error has occured!", menu=Menu(self.menubar, tearoff=0))
+            sa.stop_all()
 
