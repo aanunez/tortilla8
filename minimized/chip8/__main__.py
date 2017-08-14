@@ -29,9 +29,6 @@ def parse_args():
     parser.add_argument('-a','--audio', help=
         'Path to audio to play for Sound Timer, or "off" to prevent sound from playing.' + \
         'By default a 440Hz square wave is used.')
-    parser.add_argument('-ls','--legacy_shift', action='store_true', help=
-        'Use the legacy shift method of bit shift Y and storing to X. ' +\
-        'By default the newer method is used where Y is ignored and X is bitshifted then stored to itself.')
     parser.add_argument("-u","--unicode", action='store_true', help=
         'Forces unicode to be used for the game screen.')
 

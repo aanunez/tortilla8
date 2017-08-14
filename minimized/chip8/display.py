@@ -79,7 +79,6 @@ class Display:
         previous_pc = 0
 
         try:
-
             while True:
 
                 # Grab key

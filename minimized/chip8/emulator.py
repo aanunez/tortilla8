@@ -6,46 +6,45 @@ from os.path import getsize
 from time import time
 from collections import namedtuple
 
-OpData = namedtuple('OpData', 'regular, args, hex')
-OP_CODES = {                                 # X and Y in the right most indicates if it is for the 1st or 2nd arg
-    'cls' : OpData('00e0',[],'00E0'),
-    'ret' : OpData('00ee',[],'00EE'),
-    'sys' : OpData('0(^0)..',['addr'],'0xxx'), # prevent match to cls or ret
-    'call': OpData('2...',['addr'],'2xxx'),
-    'skp' : OpData('e.9e',['reg'],'Ex9E'),
-    'sknp': OpData('e.a1',['reg'],'ExA1'),
-    'se'  :(OpData('5..0',['reg','reg'],'5xy0'),
-            OpData('3...',['reg','byte'],'3xyy')),
-    'sne' :(OpData('9..0',['reg','reg'],'9xy0'),
-            OpData('4...',['reg','byte'],'4xyy')),
-    'add' :(OpData('7...',['reg','byte'],'7xyy'),
-            OpData('8..4',['reg','reg'],'8xy4'),
-            OpData('f.1e',['i','reg'],'Fy1E')),
-    'or'  : OpData('8..1',['reg','reg'],'8xy1'),
-    'and' : OpData('8..2',['reg','reg'],'8xy2'),
-    'xor' : OpData('8..3',['reg','reg'],'8xy3'),
-    'sub' : OpData('8..5',['reg','reg'],'8xy5'),
-    'subn': OpData('8..7',['reg','reg'],'8xy7'),
-    'shr' :(OpData('8..6',['reg'],'8x06'),
-            OpData('    ',['reg','reg'],'8xy6')), # Blank regex, we never match, use Legacy_shift instead
-    'shl' :(OpData('8..e',['reg'],'8x0E'),
-            OpData('    ',['reg','reg'],'8xyE')), # as above
-    'rnd' : OpData('c...',['reg','byte'],'Cxyy'),
-    'jp'  :(OpData('b...',['v0','addr'],'Byyy'),
-            OpData('1...',['addr'],'1xxx')),
-    'ld'  :(OpData('6...',['reg','byte'],'6xyy'),
-            OpData('8..0',['reg','reg'],'8xy0'),
-            OpData('f.07',['reg','dt'],'Fx07'),
-            OpData('f.0a',['reg','k'],'Fx0A'),
-            OpData('f.65',['reg','[i]'],'Fx65'),
-            OpData('a...',['i','addr'],'Ayyy'),
-            OpData('f.15',['dt','reg'],'Fy15'),
-            OpData('f.18',['st','reg'],'Fy18'),
-            OpData('f.29',['f','reg'],'Fy29'),
-            OpData('f.33',['b','reg'],'Fy33'),
-            OpData('f.55',['[i]','reg'],'Fy55')),
-    'drw' : OpData('d...',['reg','reg','nibble'],'Dxyz')
-    }
+OP_CODES = (
+    ('cls' , ('00e0',())),
+    ('ret' , ('00ee',())),
+    ('sys' , ('0(^0)..',('addr',))), # prevent match to cls or ret
+    ('call', ('2...',('addr',))),
+    ('skp' , ('e.9e',('reg',))),
+    ('sknp', ('e.a1',('reg',))),
+    ('se'  ,(('5..0',('reg','reg')),
+             ('3...',('reg','byte')))),
+    ('sne' ,(('9..0',('reg','reg')),
+             ('4...',('reg','byte')))),
+    ('add' ,(('7...',('reg','byte')),
+             ('8..4',('reg','reg')),
+             ('f.1e',('i','reg')))),
+    ('or'  , ('8..1',('reg','reg'))),
+    ('and' , ('8..2',('reg','reg'))),
+    ('xor' , ('8..3',('reg','reg'))),
+    ('sub' , ('8..5',('reg','reg'))),
+    ('subn', ('8..7',('reg','reg'))),
+    ('shr' ,(('8..6',('reg',)),
+             ('    ',('reg','reg')))), # Blank regex, we never match, use Legacy_shift instead
+    ('shl' ,(('8..e',('reg',)),
+             ('    ',('reg','reg')))), # as above
+    ('rnd' , ('c...',('reg','byte'))),
+    ('jp'  ,(('b...',('v0','addr')),
+             ('1...',('addr',)))),
+    ('ld'  ,(('6...',('reg','byte')),
+             ('8..0',('reg','reg')),
+             ('f.07',('reg','dt')),
+             ('f.0a',('reg','k')),
+             ('f.65',('reg','(i)')),
+             ('a...',('i','addr')),
+             ('f.15',('dt','reg')),
+             ('f.18',('st','reg')),
+             ('f.29',('f','reg')),
+             ('f.33',('b','reg')),
+             ('f.55',('(i)','reg')))),
+    ('drw' , ('d...',('reg','reg','nibble')))
+)
 
 class ASMdata( namedtuple('ASMdata', 'hex_instruction valid mnemonic\
     mnemonic_arg_types disassembled_line unoffical_op banned super8') ):
@@ -75,12 +74,12 @@ class Emulator:
     SET_VF_ON_GFX_OVERFLOW = False # Undocumented 'feature'. When 'Add I, VX' overflows 'I'
                                    # VF is set to one when this is True. The insturction does
                                    # not set VF low. Used by Spacefight 2019.
-    ENABLE_LEGACY_SHIFT = False
-
+    ENABLE_LEGACY_SHIFT = False # Legacy Shift is performed by copying y into x and shifting,
+                                # rather than shifting x. Not sure who uses this.
     NUMB_OF_REGS = 16
     BYTES_OF_RAM = 4096
     MAX_ROM_SIZE = 3232
-    PROGRAM_BEGIN_ADDRESS = 0x200 # Some use 0x600 
+    PROGRAM_BEGIN_ADDRESS = 0x200 # Some use 0x600
 
     STACK_SIZE    = 12
     STACK_ADDRESS = None
@@ -101,7 +100,7 @@ class Emulator:
         0xF0, 0x90, 0xF0, 0x90, 0x90, 0xE0, 0x90, 0xE0, 0x90, 0xE0, # A B
         0xF0, 0x80, 0x80, 0x80, 0xF0, 0xE0, 0x90, 0x90, 0x90, 0xE0, # C D
         0xF0, 0x80, 0xF0, 0x80, 0xF0, 0xF0, 0x80, 0xF0, 0x80, 0x80  # E F
-        )
+    )
 
     OP_CODE_SIZE = 2
     UNOFFICIAL_OP_CODES = ('xor','shr','shl','subn') # But still supported
@@ -253,7 +252,6 @@ class Emulator:
         A one line (2 byte) dissassembler function for CHIP-8 Rom. It
         returns a named tuple with various information on the line.
         '''
-
         class EarlyExit(Exception):
             pass
 
@@ -275,15 +273,14 @@ class Emulator:
                 raise EarlyExit
 
             # Match the instruction via a regex index
-            for mnemonic, reg_patterns in OP_CODES.items():
-
-                if type(reg_patterns) is not tuple:
-                    reg_patterns = (reg_patterns,)
+            for instruction in OP_CODES:
+                _mnemonic = instruction[0]
+                reg_patterns = instruction[1]
                 for pattern_version in reg_patterns:
-                    if not match(pattern_version.regular, hex_instruction):
+                    if not match(pattern_version[0], hex_instruction):
                         continue
-                    mnemonic = mnemonic
-                    mnemonic_arg_types = pattern_version.args
+                    mnemonic = _mnemonic
+                    mnemonic_arg_types = pattern_version[1]
                     valid = True
                     break
                 if valid:
@@ -441,7 +438,7 @@ def i_add(emu):
             emu.register[ get_reg1(emu) ] = get_reg1_val(emu) + get_reg2_val(emu)
             emu.register[0xF] = 0x01 if emu.register[ get_reg1(emu) ] > 0xFF else 0x00
             emu.register[ get_reg1(emu) ] &= 0xFF
-        
+
     elif 'i' in arg1 and 'reg' is arg2:
         emu.index_register += get_reg1_val(emu)
         if (emu.index_register > 0xFF) and Emulator.SET_VF_ON_GFX_OVERFLOW:
@@ -509,21 +506,10 @@ def i_drw(emu):
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Hex Extraction
 
-def get_address(emu):
-    return int(emu.dis_ins.hex_instruction[1:4], 16)
-
-def get_reg1(emu):
-    return int(emu.dis_ins.hex_instruction[1],16)
-
-def get_reg2(emu):
-    return int(emu.dis_ins.hex_instruction[2],16)
-
-def get_reg1_val(emu):
-    return emu.register[int(emu.dis_ins.hex_instruction[1],16)]
-
-def get_reg2_val(emu):
-    return emu.register[int(emu.dis_ins.hex_instruction[2],16)]
-
-def get_lower_byte(emu):
-    return int(emu.dis_ins.hex_instruction[2:4], 16)
+get_address    = lambda emu : int(emu.dis_ins.hex_instruction[1:4], 16)
+get_reg1       = lambda emu : int(emu.dis_ins.hex_instruction[1],16)
+get_reg2       = lambda emu : int(emu.dis_ins.hex_instruction[2],16)
+get_reg1_val   = lambda emu : emu.register[int(emu.dis_ins.hex_instruction[1],16)]
+get_reg2_val   = lambda emu : emu.register[int(emu.dis_ins.hex_instruction[2],16)]
+get_lower_byte = lambda emu : int(emu.dis_ins.hex_instruction[2:4], 16)
 
