@@ -63,11 +63,11 @@ def explode_op_codes( op_code_list ):
                 exploded_list.append(item.replace(repl, hex(i)[2:].zfill(fill)))
     return exploded_list
 
-def RomLoadError(Exception): pass
-def StackUnderflowError(Exception): pass
-def StackOverflowError(Exception): pass
-def InvalidInstructionError(Exception): pass
-def DisassemblerError(Exception): pass
+class RomLoadError(Exception): pass
+class StackUnderflowError(Exception): pass
+class StackOverflowError(Exception): pass
+class InvalidInstructionError(Exception): pass
+class DisassemblerError(Exception): pass
 
 class Emulator:
 
@@ -217,7 +217,7 @@ class Emulator:
         if self.dis_ins.valid:
             self.ins_tbl[self.dis_ins.mnemonic](self)
         else:
-            raise InvalidInstructionError
+            raise InvalidInstructionError(self.dis_ins)
 
         # Increment the PC
         self.program_counter += 2
@@ -255,8 +255,7 @@ class Emulator:
         class EarlyExit(Exception):
             pass
 
-        hex_instruction =  hex( byte_list[0] )[2:].zfill(2)
-        hex_instruction += hex( byte_list[1] )[2:].zfill(2)
+        hex_instruction =  hex( byte_list[0] )[2:].zfill(2) + hex( byte_list[1] )[2:].zfill(2)
         valid = False
         mnemonic = None
         mnemonic_arg_types = None
@@ -277,7 +276,7 @@ class Emulator:
                 _mnemonic = instruction[0]
                 reg_patterns = instruction[1]
                 for pattern_version in reg_patterns:
-                    if not match(pattern_version[0], hex_instruction):
+                    if not pattern_version or not match(pattern_version[0], hex_instruction):
                         continue
                     mnemonic = _mnemonic
                     mnemonic_arg_types = pattern_version[1]
@@ -325,6 +324,8 @@ class Emulator:
             disassembled_line = (mnemonic.ljust(5) + disassembled_line[:-1]).rstrip()
         except EarlyExit:
             pass
+        except:
+            raise
         finally:
             return ASMdata(hex_instruction, valid, mnemonic,
                 mnemonic_arg_types, disassembled_line, unoffical_op,

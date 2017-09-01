@@ -43,8 +43,7 @@ def main():
         raise OSError("File '" + opts.rom + "' does not exist")
 
     screen_unicode = True if platform != 'win32' or opts.unicode else False
-    disp = Display( opts.rom, opts.frequency, 60, 60,
-                    opts.drawfix, screen_unicode, opts.audio )
+    disp = Display( opts.rom, opts.frequency, 60, 60, opts.drawfix, screen_unicode, opts.audio )
     disp.start()
 
 if __name__ == "__main__":
