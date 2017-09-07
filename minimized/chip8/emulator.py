@@ -211,7 +211,7 @@ class Emulator:
         try:
             self.dis_ins = self.disassemble(self.ram[self.program_counter:self.program_counter+Emulator.OP_CODE_SIZE])
         except:
-            raise DisassemblerError
+            raise
 
         # Execute instruction
         if self.dis_ins.valid:
@@ -275,6 +275,8 @@ class Emulator:
             for instruction in OP_CODES:
                 _mnemonic = instruction[0]
                 reg_patterns = instruction[1]
+                if type(reg_patterns[0]) is not tuple:
+                    reg_patterns = (reg_patterns,)
                 for pattern_version in reg_patterns:
                     if not pattern_version or not match(pattern_version[0], hex_instruction):
                         continue
