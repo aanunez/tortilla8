@@ -46,7 +46,7 @@ class Jalapeno:
 
         # Flatten all IF/ELSE/ETC directives  - Pass One
         for i,line in enumerate(file_handler):
-            t = cilantro(line, i)
+            t = Cilantro(line, i)
 
             if skipping_lines:
                 if (t.pp_directive in ('endif','else')) or\
